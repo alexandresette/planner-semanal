@@ -17,7 +17,7 @@ const GMAIL_MAP = {
   "alexandresettesf@gmail.com": "xande",
 };
 
-
+const ADMIN_USER = "xande";
 const ADMIN_INVITES_KEY = "admin-invites";
 const USER_CREDS_PREFIX = "user-creds-";
 
