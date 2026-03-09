@@ -12,7 +12,12 @@ const CREDENTIALS = {
   "dea": "054676b7727c43a1b5bf80588455e074b7cb8343a3b4c26c5389c668fb6a79b6",
 };
 
-const ADMIN_USER = "xande";
+// Mapeamento fixo de Gmail → usuário (hardcoded, não exposto na UI)
+const GMAIL_MAP = {
+  "alexandresettesf@gmail.com": "xande",
+};
+
+
 const ADMIN_INVITES_KEY = "admin-invites";
 const USER_CREDS_PREFIX = "user-creds-";
 
@@ -383,19 +388,16 @@ function LoginScreen({ onLogin, theme }) {
     setGoogleLoading(true); setGoogleError("");
     try {
       const firebaseUser = await signInWithGoogle();
-      const email = firebaseUser.email;
-      // Verificar se é usuário master (xande tem email cadastrado ou é admin)
-      // Checar se email já tem conta criada
+      const email = firebaseUser.email.toLowerCase();
+      // 1. Verificar mapeamento fixo (ex: xande)
+      if (GMAIL_MAP[email]) { onLogin(GMAIL_MAP[email]); return; }
+      // 2. Checar se email já tem conta criada no Firestore
       const username = await getUsernameByEmail(email);
       if (username) { onLogin(username); return; }
-      // Checar se email foi convidado
+      // 3. Checar se email foi convidado
       const invited = await isEmailInvited(email);
-      if (invited) {
-        // Email convidado mas sem conta ainda — ir para primeiro acesso
-        setFirstAccessEmail(email);
-        return;
-      }
-      // Email não convidado
+      if (invited) { setFirstAccessEmail(email); return; }
+      // 4. Email não autorizado
       await firebaseSignOut();
       setGoogleError("Este e-mail não está autorizado. Solicite um convite ao administrador.");
     } catch (e) {
