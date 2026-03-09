@@ -498,9 +498,10 @@ function TaskItem({task,color,onToggle,onUpdate,onDelete,projectName,onMoveWeek,
     window.addEventListener("keydown",handler,true);
     return()=>window.removeEventListener("keydown",handler,true);
   },[showOpts,isEditing]);
+  const [showDeleteConfirm,setShowDeleteConfirm]=useState(false);
   const dayInfo=WEEK_DAYS.find(d=>d.key===task.day);
   const saveText=()=>{if(editText.trim()&&editText.trim()!==task.text)onUpdate({text:editText.trim()});setIsEditing(false);};
-  const toggleOpts=()=>{const next=!showOpts;if(onOpen)onOpen(next?task.id:null);if(onEditingChange)onEditingChange(next);};
+  const toggleOpts=()=>{const next=!showOpts;if(onOpen)onOpen(next?task.id:null);if(onEditingChange)onEditingChange(next);setShowDeleteConfirm(false);};
   const tc = c || themes.dark;
   return(
     <div className="task-card" style={{borderRadius:12,overflow:"hidden",background:task.done?tc.taskBgDone:tc.taskBg,border:`1px solid ${task.done?tc.taskBorderDone:tc.taskBorder}`,opacity:task.done?0.55:1}}>
@@ -541,7 +542,19 @@ function TaskItem({task,color,onToggle,onUpdate,onDelete,projectName,onMoveWeek,
           <div style={{marginBottom:8}}><span style={{fontSize:10,color:tc.textMuted,fontWeight:600,display:"block",marginBottom:5,textTransform:"uppercase",letterSpacing:0.5}}>Dia</span><div style={{display:"flex",gap:3,flexWrap:"wrap"}}>{WEEK_DAYS.map(d=>(<button key={d.key} onClick={()=>onUpdate({day:d.key})} style={{padding:"4px 7px",fontSize:10,fontWeight:600,borderRadius:6,border:"none",cursor:"pointer",fontFamily:F,background:task.day===d.key?color:tc.inputBg,color:task.day===d.key?"#fff":tc.textSub,transition:"all 0.15s ease"}}>{d.label}</button>))}</div></div>
           <div style={{marginBottom:onMoveWeek?10:0}}><span style={{fontSize:10,color:tc.textMuted,fontWeight:600,display:"block",marginBottom:5,textTransform:"uppercase",letterSpacing:0.5}}>Prioridade</span><div style={{display:"flex",gap:4,flexWrap:"wrap"}}>{Object.entries(priorityConfig).map(([k,v])=>(<button key={k} onClick={()=>onUpdate({priority:k})} style={{padding:"4px 10px",fontSize:10,fontWeight:600,borderRadius:6,border:"none",cursor:"pointer",fontFamily:F,background:task.priority===k?v.dot:v.bg,color:task.priority===k?"#fff":v.dot,transition:"all 0.15s ease"}}>{v.label}</button>))}</div></div>
           {onMoveWeek&&(<div style={{marginBottom:10}}><span style={{fontSize:10,color:tc.textMuted,fontWeight:600,display:"block",marginBottom:5,textTransform:"uppercase",letterSpacing:0.5}}>Semana</span>{onMoveWeek}</div>)}
-          {onDelete&&(<div style={{paddingTop:6,borderTop:`1px solid ${tc.divider}`}}><button onClick={onDelete} style={{display:"flex",alignItems:"center",gap:6,width:"100%",padding:"7px 10px",borderRadius:8,border:`1px solid ${tc.deleteDangerBorder}`,background:tc.deleteDangerBg,color:"#EF4444",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:F}}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Excluir tarefa</button></div>)}
+          {onDelete&&(<div style={{paddingTop:6,borderTop:`1px solid ${tc.divider}`}}>
+            {showDeleteConfirm?(
+              <div style={{borderRadius:8,background:tc.deleteDangerBg,border:`1px solid ${tc.deleteDangerBorder}`,padding:"10px 12px",animation:"fadeIn 0.15s ease"}}>
+                <p style={{fontSize:11,color:"#EF4444",fontWeight:600,margin:"0 0 8px",fontFamily:F}}>Excluir esta tarefa?</p>
+                <div style={{display:"flex",gap:6}}>
+                  <button onClick={onDelete} style={{flex:1,padding:"6px",borderRadius:7,border:"none",background:"#EF4444",color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:F}}>Excluir</button>
+                  <button onClick={()=>setShowDeleteConfirm(false)} style={{flex:1,padding:"6px",borderRadius:7,border:`1px solid ${tc.cardBorder}`,background:tc.cancelBg,color:tc.textSub,fontSize:11,fontWeight:500,cursor:"pointer",fontFamily:F}}>Cancelar</button>
+                </div>
+              </div>
+            ):(
+              <button onClick={()=>setShowDeleteConfirm(true)} style={{display:"flex",alignItems:"center",gap:6,width:"100%",padding:"7px 10px",borderRadius:8,border:`1px solid ${tc.deleteDangerBorder}`,background:tc.deleteDangerBg,color:"#EF4444",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:F}}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Excluir tarefa</button>
+            )}
+          </div>)}
         </div>
       )}
     </div>
