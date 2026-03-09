@@ -15,14 +15,26 @@ const db = getFirestore(app);
 
 const storage = {
   async get(key) {
+    // Firestore é sempre a fonte da verdade.
+    // localStorage só é usado se o Firestore for genuinamente inacessível (offline).
     try {
       const docRef = doc(db, 'storage', key);
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
-        return { key, value: docSnap.data().value };
+        const { value, updatedAt } = docSnap.data();
+        // Sincroniza cache local com o valor mais recente do Firestore
+        try {
+          localStorage.setItem(key, value);
+          localStorage.setItem(key + '__meta', JSON.stringify({ updatedAt }));
+        } catch {}
+        return { key, value };
       }
+      // Documento não existe no Firestore — remove cache local desatualizado
+      try { localStorage.removeItem(key); localStorage.removeItem(key + '__meta'); } catch {}
       throw new Error("not found");
     } catch (e) {
+      if (e.message === "not found") throw e;
+      // Erro de rede/Firestore — usa localStorage como fallback offline
       try {
         const val = localStorage.getItem(key);
         if (val !== null) return { key, value: val };
@@ -32,13 +44,22 @@ const storage = {
   },
 
   async set(key, value) {
+    const updatedAt = new Date().toISOString();
     try {
       const docRef = doc(db, 'storage', key);
-      await setDoc(docRef, { value, updatedAt: new Date().toISOString() });
-      try { localStorage.setItem(key, value); } catch {}
+      await setDoc(docRef, { value, updatedAt });
+      // Só atualiza localStorage após confirmação do Firestore
+      try {
+        localStorage.setItem(key, value);
+        localStorage.setItem(key + '__meta', JSON.stringify({ updatedAt }));
+      } catch {}
       return { key, value };
     } catch (e) {
-      try { localStorage.setItem(key, value); } catch {}
+      // Offline: salva localmente com flag de sync pendente
+      try {
+        localStorage.setItem(key, value);
+        localStorage.setItem(key + '__meta', JSON.stringify({ updatedAt, pendingSync: true }));
+      } catch {}
       return { key, value };
     }
   },
@@ -47,10 +68,10 @@ const storage = {
     try {
       const docRef = doc(db, 'storage', key);
       await deleteDoc(docRef);
-      try { localStorage.removeItem(key); } catch {}
+      try { localStorage.removeItem(key); localStorage.removeItem(key + '__meta'); } catch {}
       return { key, deleted: true };
     } catch {
-      try { localStorage.removeItem(key); } catch {}
+      try { localStorage.removeItem(key); localStorage.removeItem(key + '__meta'); } catch {}
       return { key, deleted: true };
     }
   },
@@ -68,7 +89,7 @@ const storage = {
       const keys = [];
       for (let i = 0; i < localStorage.length; i++) {
         const k = localStorage.key(i);
-        if (!prefix || k.startsWith(prefix)) keys.push(k);
+        if (k && !k.endsWith('__meta') && (!prefix || k.startsWith(prefix))) keys.push(k);
       }
       return { keys };
     }
