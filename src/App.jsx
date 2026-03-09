@@ -565,7 +565,7 @@ function LoginScreen({ onLogin, theme }) {
 
   const handleSubmit = async () => {
     if(!user.trim()||!pin){setError(true);setShake(true);setTimeout(()=>setShake(false),500);setTimeout(()=>setError(false),2000);return;}
-    if(await verifyCredentials(user,pin)){onLogin(user.trim().toLowerCase());}
+    if(await verifyCredentials(user,pin)){onLogin(user.trim().toLowerCase(),"");}
     else{setError(true);setShake(true);setTimeout(()=>setShake(false),500);setTimeout(()=>setError(false),2000);}
   };
 
@@ -574,11 +574,12 @@ function LoginScreen({ onLogin, theme }) {
     try {
       const firebaseUser = await signInWithGoogle();
       const email = firebaseUser.email.toLowerCase();
+      const googlePhoto = firebaseUser.photoURL || "";
       // 1. Verificar mapeamento fixo (ex: xande)
-      if (GMAIL_MAP[email]) { onLogin(GMAIL_MAP[email]); return; }
+      if (GMAIL_MAP[email]) { onLogin(GMAIL_MAP[email], googlePhoto); return; }
       // 2. Checar se email já tem conta criada no Firestore
       const username = await getUsernameByEmail(email);
-      if (username) { onLogin(username); return; }
+      if (username) { onLogin(username, googlePhoto); return; }
       // 3. Checar se email foi convidado
       const invited = await isEmailInvited(email);
       if (invited) { setFirstAccessEmail(email); return; }
@@ -1081,6 +1082,160 @@ function ColumnProjectCard({project:p,done,total,pct,idx,projectsLen,reorderMode
   );
 }
 
+/* ─── User Settings Modal ─── */
+function UserSettingsModal({userName,profile,onSave,onClose,c}){
+  const tc=c||themes.dark;
+  const [displayName,setDisplayName]=useState(profile.displayName||userName);
+  const [photoURL,setPhotoURL]=useState(profile.photoURL||"");
+  const [saving,setSaving]=useState(false);
+  // Crop state
+  const [cropSrc,setCropSrc]=useState(null);
+  const [cropScale,setCropScale]=useState(1);
+  const [cropOffset,setCropOffset]=useState({x:0,y:0});
+  const [dragging,setDragging]=useState(false);
+  const [dragStart,setDragStart]=useState(null);
+  const canvasRef=useRef(null);
+  const imgRef=useRef(null);
+  const SIZE=220;
+
+  useEffect(()=>{
+    const h=(e)=>{if(e.key==="Escape"){e.stopPropagation();if(cropSrc){setCropSrc(null);}else{onClose();}}};
+    window.addEventListener("keydown",h,true);
+    return()=>window.removeEventListener("keydown",h,true);
+  },[cropSrc,onClose]);
+
+  // Draw crop preview
+  useEffect(()=>{
+    if(!cropSrc||!canvasRef.current)return;
+    const canvas=canvasRef.current;
+    const ctx=canvas.getContext("2d");
+    const img=imgRef.current;
+    if(!img||!img.complete)return;
+    ctx.clearRect(0,0,SIZE,SIZE);
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(SIZE/2,SIZE/2,SIZE/2,0,Math.PI*2);
+    ctx.clip();
+    const w=img.naturalWidth*cropScale;
+    const h=img.naturalHeight*cropScale;
+    ctx.drawImage(img,(SIZE-w)/2+cropOffset.x,(SIZE-h)/2+cropOffset.y,w,h);
+    ctx.restore();
+  },[cropSrc,cropScale,cropOffset]);
+
+  const handleFileChange=(e)=>{
+    const f=e.target.files[0];if(!f)return;
+    const reader=new FileReader();
+    reader.onload=(ev)=>{setCropSrc(ev.target.result);setCropScale(1);setCropOffset({x:0,y:0});};
+    reader.readAsDataURL(f);
+    e.target.value="";
+  };
+
+  const handleWheel=(e)=>{e.preventDefault();setCropScale(s=>Math.min(4,Math.max(0.3,s-e.deltaY*0.002)));};
+  const handleMouseDown=(e)=>{e.preventDefault();setDragging(true);setDragStart({x:e.clientX-cropOffset.x,y:e.clientY-cropOffset.y});};
+  const handleMouseMove=(e)=>{if(!dragging||!dragStart)return;setCropOffset({x:e.clientX-dragStart.x,y:e.clientY-dragStart.y});};
+  const handleMouseUp=()=>{setDragging(false);setDragStart(null);};
+  const handleTouchStart=(e)=>{const t=e.touches[0];setDragging(true);setDragStart({x:t.clientX-cropOffset.x,y:t.clientY-cropOffset.y});};
+  const handleTouchMove=(e)=>{if(!dragging||!dragStart)return;const t=e.touches[0];setCropOffset({x:t.clientX-dragStart.x,y:t.clientY-dragStart.y});};
+
+  const applyCrop=()=>{
+    if(!canvasRef.current)return;
+    const url=canvasRef.current.toDataURL("image/jpeg",0.85);
+    setPhotoURL(url);setCropSrc(null);
+  };
+
+  const handleSave=async()=>{
+    setSaving(true);
+    await onSave({displayName:displayName.trim()||userName,photoURL});
+    setSaving(false);onClose();
+  };
+
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.65)",backdropFilter:"blur(6px)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:3000,padding:16,animation:"fadeIn 0.2s ease"}} onClick={()=>cropSrc?null:onClose()}>
+      <div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:420,background:tc.modalBg,border:`1px solid ${tc.cardBorder}`,borderRadius:22,boxShadow:"0 12px 56px rgba(0,0,0,0.5)",overflow:"hidden"}}>
+        {/* Header */}
+        <div style={{padding:"20px 20px 16px",borderBottom:`1px solid ${tc.divider}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+          <div style={{display:"flex",alignItems:"center",gap:10}}>
+            <div style={{width:36,height:36,borderRadius:10,background:"rgba(59,130,246,0.12)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </div>
+            <span style={{fontSize:16,fontWeight:700,color:tc.text,fontFamily:FS}}>Configurações do Perfil</span>
+          </div>
+          <button onClick={onClose} style={{background:"none",border:"none",cursor:"pointer",opacity:0.4,padding:4}} onMouseEnter={e=>e.currentTarget.style.opacity="0.8"} onMouseLeave={e=>e.currentTarget.style.opacity="0.4"}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={tc.textSub} strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+
+        {/* Crop view */}
+        {cropSrc&&(
+          <div style={{padding:24}}>
+            <p style={{fontSize:12,color:tc.textMuted,fontFamily:F,margin:"0 0 12px",textAlign:"center"}}>Arraste para reposicionar · Scroll para zoom</p>
+            <div style={{display:"flex",justifyContent:"center",marginBottom:14}}>
+              <canvas ref={canvasRef} width={SIZE} height={SIZE}
+                style={{borderRadius:"50%",border:`3px solid ${tc.cardBorder}`,cursor:dragging?"grabbing":"grab",touchAction:"none",userSelect:"none"}}
+                onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}
+                onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleMouseUp}
+                onWheel={handleWheel}
+              />
+              <img ref={imgRef} src={cropSrc} alt="" style={{display:"none"}} onLoad={()=>{
+                if(!canvasRef.current||!imgRef.current)return;
+                const img=imgRef.current;
+                const scaleToFit=Math.max(SIZE/img.naturalWidth,SIZE/img.naturalHeight);
+                setCropScale(scaleToFit);setCropOffset({x:0,y:0});
+                // trigger redraw
+                setTimeout(()=>setCropOffset(o=>({...o})),50);
+              }}/>
+            </div>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16}}>
+              <span style={{fontSize:11,color:tc.textMuted,fontFamily:F}}>🔍</span>
+              <input type="range" min="0.3" max="4" step="0.01" value={cropScale} onChange={e=>setCropScale(parseFloat(e.target.value))} style={{flex:1,accentColor:"#3B82F6"}}/>
+            </div>
+            <div style={{display:"flex",gap:8}}>
+              <button onClick={applyCrop} style={{flex:1,padding:"11px",borderRadius:10,border:"none",background:"linear-gradient(135deg,#3B82F6,#6366F1)",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:F}}>Usar esta foto</button>
+              <button onClick={()=>setCropSrc(null)} style={{padding:"11px 16px",borderRadius:10,border:`1px solid ${tc.cardBorder}`,background:tc.cancelBg,color:tc.textSub,fontSize:13,cursor:"pointer",fontFamily:F}}>Cancelar</button>
+            </div>
+          </div>
+        )}
+
+        {/* Main settings */}
+        {!cropSrc&&(<div style={{padding:24,display:"flex",flexDirection:"column",gap:20}}>
+          {/* Avatar */}
+          <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:12}}>
+            <div style={{position:"relative"}}>
+              {photoURL?(
+                <img src={photoURL} alt="avatar" style={{width:88,height:88,borderRadius:"50%",objectFit:"cover",border:`3px solid ${tc.cardBorder}`}}/>
+              ):(
+                <div style={{width:88,height:88,borderRadius:"50%",background:"linear-gradient(135deg,#3B82F6,#6366F1)",display:"flex",alignItems:"center",justifyContent:"center",border:`3px solid ${tc.cardBorder}`}}>
+                  <span style={{fontSize:34,fontWeight:800,color:"#fff",fontFamily:FS}}>{(displayName||userName).charAt(0).toUpperCase()}</span>
+                </div>
+              )}
+              <label style={{position:"absolute",bottom:0,right:0,width:28,height:28,borderRadius:"50%",background:"#3B82F6",border:`2px solid ${tc.modalBg}`,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                <input type="file" accept="image/*" style={{display:"none"}} onChange={handleFileChange}/>
+              </label>
+            </div>
+            {photoURL&&<button onClick={()=>setPhotoURL("")} style={{fontSize:11,color:"#EF4444",background:"none",border:"none",cursor:"pointer",fontFamily:F,opacity:0.7}} onMouseEnter={e=>e.currentTarget.style.opacity="1"} onMouseLeave={e=>e.currentTarget.style.opacity="0.7"}>Remover foto</button>}
+          </div>
+
+          {/* Display name */}
+          <div>
+            <label style={{fontSize:10,color:tc.textMuted,fontWeight:700,display:"block",marginBottom:6,textTransform:"uppercase",letterSpacing:0.5,fontFamily:F}}>Nome de exibição</label>
+            <input value={displayName} onChange={e=>setDisplayName(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleSave()} placeholder={userName} style={{width:"100%",boxSizing:"border-box",padding:"10px 14px",fontSize:14,borderRadius:10,background:tc.inputBg,border:`1px solid ${tc.inputBorder}`,color:tc.inputText,outline:"none",fontFamily:F}}/>
+            <p style={{fontSize:11,color:tc.textMuted,margin:"6px 0 0",fontFamily:F}}>Aparece no "Olá..." do cabeçalho. Login permanece: <strong style={{color:tc.textSub}}>{userName}</strong></p>
+          </div>
+
+          {/* Actions */}
+          <div style={{display:"flex",gap:8,paddingTop:4}}>
+            <button onClick={handleSave} disabled={saving} style={{flex:1,padding:"11px",borderRadius:10,border:"none",background:"linear-gradient(135deg,#3B82F6,#6366F1)",color:"#fff",fontSize:13,fontWeight:700,cursor:saving?"default":"pointer",fontFamily:F,opacity:saving?0.7:1}}>
+              {saving?"Salvando...":"Salvar"}
+            </button>
+            <button onClick={onClose} style={{padding:"11px 18px",borderRadius:10,border:`1px solid ${tc.cardBorder}`,background:tc.cancelBg,color:tc.textSub,fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:F}}>Cancelar</button>
+          </div>
+        </div>)}
+      </div>
+    </div>
+  );
+}
+
 /* ─── Main App ─── */
 export default function App(){
   const theme=useTheme();
@@ -1104,6 +1259,8 @@ export default function App(){
   const [layoutUserSet,setLayoutUserSet]=useState(false);
   const [focosOpen,setFocosOpen]=useState(true);
   const [showAdmin,setShowAdmin]=useState(false);
+  const [showSettings,setShowSettings]=useState(false);
+  const [userProfile,setUserProfile]=useState({displayName:"",photoURL:""});
 
   // Preferências por usuário — carregadas e salvas com userName na chave
   function loadUserPrefs(user){
@@ -1120,8 +1277,31 @@ export default function App(){
     handleResize();
     return()=>window.removeEventListener("resize",handleResize);
   },[]);
-  useEffect(()=>{(async()=>{try{const r=await window.storage.get(AUTH_KEY);if(r&&r.value==="true"){setAuthed(true);try{const u=await window.storage.get(USER_KEY);if(u&&u.value){setUserName(u.value);loadUserPrefs(u.value);}}catch{}}}catch{}})();},[]);
-  const handleLogin=useCallback(user=>{setAuthed(true);setUserName(user);loadUserPrefs(user);window.storage.set(AUTH_KEY,"true").catch(()=>{});window.storage.set(USER_KEY,user).catch(()=>{});},[]);
+  useEffect(()=>{(async()=>{try{const r=await window.storage.get(AUTH_KEY);if(r&&r.value==="true"){setAuthed(true);try{const u=await window.storage.get(USER_KEY);if(u&&u.value){const uname=u.value;setUserName(uname);loadUserPrefs(uname);try{const pr=await window.storage.get(`planner-${uname}-profile`);if(pr&&pr.value)setUserProfile(JSON.parse(pr.value));}catch{}}}catch{}}}catch{}})();},[]);
+  const userProfileKey=(u)=>`planner-${u}-profile`;
+  const handleLogin=useCallback(async(user,googlePhoto="")=>{
+    setAuthed(true);setUserName(user);loadUserPrefs(user);
+    window.storage.set(AUTH_KEY,"true").catch(()=>{});
+    window.storage.set(USER_KEY,user).catch(()=>{});
+    // Load profile from Firestore
+    try{
+      const r=await window.storage.get(userProfileKey(user));
+      const p=r&&r.value?JSON.parse(r.value):{};
+      // If Google login and no custom photo yet, use Google photo
+      if(googlePhoto&&!p.photoURL){p.photoURL=googlePhoto;}
+      setUserProfile({displayName:p.displayName||"",photoURL:p.photoURL||""});
+      // Save back if we added Google photo
+      if(googlePhoto&&!JSON.parse(r&&r.value||"{}").photoURL){
+        window.storage.set(userProfileKey(user),JSON.stringify({...p,photoURL:googlePhoto})).catch(()=>{});
+      }
+    }catch{
+      if(googlePhoto)setUserProfile(p=>({...p,photoURL:googlePhoto}));
+    }
+  },[]);
+  const handleSaveProfile=useCallback(async(prof)=>{
+    setUserProfile(prof);
+    await window.storage.set(userProfileKey(userName),JSON.stringify(prof)).catch(()=>{});
+  },[userName]);
   const handleLogout=useCallback(()=>{setAuthed(false);setUserName("");setWeeks([]);setLoading(true);window.storage.set(AUTH_KEY,"false").catch(()=>{});window.storage.set(USER_KEY,"").catch(()=>{});},[]);
 
   useEffect(()=>{
@@ -1280,13 +1460,29 @@ export default function App(){
       <div style={{maxWidth:layoutMode==="columns"?1200:520,margin:"0 auto",padding:"24px 16px 40px",transition:"max-width 0.3s ease"}}>
         {/* Header */}
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
-          <div>
-            <Logo theme={theme.mode} />
-            {userName&&<p style={{fontSize:13,color:c.textSub,margin:"8px 0 0",fontWeight:500}}>Olá, <span style={{color:"#3B82F6",fontWeight:700}}>{userName}</span></p>}
-            <p style={{fontSize:11,color:c.textMuted,margin:"4px 0 0"}}>Organize sua semana, acompanhe seus projetos e avance com velocidade!</p>
-            <p style={{fontSize:10,color:c.textDim,margin:"5px 0 0",fontStyle:"italic",lineHeight:1.5}}>💡 Dica: nomes curtos nos projetos e tarefas deixam tudo mais fácil de ler e acompanhar.</p>
+          <div style={{display:"flex",alignItems:"center",gap:14}}>
+            {/* Avatar */}
+            {userName&&(
+              <div onClick={()=>setShowSettings(true)} style={{flexShrink:0,cursor:"pointer",position:"relative"}} title="Configurações do perfil">
+                {userProfile.photoURL?(
+                  <img src={userProfile.photoURL} alt="avatar" style={{width:52,height:52,borderRadius:"50%",objectFit:"cover",border:`2.5px solid ${c.cardBorder}`,transition:"border-color 0.2s"}} onMouseEnter={e=>e.currentTarget.style.borderColor="#3B82F6"} onMouseLeave={e=>e.currentTarget.style.borderColor=c.cardBorder}/>
+                ):(
+                  <div style={{width:52,height:52,borderRadius:"50%",background:"linear-gradient(135deg,#3B82F6,#6366F1)",display:"flex",alignItems:"center",justifyContent:"center",border:`2.5px solid ${c.cardBorder}`,transition:"border-color 0.2s",flexShrink:0}} onMouseEnter={e=>e.currentTarget.style.borderColor="#3B82F6"} onMouseLeave={e=>e.currentTarget.style.borderColor=c.cardBorder}>
+                    <span style={{fontSize:20,fontWeight:800,color:"#fff",fontFamily:FS}}>{(userProfile.displayName||userName).charAt(0).toUpperCase()}</span>
+                  </div>
+                )}
+              </div>
+            )}
+            <div>
+              <Logo theme={theme.mode} />
+              {userName&&<p style={{fontSize:13,color:c.textSub,margin:"6px 0 0",fontWeight:500}}>Olá, <span style={{color:"#3B82F6",fontWeight:700}}>{userProfile.displayName||userName}</span></p>}
+            </div>
           </div>
           <div style={{display:"flex",gap:6}}>
+            {/* Settings */}
+            {userName&&(<button onClick={()=>setShowSettings(true)} title="Configurações do perfil" style={{background:c.btnBg,border:`1px solid ${c.btnBorder}`,borderRadius:10,padding:"8px 10px",cursor:"pointer",lineHeight:1,display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.2s ease"}} onMouseEnter={e=>{e.currentTarget.style.borderColor="rgba(59,130,246,0.5)";e.currentTarget.style.background="rgba(59,130,246,0.08)";}} onMouseLeave={e=>{e.currentTarget.style.borderColor=c.btnBorder;e.currentTarget.style.background=c.btnBg;}}>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={c.textSub} strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            </button>)}
             {userName===ADMIN_USER&&(<button onClick={()=>setShowAdmin(true)} title="Painel de Admin" style={{background:c.btnBg,border:`1px solid ${c.btnBorder}`,borderRadius:10,padding:"8px 10px",cursor:"pointer",lineHeight:1,display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.2s ease"}} onMouseEnter={e=>{e.currentTarget.style.borderColor="rgba(139,92,246,0.5)";e.currentTarget.style.background="rgba(139,92,246,0.08)";}} onMouseLeave={e=>{e.currentTarget.style.borderColor=c.btnBorder;e.currentTarget.style.background=c.btnBg;}}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={c.textSub} strokeWidth="2" strokeLinecap="round"><path d="M12 2a5 5 0 1 0 0 10A5 5 0 0 0 12 2z"/><path d="M12 14c-7 0-9 3-9 4v1h18v-1c0-1-2-4-9-4z"/><path d="M19 8l2 2-6 6"/></svg></button>)}
             <button className="theme-btn" onClick={theme.toggle} style={{background:c.btnBg,border:`1px solid ${c.btnBorder}`,borderRadius:10,padding:"8px 10px",cursor:"pointer",lineHeight:1,display:"flex",alignItems:"center",justifyContent:"center"}} title={theme.mode==="dark"?"Modo claro":"Modo escuro"}>{theme.mode==="dark"?(<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={c.textSub} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>):(<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={c.textSub} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>)}</button>
             <button className="logout-btn" onClick={handleLogout} title="Sair" style={{background:c.btnBg,border:`1px solid ${c.btnBorder}`,borderRadius:10,padding:"8px 10px",cursor:"pointer"}}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={c.textSub} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
@@ -1411,6 +1607,7 @@ export default function App(){
 
         {/* Admin Panel */}
         {showAdmin&&<AdminPanel onClose={()=>setShowAdmin(false)} theme={theme}/>}
+        {showSettings&&<UserSettingsModal userName={userName} profile={userProfile} onSave={handleSaveProfile} onClose={()=>setShowSettings(false)} c={c}/>}
 
         {/* Footer */}
         <div style={{textAlign:"center",marginTop:32,opacity:0.35}}>
