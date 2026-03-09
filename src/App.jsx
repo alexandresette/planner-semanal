@@ -145,12 +145,13 @@ function ProgressRing({percent,color,size=48}){
 }
 
 /* ─── Task Item ─── */
-function TaskItem({task,color,onToggle,onUpdate,projectName,onMoveWeek}){
+function TaskItem({task,color,onToggle,onUpdate,projectName,onMoveWeek,onEditingChange}){
   const [showOpts,setShowOpts]=useState(false);
   const [editText,setEditText]=useState(task.text);
   const [isEditing,setIsEditing]=useState(false);
   const dayInfo=WEEK_DAYS.find(d=>d.key===task.day);
   const saveText=()=>{if(editText.trim()&&editText.trim()!==task.text)onUpdate({text:editText.trim()});setIsEditing(false);};
+  const toggleOpts=()=>{const next=!showOpts;setShowOpts(next);if(onEditingChange)onEditingChange(next);};
   return(
     <div className="task-card" style={{borderRadius:12,overflow:"hidden",background:task.done?"rgba(255,255,255,0.02)":"rgba(255,255,255,0.05)",border:`1px solid ${task.done?"rgba(255,255,255,0.03)":"rgba(255,255,255,0.08)"}`,opacity:task.done?0.45:1}}>
       <div style={{padding:"10px 12px"}}>
@@ -166,13 +167,13 @@ function TaskItem({task,color,onToggle,onUpdate,projectName,onMoveWeek}){
               <div style={{width:8,height:8,borderRadius:"50%",flexShrink:0,background:priorityConfig[task.priority].dot}}/>
             </div>
           </div>
-          <div onClick={e=>{e.stopPropagation();setShowOpts(!showOpts);}} style={{cursor:"pointer",padding:"2px 4px",opacity:0.5,transition:"opacity 0.2s",flexShrink:0}} onMouseEnter={e=>e.currentTarget.style.opacity="1"} onMouseLeave={e=>e.currentTarget.style.opacity="0.5"}>
+          <div onClick={e=>{e.stopPropagation();toggleOpts();}} style={{cursor:"pointer",padding:"2px 4px",opacity:0.5,transition:"opacity 0.2s",flexShrink:0}} onMouseEnter={e=>e.currentTarget.style.opacity="1"} onMouseLeave={e=>e.currentTarget.style.opacity="0.5"}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
           </div>
         </div>
       </div>
       {showOpts&&(
-        <div style={{padding:"8px 12px 12px",borderTop:"1px solid rgba(255,255,255,0.05)",animation:"fadeIn 0.2s ease"}}>
+        <div draggable={false} onDragStart={e=>e.stopPropagation()} onMouseDown={e=>e.stopPropagation()} style={{padding:"8px 12px 12px",borderTop:"1px solid rgba(255,255,255,0.05)",animation:"fadeIn 0.2s ease"}}>
           <div style={{marginBottom:10}}>
             <span style={{fontSize:10,color:"#64748B",fontWeight:600,display:"block",marginBottom:5,textTransform:"uppercase",letterSpacing:0.5}}>Descrição</span>
             {isEditing?(<div style={{display:"flex",gap:6}}><input autoFocus value={editText} onChange={e=>setEditText(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")saveText();if(e.key==="Escape"){setEditText(task.text);setIsEditing(false);}}} style={{flex:1,padding:"6px 10px",fontSize:12,borderRadius:8,background:"rgba(255,255,255,0.06)",border:`1px solid ${color}40`,color:"#E2E8F0",outline:"none",fontFamily:F}}/><button onClick={saveText} style={{padding:"6px 12px",borderRadius:8,border:"none",background:color,color:"#fff",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:F}}>OK</button></div>)
@@ -302,6 +303,7 @@ export default function App(){
   const [showHistory,setShowHistory]=useState(false);
   const [showConfirm,setShowConfirm]=useState(false);
   const [dragTask,setDragTask]=useState(null); // {projectId, taskId}
+  const [editingTasks,setEditingTasks]=useState(new Set());
   const [dragOverDay,setDragOverDay]=useState(null);
   const [layoutMode,setLayoutMode]=useState(()=>{try{const s=localStorage.getItem("planner-layoutMode");if(s==="columns"&&window.innerWidth>=768)return "columns";return "list";}catch{return "list";}});
 
@@ -445,7 +447,7 @@ export default function App(){
               onDragOver={e=>{e.preventDefault();setDragOverDay(day.key);}}
               onDragLeave={()=>setDragOverDay(null)}
               onDrop={e=>{e.preventDefault();setDragOverDay(null);if(dragTask){updateTask(dragTask.projectId,dragTask.taskId,{day:day.key});setDragTask(null);}}}
-              style={{background:dragOverDay===day.key?"rgba(59,130,246,0.12)":"rgba(255,255,255,0.04)",borderRadius:16,border:`1px solid ${dragOverDay===day.key?"rgba(59,130,246,0.4)":"rgba(255,255,255,0.07)"}`,overflow:"hidden",transition:"all 0.2s ease"}}><div style={{display:"flex",alignItems:"center",gap:14,padding:"16px 20px"}}><div style={{width:42,height:42,borderRadius:12,display:"flex",alignItems:"center",justifyContent:"center",background:tasks.length>0?"rgba(59,130,246,0.12)":"rgba(255,255,255,0.04)",fontSize:13,fontWeight:700,color:tasks.length>0?"#60A5FA":"#475569",fontFamily:F}}>{day.label}</div><div style={{flex:1}}><span style={{fontSize:16,fontWeight:700,color:"#F1F5F9",fontFamily:F}}>{day.full}</span><span style={{fontSize:12,color:"#64748B",display:"block",fontFamily:F}}>{tasks.filter(t=>t.done).length}/{tasks.length} concluídas</span></div>{tasks.length>0&&<ProgressRing percent={Math.round((tasks.filter(t=>t.done).length/tasks.length)*100)} color="#3B82F6" size={42}/>}</div>{tasks.length>0&&(<div style={{padding:"0 14px 14px",display:"flex",flexDirection:"column",gap:6}}>{[...tasks].sort((a,b)=>{const o={high:0,medium:1,low:2};const p=o[a.priority]-o[b.priority];if(p!==0)return p;const pa=projects.find(x=>x.id===a._projectId);const pb=projects.find(x=>x.id===b._projectId);const pn=(pa?.name||"").localeCompare(pb?.name||"","pt-BR");if(pn!==0)return pn;return a.text.localeCompare(b.text,"pt-BR");}).map(t=>{const proj=projects.find(p=>p.id===t._projectId);return(<div key={t.id} draggable onDragStart={()=>setDragTask({projectId:t._projectId,taskId:t.id})} onDragEnd={()=>{setDragTask(null);setDragOverDay(null);}} style={{cursor:"grab",opacity:dragTask?.taskId===t.id?0.4:1,transition:"opacity 0.2s"}}><TaskItem task={t} color={proj?.color||"#64748B"} projectName={proj?.name} onToggle={()=>toggleTask(t._projectId,t.id)} onUpdate={u=>updateTask(t._projectId,t.id,u)} onMoveWeek={taskMoveWeekFn(t._projectId,t.id)}/></div>);})}</div>)}{tasks.length===0&&(<div style={{padding:"0 20px 16px",fontSize:13,color:dragOverDay===day.key?"#60A5FA":"#475569",fontFamily:F,transition:"color 0.2s"}}>{dragOverDay===day.key?"Soltar aqui":"Nenhuma tarefa"}</div>)}</div>))
+              style={{background:dragOverDay===day.key?"rgba(59,130,246,0.12)":"rgba(255,255,255,0.04)",borderRadius:16,border:`1px solid ${dragOverDay===day.key?"rgba(59,130,246,0.4)":"rgba(255,255,255,0.07)"}`,overflow:"hidden",transition:"all 0.2s ease"}}><div style={{display:"flex",alignItems:"center",gap:14,padding:"16px 20px"}}><div style={{width:42,height:42,borderRadius:12,display:"flex",alignItems:"center",justifyContent:"center",background:tasks.length>0?"rgba(59,130,246,0.12)":"rgba(255,255,255,0.04)",fontSize:13,fontWeight:700,color:tasks.length>0?"#60A5FA":"#475569",fontFamily:F}}>{day.label}</div><div style={{flex:1}}><span style={{fontSize:16,fontWeight:700,color:"#F1F5F9",fontFamily:F}}>{day.full}</span><span style={{fontSize:12,color:"#64748B",display:"block",fontFamily:F}}>{tasks.filter(t=>t.done).length}/{tasks.length} concluídas</span></div>{tasks.length>0&&<ProgressRing percent={Math.round((tasks.filter(t=>t.done).length/tasks.length)*100)} color="#3B82F6" size={42}/>}</div>{tasks.length>0&&(<div style={{padding:"0 14px 14px",display:"flex",flexDirection:"column",gap:6}}>{[...tasks].sort((a,b)=>{const o={high:0,medium:1,low:2};const p=o[a.priority]-o[b.priority];if(p!==0)return p;const pa=projects.find(x=>x.id===a._projectId);const pb=projects.find(x=>x.id===b._projectId);const pn=(pa?.name||"").localeCompare(pb?.name||"","pt-BR");if(pn!==0)return pn;return a.text.localeCompare(b.text,"pt-BR");}).map(t=>{const proj=projects.find(p=>p.id===t._projectId);return(<div key={t.id} draggable={!editingTasks.has(t.id)} onDragStart={()=>{if(!editingTasks.has(t.id))setDragTask({projectId:t._projectId,taskId:t.id});}} onDragEnd={()=>{setDragTask(null);setDragOverDay(null);}} style={{cursor:editingTasks.has(t.id)?"default":"grab",opacity:dragTask?.taskId===t.id?0.4:1,transition:"opacity 0.2s"}}><TaskItem task={t} color={proj?.color||"#64748B"} projectName={proj?.name} onToggle={()=>toggleTask(t._projectId,t.id)} onUpdate={u=>updateTask(t._projectId,t.id,u)} onMoveWeek={taskMoveWeekFn(t._projectId,t.id)} onEditingChange={v=>{setEditingTasks(prev=>{const n=new Set(prev);if(v)n.add(t.id);else n.delete(t.id);return n;})}}/></div>);})}</div>)}{tasks.length===0&&(<div style={{padding:"0 20px 16px",fontSize:13,color:dragOverDay===day.key?"#60A5FA":"#475569",fontFamily:F,transition:"color 0.2s"}}>{dragOverDay===day.key?"Soltar aqui":"Nenhuma tarefa"}</div>)}</div>))
           )}
         </div>
         ):(
@@ -469,7 +471,7 @@ export default function App(){
                   {tasks.length>0&&<div style={{marginTop:6}}><ProgressRing percent={Math.round((tasks.filter(t=>t.done).length/tasks.length)*100)} color="#3B82F6" size={32}/></div>}
                 </div>
                 <div style={{padding:"8px 6px 12px",display:"flex",flexDirection:"column",gap:5,minHeight:60}}>
-                  {[...tasks].sort((a,b)=>{const o={high:0,medium:1,low:2};const p=o[a.priority]-o[b.priority];if(p!==0)return p;const pa=projects.find(x=>x.id===a._projectId);const pb=projects.find(x=>x.id===b._projectId);const pn=(pa?.name||"").localeCompare(pb?.name||"","pt-BR");if(pn!==0)return pn;return a.text.localeCompare(b.text,"pt-BR");}).map(t=>{const proj=projects.find(p=>p.id===t._projectId);return(<div key={t.id} draggable onDragStart={()=>setDragTask({projectId:t._projectId,taskId:t.id})} onDragEnd={()=>{setDragTask(null);setDragOverDay(null);}} style={{cursor:"grab",opacity:dragTask?.taskId===t.id?0.4:1,transition:"opacity 0.2s"}}><TaskItem task={t} color={proj?.color||"#64748B"} projectName={proj?.name} onToggle={()=>toggleTask(t._projectId,t.id)} onUpdate={u=>updateTask(t._projectId,t.id,u)} onMoveWeek={taskMoveWeekFn(p.id,task.id)}/></div>);})}
+                  {[...tasks].sort((a,b)=>{const o={high:0,medium:1,low:2};const p=o[a.priority]-o[b.priority];if(p!==0)return p;const pa=projects.find(x=>x.id===a._projectId);const pb=projects.find(x=>x.id===b._projectId);const pn=(pa?.name||"").localeCompare(pb?.name||"","pt-BR");if(pn!==0)return pn;return a.text.localeCompare(b.text,"pt-BR");}).map(t=>{const proj=projects.find(p=>p.id===t._projectId);return(<div key={t.id} draggable={!editingTasks.has(t.id)} onDragStart={()=>{if(!editingTasks.has(t.id))setDragTask({projectId:t._projectId,taskId:t.id});}} onDragEnd={()=>{setDragTask(null);setDragOverDay(null);}} style={{cursor:editingTasks.has(t.id)?"default":"grab",opacity:dragTask?.taskId===t.id?0.4:1,transition:"opacity 0.2s"}}><TaskItem task={t} color={proj?.color||"#64748B"} projectName={proj?.name} onToggle={()=>toggleTask(t._projectId,t.id)} onUpdate={u=>updateTask(t._projectId,t.id,u)} onMoveWeek={taskMoveWeekFn(p.id,task.id)}/></div>);})}
                   {tasks.length===0&&<div style={{fontSize:11,color:dragOverDay===day.key?"#60A5FA":"#475569",fontFamily:F,textAlign:"center",padding:"8px 0"}}>{dragOverDay===day.key?"Soltar aqui":"—"}</div>}
                 </div>
               </div>
