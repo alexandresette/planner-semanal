@@ -303,12 +303,14 @@ function AddTaskInput({color,onAdd,c,projects,requireCategory,defaultDay}){
 
   return(
     <div style={{borderRadius:12,overflow:"hidden",background:tc.taskBg,border:`1px solid ${activeColor}30`,animation:"fadeIn 0.2s ease"}}>
-      <div style={{display:"flex",gap:8,padding:"10px 12px"}}>
-        <input autoFocus value={text} onChange={e=>setText(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")handleAdd();if(e.key==="Escape")reset();}} placeholder="Descreva a tarefa..." style={{flex:1,minWidth:0,padding:"8px 12px",fontSize:13,borderRadius:8,background:tc.inputBg,border:`1px solid ${activeColor}40`,color:tc.inputText,outline:"none",fontFamily:F}}/>
-        <button onClick={handleAdd} style={{flexShrink:0,padding:"8px 14px",borderRadius:8,border:"none",cursor:"pointer",background:activeColor,color:"#fff",fontSize:13,fontWeight:600,fontFamily:F}}>+</button>
-        <button onClick={reset} style={{flexShrink:0,padding:"8px 10px",borderRadius:8,border:`1px solid ${tc.cardBorder}`,background:tc.cancelBg,color:tc.cancelColor,fontSize:13,cursor:"pointer",fontFamily:F}}>✕</button>
-      </div>
-      <div style={{padding:"0 12px 10px",display:"flex",flexDirection:"column",gap:8}}>
+      <div style={{padding:"10px 12px",display:"flex",flexDirection:"column",gap:8}}>
+        <div style={{display:"flex",gap:6}}>
+          <textarea autoFocus value={text} onChange={e=>setText(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();handleAdd();}if(e.key==="Escape")reset();}} placeholder="Descreva a tarefa..." rows={Math.max(2,text.split("\n").length)} style={{flex:1,minWidth:0,padding:"8px 12px",fontSize:13,borderRadius:8,background:tc.inputBg,border:`1px solid ${activeColor}40`,color:tc.inputText,outline:"none",fontFamily:F,resize:"none",lineHeight:1.5,overflow:"hidden"}}/>
+          <div style={{display:"flex",flexDirection:"column",gap:4}}>
+            <button onClick={handleAdd} style={{flexShrink:0,padding:"8px 12px",borderRadius:8,border:"none",cursor:"pointer",background:activeColor,color:"#fff",fontSize:13,fontWeight:600,fontFamily:F}}>+</button>
+            <button onClick={reset} style={{flexShrink:0,padding:"8px 10px",borderRadius:8,border:`1px solid ${tc.cardBorder}`,background:tc.cancelBg,color:tc.cancelColor,fontSize:13,cursor:"pointer",fontFamily:F}}>✕</button>
+          </div>
+        </div>
         {/* Seletor de categoria (na view dias da semana) */}
         {requireCategory&&(
           <div>
@@ -324,14 +326,14 @@ function AddTaskInput({color,onAdd,c,projects,requireCategory,defaultDay}){
             )}
           </div>
         )}
-        <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
+        <div style={{display:"flex",flexDirection:"column",gap:8}}>
           <div>
             <span style={{fontSize:9,color:tc.textMuted,fontWeight:600,display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:0.5}}>Dia</span>
-            <div style={{display:"flex",gap:3}}>{WEEK_DAYS.map(d=>(<button key={d.key} onClick={()=>setDay(d.key)} style={{padding:"3px 6px",fontSize:10,fontWeight:600,borderRadius:5,border:"none",cursor:"pointer",fontFamily:F,background:day===d.key?activeColor:tc.inputBg,color:day===d.key?"#fff":tc.textSub}}>{d.label}</button>))}</div>
+            <div style={{display:"flex",gap:3,flexWrap:"wrap"}}>{WEEK_DAYS.map(d=>(<button key={d.key} onClick={()=>setDay(d.key)} style={{padding:"3px 6px",fontSize:10,fontWeight:600,borderRadius:5,border:"none",cursor:"pointer",fontFamily:F,background:day===d.key?activeColor:tc.inputBg,color:day===d.key?"#fff":tc.textSub}}>{d.label}</button>))}</div>
           </div>
           <div>
             <span style={{fontSize:9,color:tc.textMuted,fontWeight:600,display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:0.5}}>Prioridade</span>
-            <div style={{display:"flex",gap:4}}>{Object.entries(priorityConfig).map(([k,v])=>(<button key={k} onClick={()=>setPriority(k)} style={{padding:"3px 9px",fontSize:10,fontWeight:600,borderRadius:5,border:"none",cursor:"pointer",fontFamily:F,background:priority===k?v.dot:v.bg,color:priority===k?"#fff":v.dot}}>{v.label}</button>))}</div>
+            <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>{Object.entries(priorityConfig).map(([k,v])=>(<button key={k} onClick={()=>setPriority(k)} style={{padding:"3px 9px",fontSize:10,fontWeight:600,borderRadius:5,border:"none",cursor:"pointer",fontFamily:F,background:priority===k?v.dot:v.bg,color:priority===k?"#fff":v.dot}}>{v.label}</button>))}</div>
           </div>
         </div>
       </div>
