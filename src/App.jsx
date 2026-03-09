@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { signInWithGoogle, firebaseSignOut, auth } from "./storage.js";
 
 const LOGO_DARK = `${import.meta.env.BASE_URL}logo.svg`;
 const LOGO_LIGHT = `${import.meta.env.BASE_URL}logo-light.svg`;
@@ -11,6 +12,55 @@ const CREDENTIALS = {
   "dea": "054676b7727c43a1b5bf80588455e074b7cb8343a3b4c26c5389c668fb6a79b6",
 };
 
+const ADMIN_USER = "xande";
+const ADMIN_INVITES_KEY = "admin-invites";
+const USER_CREDS_PREFIX = "user-creds-";
+
+// Normaliza email para chave de storage (sem caracteres especiais)
+function emailToKey(email) { return email.toLowerCase().replace(/[^a-z0-9]/g, "_"); }
+function googleUserKey(email) { return `google_${emailToKey(email)}`; }
+
+async function loadInvites() {
+  try { const r = await window.storage.get(ADMIN_INVITES_KEY); return r && r.value ? JSON.parse(r.value) : []; } catch { return []; }
+}
+async function saveInvites(list) {
+  await window.storage.set(ADMIN_INVITES_KEY, JSON.stringify(list));
+}
+async function loadDynamicCreds() {
+  try {
+    const keys = await window.storage.list(USER_CREDS_PREFIX);
+    const creds = {};
+    for (const k of (keys.keys || [])) {
+      const r = await window.storage.get(k); if (r && r.value) { const d = JSON.parse(r.value); creds[d.username] = { hash: d.hash, email: d.email }; }
+    }
+    return creds;
+  } catch { return {}; }
+}
+async function saveDynamicCred(username, hash, email) {
+  await window.storage.set(`${USER_CREDS_PREFIX}${username}`, JSON.stringify({ username, hash, email }));
+}
+async function isEmailInvited(email) {
+  const list = await loadInvites(); return list.some(i => i.email.toLowerCase() === email.toLowerCase());
+}
+async function isEmailRegistered(email) {
+  try {
+    const keys = await window.storage.list(USER_CREDS_PREFIX);
+    for (const k of (keys.keys || [])) {
+      const r = await window.storage.get(k); if (r && r.value) { const d = JSON.parse(r.value); if (d.email && d.email.toLowerCase() === email.toLowerCase()) return true; }
+    }
+    return false;
+  } catch { return false; }
+}
+async function getUsernameByEmail(email) {
+  try {
+    const keys = await window.storage.list(USER_CREDS_PREFIX);
+    for (const k of (keys.keys || [])) {
+      const r = await window.storage.get(k); if (r && r.value) { const d = JSON.parse(r.value); if (d.email && d.email.toLowerCase() === email.toLowerCase()) return d.username; }
+    }
+    return null;
+  } catch { return null; }
+}
+
 async function hashStr(input) {
   const encoded = new TextEncoder().encode(input);
   const buf = await crypto.subtle.digest("SHA-256", encoded);
@@ -18,8 +68,17 @@ async function hashStr(input) {
 }
 async function verifyCredentials(user, pin) {
   const u = user.toLowerCase().trim();
-  if (!CREDENTIALS[u]) return false;
-  return (await hashStr(`${u}:${pin}`)) === CREDENTIALS[u];
+  // Checar hardcoded primeiro
+  if (CREDENTIALS[u]) return (await hashStr(`${u}:${pin}`)) === CREDENTIALS[u];
+  // Checar credenciais dinâmicas no Firestore
+  try {
+    const r = await window.storage.get(`${USER_CREDS_PREFIX}${u}`);
+    if (r && r.value) {
+      const d = JSON.parse(r.value);
+      return (await hashStr(`${u}:${pin}`)) === d.hash;
+    }
+  } catch {}
+  return false;
 }
 
 function userDataKey(user) { return `gestor-${user}-data`; }
@@ -156,41 +215,240 @@ function Logo({ size = "normal", theme = "dark" }) {
   return <img src={src} alt="Planner Semanal" style={{ width: size === "normal" ? 180 : 200, display: "block", marginLeft: size === "large" ? "auto" : undefined, marginRight: size === "large" ? "auto" : undefined }} />;
 }
 
+/* ─── First Access Screen (cadastro de novo usuário convidado) ─── */
+function FirstAccessScreen({ invitedEmail, onSuccess, onBack, theme }) {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const c = theme.t;
+
+  const handleRegister = async () => {
+    const u = username.trim().toLowerCase();
+    if (!u || u.length < 3) { setError("Nome de usuário precisa ter pelo menos 3 caracteres."); return; }
+    if (CREDENTIALS[u]) { setError("Este nome de usuário não está disponível."); return; }
+    if (password.length < 4) { setError("A senha precisa ter pelo menos 4 caracteres."); return; }
+    if (password !== confirm) { setError("As senhas não coincidem."); return; }
+    setLoading(true); setError("");
+    try {
+      // Verificar se username já existe
+      const r = await window.storage.get(`${USER_CREDS_PREFIX}${u}`).catch(() => null);
+      if (r && r.value) { setError("Este nome de usuário já está em uso."); setLoading(false); return; }
+      const hash = await hashStr(`${u}:${password}`);
+      await saveDynamicCred(u, hash, invitedEmail);
+      onSuccess(u);
+    } catch (e) {
+      setError("Erro ao criar conta. Tente novamente.");
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div style={{minHeight:"100vh",background:c.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:F,padding:"24px 16px"}}>
+      <div style={{width:360,padding:40,background:c.loginCardBg,border:`1px solid rgba(16,185,129,0.2)`,borderRadius:24,animation:"fadeIn 0.5s ease",boxShadow:theme.mode==="light"?"0 4px 24px rgba(0,0,0,0.08)":"none"}}>
+        <div style={{marginBottom:20,textAlign:"center"}}>
+          <div style={{width:48,height:48,borderRadius:14,background:"rgba(16,185,129,0.12)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 12px"}}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2" strokeLinecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </div>
+          <h2 style={{fontSize:20,fontWeight:800,color:c.text,margin:"0 0 4px",fontFamily:FS}}>Primeiro acesso</h2>
+          <p style={{fontSize:12,color:c.textSub,margin:0,lineHeight:1.5}}>Crie seu perfil para <span style={{color:"#10B981",fontWeight:600}}>{invitedEmail}</span></p>
+        </div>
+        <div style={{textAlign:"left",marginBottom:12}}>
+          <span style={{fontSize:11,color:c.textMuted,fontWeight:600,textTransform:"uppercase",letterSpacing:0.5}}>Nome de usuário</span>
+          <input autoFocus value={username} onChange={e=>setUsername(e.target.value.replace(/\s/g,""))} onKeyDown={e=>e.key==="Enter"&&document.getElementById("fa-pass")?.focus()} placeholder="ex: joao" style={{width:"100%",boxSizing:"border-box",marginTop:6,padding:"11px 14px",fontSize:14,background:c.inputBg,border:`1.5px solid ${error&&!username?"#EF4444":c.inputBorder}`,borderRadius:10,color:c.inputText,outline:"none",fontFamily:F}}/>
+        </div>
+        <div style={{textAlign:"left",marginBottom:12}}>
+          <span style={{fontSize:11,color:c.textMuted,fontWeight:600,textTransform:"uppercase",letterSpacing:0.5}}>Senha</span>
+          <input id="fa-pass" type="password" value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>e.key==="Enter"&&document.getElementById("fa-confirm")?.focus()} placeholder="mínimo 4 caracteres" style={{width:"100%",boxSizing:"border-box",marginTop:6,padding:"11px 14px",fontSize:14,background:c.inputBg,border:`1.5px solid ${c.inputBorder}`,borderRadius:10,color:c.inputText,outline:"none",fontFamily:F}}/>
+        </div>
+        <div style={{textAlign:"left",marginBottom:6}}>
+          <span style={{fontSize:11,color:c.textMuted,fontWeight:600,textTransform:"uppercase",letterSpacing:0.5}}>Confirmar senha</span>
+          <input id="fa-confirm" type="password" value={confirm} onChange={e=>setConfirm(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleRegister()} placeholder="repita a senha" style={{width:"100%",boxSizing:"border-box",marginTop:6,padding:"11px 14px",fontSize:14,background:c.inputBg,border:`1.5px solid ${error&&password!==confirm?"#EF4444":c.inputBorder}`,borderRadius:10,color:c.inputText,outline:"none",fontFamily:F}}/>
+        </div>
+        {error&&<p style={{color:"#EF4444",fontSize:12,margin:"8px 0 0",lineHeight:1.4}}>{error}</p>}
+        <button onClick={handleRegister} disabled={loading} style={{width:"100%",marginTop:18,padding:"13px",background:"linear-gradient(135deg,#10B981,#3B82F6)",border:"none",borderRadius:12,color:"#fff",fontSize:15,fontWeight:700,cursor:loading?"default":"pointer",fontFamily:F,opacity:loading?0.7:1}}>
+          {loading?"Criando conta...":"Criar minha conta"}
+        </button>
+        <button onClick={onBack} style={{width:"100%",marginTop:8,padding:"11px",background:"transparent",border:`1px solid ${c.cardBorder}`,borderRadius:12,color:c.textSub,fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:F}}>← Voltar ao login</button>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Admin Panel Modal ─── */
+function AdminPanel({ onClose, theme }) {
+  const [invites, setInvites] = useState([]);
+  const [newEmail, setNewEmail] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState("");
+  const c = theme.t;
+
+  useEffect(() => {
+    loadInvites().then(list => { setInvites(list); setLoading(false); });
+  }, []);
+
+  const addInvite = async () => {
+    const email = newEmail.trim().toLowerCase();
+    if (!email || !email.includes("@")) { setMsg("E-mail inválido."); return; }
+    if (invites.some(i => i.email === email)) { setMsg("Este e-mail já foi convidado."); return; }
+    setSaving(true); setMsg("");
+    const updated = [...invites, { email, createdAt: new Date().toISOString() }];
+    await saveInvites(updated);
+    setInvites(updated); setNewEmail("");
+    setMsg(`✅ ${email} convidado com sucesso!`);
+    setSaving(false);
+    setTimeout(() => setMsg(""), 3000);
+  };
+
+  const removeInvite = async (email) => {
+    const updated = invites.filter(i => i.email !== email);
+    await saveInvites(updated);
+    setInvites(updated);
+  };
+
+  return (
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",backdropFilter:"blur(6px)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:3000,padding:16,animation:"fadeIn 0.2s ease"}} onClick={onClose}>
+      <div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:480,maxHeight:"85vh",overflowY:"auto",background:c.modalBg,border:"1px solid rgba(139,92,246,0.25)",borderRadius:22,padding:28,boxShadow:"0 8px 50px rgba(0,0,0,0.5)"}}>
+        <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:20}}>
+          <div style={{width:42,height:42,borderRadius:12,background:"rgba(139,92,246,0.12)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="2" strokeLinecap="round"><path d="M12 2a5 5 0 1 0 0 10A5 5 0 0 0 12 2z"/><path d="M12 14c-7 0-9 3-9 4v1h18v-1c0-1-2-4-9-4z"/><path d="M19 8l2 2-6 6"/></svg>
+          </div>
+          <div style={{flex:1}}>
+            <h2 style={{fontSize:18,fontWeight:800,color:c.text,margin:0,fontFamily:FS}}>Painel de Admin</h2>
+            <p style={{fontSize:12,color:"#8B5CF6",margin:0,fontWeight:600}}>Acesso exclusivo — xande</p>
+          </div>
+          <button onClick={onClose} style={{background:"none",border:"none",cursor:"pointer",padding:4,opacity:0.5}} onMouseEnter={e=>e.currentTarget.style.opacity="1"} onMouseLeave={e=>e.currentTarget.style.opacity="0.5"}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={c.textSub} strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+
+        {/* Invite section */}
+        <div style={{background:"rgba(139,92,246,0.06)",borderRadius:14,padding:16,marginBottom:20,border:"1px solid rgba(139,92,246,0.12)"}}>
+          <h3 style={{fontSize:13,fontWeight:700,color:c.text,margin:"0 0 4px",fontFamily:F}}>📨 Convidar novo usuário</h3>
+          <p style={{fontSize:11,color:c.textMuted,margin:"0 0 12px",lineHeight:1.4}}>O usuário convidado poderá entrar com Google ou criar uma conta própria.</p>
+          <div style={{display:"flex",gap:8}}>
+            <input value={newEmail} onChange={e=>setNewEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addInvite()} placeholder="email@exemplo.com" type="email" style={{flex:1,padding:"10px 14px",fontSize:13,borderRadius:10,background:c.inputBg,border:`1.5px solid ${c.inputBorder}`,color:c.inputText,outline:"none",fontFamily:F}}/>
+            <button onClick={addInvite} disabled={saving} style={{padding:"10px 18px",borderRadius:10,border:"none",background:"linear-gradient(135deg,#8B5CF6,#3B82F6)",color:"#fff",fontSize:13,fontWeight:700,cursor:saving?"default":"pointer",fontFamily:F,flexShrink:0,opacity:saving?0.7:1}}>
+              {saving?"...":"Convidar"}
+            </button>
+          </div>
+          {msg&&<p style={{fontSize:12,margin:"8px 0 0",color:msg.startsWith("✅")?"#10B981":"#EF4444"}}>{msg}</p>}
+        </div>
+
+        {/* Invite list */}
+        <div>
+          <h3 style={{fontSize:13,fontWeight:700,color:c.text,margin:"0 0 10px",fontFamily:F}}>Usuários convidados ({invites.length})</h3>
+          {loading ? <p style={{fontSize:12,color:c.textMuted,fontFamily:F}}>Carregando...</p> : (
+            invites.length === 0 ? <p style={{fontSize:12,color:c.textMuted,fontFamily:F,textAlign:"center",padding:"16px 0",opacity:0.6}}>Nenhum convite enviado ainda.</p> : (
+              <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                {invites.map((inv,i)=>(<div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",borderRadius:10,background:c.taskBg,border:`1px solid ${c.cardBorder}`}}>
+                  <div style={{width:32,height:32,borderRadius:8,background:"rgba(59,130,246,0.1)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                  </div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <span style={{fontSize:13,color:c.text,fontFamily:F,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",display:"block"}}>{inv.email}</span>
+                    <span style={{fontSize:10,color:c.textMuted,fontFamily:F}}>{new Date(inv.createdAt).toLocaleDateString("pt-BR")}</span>
+                  </div>
+                  <button onClick={()=>removeInvite(inv.email)} style={{background:"none",border:"none",cursor:"pointer",padding:4,opacity:0.4,flexShrink:0}} onMouseEnter={e=>e.currentTarget.style.opacity="0.9"} onMouseLeave={e=>e.currentTarget.style.opacity="0.4"}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                  </button>
+                </div>))}
+              </div>
+            )
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ─── Login ─── */
 function LoginScreen({ onLogin, theme }) {
   const [user,setUser]=useState(""); const [pin,setPin]=useState("");
   const [error,setError]=useState(false); const [shake,setShake]=useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [googleError, setGoogleError] = useState("");
+  const [firstAccessEmail, setFirstAccessEmail] = useState(null); // email do primeiro acesso
+  const c=theme.t;
+
   const handleSubmit = async () => {
     if(!user.trim()||!pin){setError(true);setShake(true);setTimeout(()=>setShake(false),500);setTimeout(()=>setError(false),2000);return;}
     if(await verifyCredentials(user,pin)){onLogin(user.trim().toLowerCase());}
     else{setError(true);setShake(true);setTimeout(()=>setShake(false),500);setTimeout(()=>setError(false),2000);}
   };
-  const c=theme.t;
+
+  const handleGoogle = async () => {
+    setGoogleLoading(true); setGoogleError("");
+    try {
+      const firebaseUser = await signInWithGoogle();
+      const email = firebaseUser.email;
+      // Verificar se é usuário master (xande tem email cadastrado ou é admin)
+      // Checar se email já tem conta criada
+      const username = await getUsernameByEmail(email);
+      if (username) { onLogin(username); return; }
+      // Checar se email foi convidado
+      const invited = await isEmailInvited(email);
+      if (invited) {
+        // Email convidado mas sem conta ainda — ir para primeiro acesso
+        setFirstAccessEmail(email);
+        return;
+      }
+      // Email não convidado
+      await firebaseSignOut();
+      setGoogleError("Este e-mail não está autorizado. Solicite um convite ao administrador.");
+    } catch (e) {
+      if (e.code !== "auth/popup-closed-by-user") {
+        setGoogleError("Erro ao entrar com Google. Tente novamente.");
+      }
+    }
+    setGoogleLoading(false);
+  };
+
+  if (firstAccessEmail) {
+    return <FirstAccessScreen invitedEmail={firstAccessEmail} onSuccess={username => onLogin(username)} onBack={() => { setFirstAccessEmail(null); setGoogleLoading(false); }} theme={theme} />;
+  }
+
   return (
     <div style={{minHeight:"100vh",background:c.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:F,padding:"24px 16px",transition:"background 0.3s ease"}}>
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
       <button className="theme-btn" onClick={theme.toggle} style={{position:"fixed",top:16,right:16,background:c.btnBg,border:`1px solid ${c.btnBorder}`,borderRadius:10,padding:"8px 10px",cursor:"pointer",lineHeight:1,zIndex:10,display:"flex",alignItems:"center",justifyContent:"center"}} title={theme.mode==="dark"?"Modo claro":"Modo escuro"}>{theme.mode==="dark"?(<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={c.textSub} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>):(<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={c.textSub} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>)}</button>
-      <div style={{width:340,padding:40,textAlign:"center",background:c.loginCardBg,border:`1px solid ${c.loginCardBorder}`,borderRadius:24,animation:shake?"shake 0.5s ease":"fadeIn 0.6s ease",boxShadow:theme.mode==="light"?"0 4px 24px rgba(0,0,0,0.08)":"none"}}>
+      <div style={{width:360,padding:40,textAlign:"center",background:c.loginCardBg,border:`1px solid ${c.loginCardBorder}`,borderRadius:24,animation:shake?"shake 0.5s ease":"fadeIn 0.6s ease",boxShadow:theme.mode==="light"?"0 4px 24px rgba(0,0,0,0.08)":"none"}}>
         <div style={{ marginBottom: 16 }}><Logo size="large" theme={theme.mode} /></div>
-        <p style={{fontSize:13,color:c.textSub,margin:"0 0 24px",lineHeight:1.5}}>Organize sua semana, acompanhe seus projetos e avance com velocidade!</p>
+        <p style={{fontSize:13,color:c.textSub,margin:"0 0 20px",lineHeight:1.5}}>Organize sua semana, acompanhe seus projetos e avance com velocidade!</p>
+
+        {/* Google Sign-In */}
+        <button onClick={handleGoogle} disabled={googleLoading} style={{width:"100%",padding:"13px 16px",borderRadius:12,border:`1.5px solid ${c.inputBorder}`,background:c.inputBg,color:c.text,fontSize:14,fontWeight:600,cursor:googleLoading?"default":"pointer",fontFamily:F,display:"flex",alignItems:"center",justifyContent:"center",gap:10,marginBottom:16,opacity:googleLoading?0.7:1,transition:"all 0.2s ease"}} onMouseEnter={e=>{if(!googleLoading){e.currentTarget.style.borderColor="#4285F4";e.currentTarget.style.background="rgba(66,133,244,0.06)"}}} onMouseLeave={e=>{e.currentTarget.style.borderColor=c.inputBorder;e.currentTarget.style.background=c.inputBg}}>
+          {googleLoading ? (<><div style={{width:18,height:18,borderRadius:"50%",border:"2px solid rgba(66,133,244,0.3)",borderTopColor:"#4285F4",animation:"spin 0.8s linear infinite"}}/> Entrando...</>) : (<><svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>Entrar com Google</>)}
+        </button>
+        {googleError&&<p style={{color:"#EF4444",fontSize:12,margin:"-8px 0 12px",lineHeight:1.4,textAlign:"left"}}>{googleError}</p>}
+
+        {/* Divider */}
+        <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:16}}>
+          <div style={{flex:1,height:1,background:c.divider}}/>
+          <span style={{fontSize:11,color:c.textMuted,fontWeight:500}}>ou use usuário e senha</span>
+          <div style={{flex:1,height:1,background:c.divider}}/>
+        </div>
+
         <div style={{textAlign:"left",marginBottom:12}}>
           <span style={{fontSize:11,color:c.textMuted,fontWeight:600,textTransform:"uppercase",letterSpacing:0.5}}>Usuário</span>
           <input type="text" value={user} onChange={e=>setUser(e.target.value)} onKeyDown={e=>e.key==="Enter"&&document.getElementById("pin-input")?.focus()} placeholder="seu usuário" autoFocus
             style={{width:"100%",boxSizing:"border-box",marginTop:6,padding:"12px 16px",fontSize:15,background:c.inputBg,border:`2px solid ${error?"#EF4444":c.inputBorder}`,borderRadius:12,color:c.inputText,outline:"none",fontFamily:F,transition:"border-color 0.2s ease"}}/>
         </div>
         <div style={{textAlign:"left",marginBottom:6}}>
-          <span style={{fontSize:11,color:c.textMuted,fontWeight:600,textTransform:"uppercase",letterSpacing:0.5}}>PIN</span>
-          <input id="pin-input" type="password" maxLength={6} value={pin} onChange={e=>setPin(e.target.value.replace(/\D/g,""))} onKeyDown={e=>e.key==="Enter"&&handleSubmit()} placeholder="• • • •"
-            style={{width:"100%",boxSizing:"border-box",marginTop:6,padding:"12px 16px",fontSize:20,textAlign:"center",background:c.inputBg,border:`2px solid ${error?"#EF4444":c.inputBorder}`,borderRadius:12,color:c.inputText,outline:"none",fontFamily:F,letterSpacing:8,transition:"border-color 0.2s ease"}}/>
+          <span style={{fontSize:11,color:c.textMuted,fontWeight:600,textTransform:"uppercase",letterSpacing:0.5}}>Senha / PIN</span>
+          <input id="pin-input" type="password" value={pin} onChange={e=>setPin(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleSubmit()} placeholder="sua senha"
+            style={{width:"100%",boxSizing:"border-box",marginTop:6,padding:"12px 16px",fontSize:15,background:c.inputBg,border:`2px solid ${error?"#EF4444":c.inputBorder}`,borderRadius:12,color:c.inputText,outline:"none",fontFamily:F,transition:"border-color 0.2s ease"}}/>
         </div>
-        {error&&<p style={{color:"#EF4444",fontSize:13,margin:"10px 0 0"}}>Usuário ou PIN incorreto</p>}
+        {error&&<p style={{color:"#EF4444",fontSize:13,margin:"10px 0 0"}}>Usuário ou senha incorreto</p>}
         <button onClick={handleSubmit} style={{width:"100%",marginTop:18,padding:"14px",background:"linear-gradient(135deg,#3B82F6,#8B5CF6)",border:"none",borderRadius:14,color:"#fff",fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:F}}>Entrar</button>
       </div>
       <div style={{textAlign:"center",marginTop:28,opacity:0.4}}>
         <p style={{fontSize:11,color:c.textSub,margin:0,fontWeight:500}}>Desenvolvido por Alexandre Sette</p>
         <p style={{fontSize:10,color:c.textMuted,margin:"4px 0 0",fontStyle:"italic"}}>Colossenses 3:23-24</p>
       </div>
-      <style>{`@keyframes fadeIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-6px)}80%{transform:translateX(6px)}}`}</style>
+      <style>{`@keyframes fadeIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-6px)}80%{transform:translateX(6px)}}@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
     </div>
   );
 }
@@ -530,6 +788,7 @@ export default function App(){
   const [dragOverDay,setDragOverDay]=useState(null);
   const [layoutMode,setLayoutMode]=useState("list");
   const [focosOpen,setFocosOpen]=useState(true);
+  const [showAdmin,setShowAdmin]=useState(false);
 
   // Preferências por usuário — carregadas e salvas com userName na chave
   function loadUserPrefs(user){
@@ -686,6 +945,7 @@ export default function App(){
             <p style={{fontSize:10,color:c.textDim,margin:"5px 0 0",fontStyle:"italic",lineHeight:1.5}}>💡 Dica: nomes curtos nas categorias e tarefas deixam tudo mais fácil de ler e acompanhar.</p>
           </div>
           <div style={{display:"flex",gap:6}}>
+            {userName===ADMIN_USER&&(<button onClick={()=>setShowAdmin(true)} title="Painel de Admin" style={{background:c.btnBg,border:`1px solid ${c.btnBorder}`,borderRadius:10,padding:"8px 10px",cursor:"pointer",lineHeight:1,display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.2s ease"}} onMouseEnter={e=>{e.currentTarget.style.borderColor="rgba(139,92,246,0.5)";e.currentTarget.style.background="rgba(139,92,246,0.08)";}} onMouseLeave={e=>{e.currentTarget.style.borderColor=c.btnBorder;e.currentTarget.style.background=c.btnBg;}}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={c.textSub} strokeWidth="2" strokeLinecap="round"><path d="M12 2a5 5 0 1 0 0 10A5 5 0 0 0 12 2z"/><path d="M12 14c-7 0-9 3-9 4v1h18v-1c0-1-2-4-9-4z"/><path d="M19 8l2 2-6 6"/></svg></button>)}
             <button className="theme-btn" onClick={theme.toggle} style={{background:c.btnBg,border:`1px solid ${c.btnBorder}`,borderRadius:10,padding:"8px 10px",cursor:"pointer",lineHeight:1,display:"flex",alignItems:"center",justifyContent:"center"}} title={theme.mode==="dark"?"Modo claro":"Modo escuro"}>{theme.mode==="dark"?(<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={c.textSub} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>):(<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={c.textSub} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>)}</button>
             <button className="logout-btn" onClick={handleLogout} title="Sair" style={{background:c.btnBg,border:`1px solid ${c.btnBorder}`,borderRadius:10,padding:"8px 10px",cursor:"pointer"}}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={c.textSub} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
           </div>
@@ -806,6 +1066,9 @@ export default function App(){
 
         {/* History */}
         {showHistory&&(<div style={{marginTop:20,display:"flex",flexDirection:"column",gap:10,animation:"fadeIn 0.3s ease"}}><h3 style={{fontSize:14,fontWeight:700,color:c.textSub,margin:0,fontFamily:F}}>Semanas concluídas</h3>{history.length===0&&<p style={{fontSize:13,color:c.textMuted,fontFamily:F}}>Nenhum registro ainda.</p>}{history.map((rec,i)=>(<HistoryCard key={i} record={rec} onDelete={()=>deleteHistoryEntry(i)} c={c}/>))}</div>)}
+
+        {/* Admin Panel */}
+        {showAdmin&&<AdminPanel onClose={()=>setShowAdmin(false)} theme={theme}/>}
 
         {/* Footer */}
         <div style={{textAlign:"center",marginTop:32,opacity:0.35}}>
