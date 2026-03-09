@@ -1224,6 +1224,8 @@ export default function App(){
     setWeeks(prev=>{const arr=JSON.parse(JSON.stringify(prev));const fromP=arr[fromIdx]?.projects;const toP=arr[toIdx]?.projects;if(!fromP||!toP)return prev;let task=null;arr[fromIdx].projects=fromP.map(p=>{if(p.id!==pid)return p;const t=p.tasks.find(t=>t.id===tid);if(t)task={...t,done:false};return{...p,tasks:p.tasks.filter(t=>t.id!==tid)};});if(!task)return prev;const has=toP.find(p=>p.id===pid);if(has){arr[toIdx].projects=toP.map(p=>p.id===pid?{...p,tasks:[...p.tasks,{...task,id:`${pid}_${Date.now()}`}]}:p);}else{const src=fromP.find(p=>p.id===pid);if(src)arr[toIdx].projects=[...toP,{...src,tasks:[{...task,id:`${pid}_${Date.now()}`}]}];}return arr;});
   },[]);
 
+  const updateWeekTitle=useCallback((idx,title)=>{setWeeks(prev=>{const arr=[...prev];if(!arr[idx])return prev;arr[idx]={...arr[idx],title};return arr;});},[]);
+
   const addNextWeek=useCallback(()=>{const last=weeks[weeks.length-1];const lastSun=last?new Date(last.sun):getSunday(new Date());const nextSun=addWeeks(lastSun,1);const nextSat=getSaturday(nextSun);const empty=projects.map(p=>({...p,tasks:[]}));setWeeks(prev=>[...prev,{id:weekId(nextSun),sun:nextSun.toISOString(),sat:nextSat.toISOString(),projects:empty}]);},[weeks,projects]);
 
   const canComplete=projects.some(p=>p.tasks.some(t=>t.done));
