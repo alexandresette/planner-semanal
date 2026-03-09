@@ -56,15 +56,11 @@ exports.sendInviteEmail = onRequest(
             </p>
 
             <!-- BOTÃO -->
-            <table width="100%" cellpadding="0" cellspacing="0">
-              <tr>
-                <td align="center" style="padding:0 0 32px;">
-                  <a href="${appUrl}" style="display:inline-block;padding:14px 36px;background:linear-gradient(135deg,#5B5FBF,#3B82F6);color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;border-radius:12px;letter-spacing:0.2px;">
-                    Acessar o Planner &rarr;
-                  </a>
-                </td>
-              </tr>
-            </table>
+            <div style="text-align:center;padding:0 0 32px;">
+              <a href="${appUrl}" style="display:inline-block;padding:14px 36px;background-color:#4F46E5;color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;border-radius:12px;letter-spacing:0.2px;mso-padding-alt:0;line-height:1.4;">
+                Acessar o Planner →
+              </a>
+            </div>
 
             <!-- CARD COMO ACESSAR -->
             <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:18px 20px;margin-bottom:8px;">
@@ -157,7 +153,7 @@ exports.sendResetEmail = onRequest(
             <table width="100%" cellpadding="0" cellspacing="0">
               <tr>
                 <td align="center" style="padding:0 0 32px;">
-                  <a href="${resetUrl}" style="display:inline-block;padding:14px 36px;background:linear-gradient(135deg,#5B5FBF,#3B82F6);color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;border-radius:12px;letter-spacing:0.2px;">Redefinir minha senha &rarr;</a>
+                  <a href="${resetUrl}" style="display:inline-block;padding:14px 36px;background-color:#4F46E5;color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;border-radius:12px;letter-spacing:0.2px;line-height:1.4;">Redefinir minha senha →</a>
                 </td>
               </tr>
             </table>
