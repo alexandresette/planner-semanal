@@ -358,20 +358,23 @@ function WeekTitleEditor({title,defaultTitle,color,c,onSave}){
   const [editing,setEditing]=useState(false);
   const [val,setVal]=useState(title||defaultTitle);
   const tc=c||themes.dark;
-  useEffect(()=>{setVal(title||defaultTitle);},[title,defaultTitle]);
-  const save=()=>{const v=val.trim();onSave(v===defaultTitle?"":v);setEditing(false);};
-  const reset=()=>{setVal(title||defaultTitle);setEditing(false);};
-  useEffect(()=>{if(!editing)return;const h=(e)=>{if(e.key==="Escape")reset();if(e.key==="Enter"){e.preventDefault();save();}};window.addEventListener("keydown",h,true);return()=>window.removeEventListener("keydown",h,true);},[editing,val]);
+  useEffect(()=>{if(!editing)setVal(title||defaultTitle);},[title,defaultTitle,editing]);
+  const handleSave=()=>{const v=val.trim()||defaultTitle;onSave(v===defaultTitle?"":v);setEditing(false);};
+  const handleReset=()=>{setVal(title||defaultTitle);setEditing(false);};
   const displayTitle=title||defaultTitle;
   if(editing) return(
-    <div style={{display:"flex",gap:6,alignItems:"center",justifyContent:"center",padding:"2px 0"}}>
-      <input autoFocus value={val} onChange={e=>setVal(e.target.value)} style={{flex:1,maxWidth:320,padding:"5px 10px",fontSize:15,fontWeight:600,borderRadius:8,background:tc.inputBg,border:`1px solid ${color}50`,color:tc.text,outline:"none",fontFamily:F,textAlign:"center"}}/>
-      <button onClick={save} style={{padding:"5px 12px",borderRadius:8,border:"none",background:color,color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:F,flexShrink:0}}>OK</button>
-      <button onClick={reset} style={{padding:"5px 8px",borderRadius:8,border:`1px solid ${tc.cardBorder}`,background:tc.cancelBg,color:tc.textSub,fontSize:11,cursor:"pointer",fontFamily:F,flexShrink:0}}>✕</button>
+    <div style={{display:"flex",gap:6,alignItems:"center",justifyContent:"center",padding:"2px 0"}}
+      onKeyDown={e=>{e.stopPropagation();if(e.key==="Enter"){e.preventDefault();handleSave();}if(e.key==="Escape"){e.preventDefault();handleReset();}}}>
+      <input autoFocus value={val} onChange={e=>setVal(e.target.value)}
+        style={{flex:1,maxWidth:320,padding:"5px 10px",fontSize:15,fontWeight:600,borderRadius:8,background:tc.inputBg,border:`1px solid ${color}50`,color:tc.text,outline:"none",fontFamily:F,textAlign:"center"}}/>
+      <button onMouseDown={e=>{e.preventDefault();e.stopPropagation();handleSave();}}
+        style={{padding:"5px 12px",borderRadius:8,border:"none",background:color,color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:F,flexShrink:0}}>OK</button>
+      <button onMouseDown={e=>{e.preventDefault();e.stopPropagation();handleReset();}}
+        style={{padding:"5px 8px",borderRadius:8,border:`1px solid ${tc.cardBorder}`,background:tc.cancelBg,color:tc.textSub,fontSize:11,cursor:"pointer",fontFamily:F,flexShrink:0}}>✕</button>
     </div>
   );
   return(
-    <div onClick={()=>setEditing(true)} style={{textAlign:"center",cursor:"pointer",padding:"2px 0",borderRadius:8,transition:"all 0.15s ease"}}
+    <div onClick={()=>{setVal(title||defaultTitle);setEditing(true);}} style={{textAlign:"center",cursor:"pointer",padding:"2px 0",borderRadius:8,transition:"all 0.15s ease"}}
       title="Clique para editar o nome da semana"
       onMouseEnter={e=>{e.currentTarget.style.opacity="0.8";}}
       onMouseLeave={e=>{e.currentTarget.style.opacity="1";}}>
