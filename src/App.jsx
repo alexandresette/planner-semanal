@@ -153,17 +153,23 @@ function TaskItem({task,color,onToggle,onUpdate,projectName,extraAction}){
   const saveText=()=>{if(editText.trim()&&editText.trim()!==task.text)onUpdate({text:editText.trim()});setIsEditing(false);};
   return(
     <div className="task-card" style={{borderRadius:12,overflow:"hidden",background:task.done?"rgba(255,255,255,0.02)":"rgba(255,255,255,0.05)",border:`1px solid ${task.done?"rgba(255,255,255,0.03)":"rgba(255,255,255,0.08)"}`,opacity:task.done?0.45:1}}>
-      <div style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px"}}>
-        <div onClick={onToggle} style={{width:22,height:22,borderRadius:6,flexShrink:0,cursor:"pointer",border:task.done?"none":`2px solid ${color}`,background:task.done?color:"transparent",display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.2s ease"}}>
-          {task.done&&<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
-        </div>
-        <span onClick={onToggle} style={{flex:1,fontSize:13.5,lineHeight:1.4,color:"#E2E8F0",cursor:"pointer",textDecoration:task.done?"line-through":"none",fontFamily:F}}>{task.text}</span>
-        {projectName&&<span style={{fontSize:9,fontWeight:600,padding:"2px 6px",borderRadius:4,background:`${color}20`,color,fontFamily:F,whiteSpace:"nowrap"}}>{projectName}</span>}
-        {dayInfo&&!projectName&&<span style={{fontSize:10,fontWeight:600,padding:"2px 7px",borderRadius:5,background:"rgba(255,255,255,0.07)",color:"#94A3B8",fontFamily:F}}>{dayInfo.label}</span>}
-        <div style={{width:8,height:8,borderRadius:"50%",flexShrink:0,background:priorityConfig[task.priority].dot}}/>
-        {extraAction}
-        <div onClick={e=>{e.stopPropagation();setShowOpts(!showOpts);}} style={{cursor:"pointer",padding:"2px 4px",opacity:0.5,transition:"opacity 0.2s"}} onMouseEnter={e=>e.currentTarget.style.opacity="1"} onMouseLeave={e=>e.currentTarget.style.opacity="0.5"}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+      <div style={{padding:"10px 12px"}}>
+        <div style={{display:"flex",alignItems:"flex-start",gap:10}}>
+          <div onClick={onToggle} style={{width:22,height:22,borderRadius:6,flexShrink:0,cursor:"pointer",border:task.done?"none":`2px solid ${color}`,background:task.done?color:"transparent",display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.2s ease",marginTop:1}}>
+            {task.done&&<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
+          </div>
+          <div style={{flex:1,minWidth:0}}>
+            <span onClick={onToggle} style={{fontSize:13.5,lineHeight:1.4,color:"#E2E8F0",cursor:"pointer",textDecoration:task.done?"line-through":"none",fontFamily:F,display:"block"}}>{task.text}</span>
+            <div style={{display:"flex",alignItems:"center",gap:6,marginTop:5,flexWrap:"wrap"}}>
+              {projectName&&<span style={{fontSize:9,fontWeight:600,padding:"2px 6px",borderRadius:4,background:`${color}20`,color,fontFamily:F,whiteSpace:"nowrap"}}>{projectName}</span>}
+              {dayInfo&&!projectName&&<span style={{fontSize:10,fontWeight:600,padding:"2px 7px",borderRadius:5,background:"rgba(255,255,255,0.07)",color:"#94A3B8",fontFamily:F}}>{dayInfo.label}</span>}
+              <div style={{width:8,height:8,borderRadius:"50%",flexShrink:0,background:priorityConfig[task.priority].dot}}/>
+            </div>
+          </div>
+          {extraAction}
+          <div onClick={e=>{e.stopPropagation();setShowOpts(!showOpts);}} style={{cursor:"pointer",padding:"2px 4px",opacity:0.5,transition:"opacity 0.2s",flexShrink:0}} onMouseEnter={e=>e.currentTarget.style.opacity="1"} onMouseLeave={e=>e.currentTarget.style.opacity="0.5"}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+          </div>
         </div>
       </div>
       {showOpts&&(
