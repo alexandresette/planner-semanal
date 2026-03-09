@@ -1164,7 +1164,7 @@ export default function App(){
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
           <div>
             <Logo theme={theme.mode} />
-            {userName&&<p style={{fontSize:13,color:c.textSub,margin:"8px 0 0",fontWeight:500}}>Seja bem-vindo, <span style={{color:"#3B82F6",fontWeight:700}}>{userName}</span></p>}
+            {userName&&<p style={{fontSize:13,color:c.textSub,margin:"8px 0 0",fontWeight:500}}>Olá, <span style={{color:"#3B82F6",fontWeight:700}}>{userName}</span></p>}
             <p style={{fontSize:11,color:c.textMuted,margin:"4px 0 0"}}>Organize sua semana, acompanhe seus projetos e avance com velocidade!</p>
             <p style={{fontSize:10,color:c.textDim,margin:"5px 0 0",fontStyle:"italic",lineHeight:1.5}}>💡 Dica: nomes curtos nos projetos e tarefas deixam tudo mais fácil de ler e acompanhar.</p>
           </div>
