@@ -252,6 +252,42 @@ function HistoryCard({record,onDelete}){
   );
 }
 
+/* ─── Column Project Card ─── */
+function ColumnProjectCard({project:p,done,total,pct,idx,projectsLen,reorderMode,onMoveProject,onEditProject,onToggleTask,onUpdateTask,onAddTask,taskMoveWeekFn}){
+  const [showEdit,setShowEdit]=useState(false);
+  const [nameVal,setNameVal]=useState(p.name);
+  const [emojiVal,setEmojiVal]=useState(p.emoji);
+  const saveName=()=>{if(nameVal.trim()&&nameVal.trim()!==p.name)onEditProject({name:nameVal.trim()});};
+  const saveEmoji=()=>{if(emojiVal.trim()&&emojiVal.trim()!==p.emoji)onEditProject({emoji:emojiVal.trim()});};
+  return(
+    <div style={{background:"rgba(255,255,255,0.04)",borderRadius:14,border:"1px solid rgba(255,255,255,0.07)",overflow:"hidden",minWidth:180}}>
+      <div style={{padding:"14px 12px",borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
+        <div style={{display:"flex",alignItems:"center",gap:8}}>
+          <span style={{fontSize:20}}>{p.emoji}</span>
+          <div style={{flex:1,minWidth:0}}><div style={{fontSize:13,fontWeight:700,color:"#F1F5F9",fontFamily:F,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.name}</div><span style={{fontSize:11,color:"#94A3B8",fontFamily:F}}>{done}/{total}</span></div>
+          <div onClick={()=>setShowEdit(!showEdit)} style={{cursor:"pointer",padding:4,opacity:showEdit?1:0.4,transition:"opacity 0.2s"}} onMouseEnter={e=>e.currentTarget.style.opacity="1"} onMouseLeave={e=>{if(!showEdit)e.currentTarget.style.opacity="0.4";}}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={showEdit?p.color:"#94A3B8"} strokeWidth="2" strokeLinecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </div>
+          <ProgressRing percent={pct} color={pct===100?"#10B981":p.color} size={32}/>
+        </div>
+        {showEdit&&(<div style={{marginTop:10,display:"flex",flexDirection:"column",gap:8,animation:"fadeIn 0.2s ease"}}>
+          <div style={{display:"flex",alignItems:"center",gap:6}}><div style={{width:36,height:36,borderRadius:8,background:`${p.color}20`,border:`1px solid ${p.color}40`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>{emojiVal}</div><input value={emojiVal} onChange={e=>setEmojiVal(e.target.value)} onBlur={saveEmoji} onKeyDown={e=>{if(e.key==="Enter")saveEmoji();}} style={{width:50,padding:"4px 6px",fontSize:16,borderRadius:6,background:"rgba(255,255,255,0.06)",border:`1px solid ${p.color}40`,color:"#E2E8F0",outline:"none",fontFamily:F,textAlign:"center"}}/></div>
+          <input value={nameVal} onChange={e=>setNameVal(e.target.value)} onBlur={saveName} onKeyDown={e=>{if(e.key==="Enter")saveName();}} style={{width:"100%",boxSizing:"border-box",padding:"6px 10px",fontSize:12,borderRadius:6,background:"rgba(255,255,255,0.06)",border:`1px solid ${p.color}40`,color:"#E2E8F0",outline:"none",fontFamily:F}}/>
+          <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>{COLOR_OPTIONS.map(c=>(<button key={c} onClick={()=>onEditProject({color:c})} style={{width:22,height:22,borderRadius:6,cursor:"pointer",border:p.color===c?"2px solid #fff":"2px solid transparent",background:c}}/>))}</div>
+        </div>)}
+        {reorderMode&&(<div style={{display:"flex",justifyContent:"center",gap:8,marginTop:8}}>
+          <button onClick={()=>onMoveProject(idx,-1)} disabled={idx===0} style={{background:"none",border:"1px solid rgba(255,255,255,0.1)",borderRadius:6,cursor:idx===0?"default":"pointer",opacity:idx===0?0.2:0.7,padding:"3px 8px",display:"flex",alignItems:"center",gap:4,color:"#94A3B8",fontSize:10,fontFamily:F}}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.5" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>←</button>
+          <button onClick={()=>onMoveProject(idx,1)} disabled={idx===projectsLen-1} style={{background:"none",border:"1px solid rgba(255,255,255,0.1)",borderRadius:6,cursor:idx===projectsLen-1?"default":"pointer",opacity:idx===projectsLen-1?0.2:0.7,padding:"3px 8px",display:"flex",alignItems:"center",gap:4,color:"#94A3B8",fontSize:10,fontFamily:F}}>→<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+        </div>)}
+      </div>
+      <div style={{padding:"8px 8px 12px",display:"flex",flexDirection:"column",gap:5}}>
+        {[...p.tasks].sort((a,b)=>{const d=WEEK_DAYS_ORDER.indexOf(a.day)-WEEK_DAYS_ORDER.indexOf(b.day);if(d!==0)return d;const o={high:0,medium:1,low:2};const pr=o[a.priority]-o[b.priority];if(pr!==0)return pr;return a.text.localeCompare(b.text,"pt-BR");}).map(task=>(<TaskItem key={task.id} task={task} color={p.color} onToggle={()=>onToggleTask(p.id,task.id)} onUpdate={u=>onUpdateTask(p.id,task.id,u)} onMoveWeek={taskMoveWeekFn(p.id,task.id)}/>))}
+        <AddTaskInput color={p.color} onAdd={(text,day,priority)=>onAddTask(p.id,text,day,priority)}/>
+      </div>
+    </div>
+  );
+}
+
 /* ─── Main App ─── */
 export default function App(){
   const [authed,setAuthed]=useState(false);
@@ -261,14 +297,16 @@ export default function App(){
   const [history,setHistory]=useState([]);
   const [expanded,setExpanded]=useState({});
   const [loading,setLoading]=useState(true);
-  const [viewMode,setViewMode]=useState("category");
+  const [viewMode,setViewMode]=useState(()=>{try{return localStorage.getItem("planner-viewMode")||"category";}catch{return "category";}});
   const [reorderMode,setReorderMode]=useState(false);
   const [showHistory,setShowHistory]=useState(false);
   const [showConfirm,setShowConfirm]=useState(false);
   const [dragTask,setDragTask]=useState(null); // {projectId, taskId}
   const [dragOverDay,setDragOverDay]=useState(null);
-  const [layoutMode,setLayoutMode]=useState("list");
+  const [layoutMode,setLayoutMode]=useState(()=>{try{const s=localStorage.getItem("planner-layoutMode");if(s==="columns"&&window.innerWidth>=768)return "columns";return "list";}catch{return "list";}});
 
+  useEffect(()=>{try{localStorage.setItem("planner-viewMode",viewMode);}catch{}},[viewMode]);
+  useEffect(()=>{try{localStorage.setItem("planner-layoutMode",layoutMode);}catch{}},[layoutMode]);
   useEffect(()=>{(async()=>{try{const r=await window.storage.get(AUTH_KEY);if(r&&r.value==="true"){setAuthed(true);try{const u=await window.storage.get(USER_KEY);if(u&&u.value)setUserName(u.value);}catch{}}}catch{}})();},[]);
   const handleLogin=useCallback(user=>{setAuthed(true);setUserName(user);window.storage.set(AUTH_KEY,"true").catch(()=>{});window.storage.set(USER_KEY,user).catch(()=>{});},[]);
   const handleLogout=useCallback(()=>{setAuthed(false);setUserName("");setWeeks([]);setLoading(true);window.storage.set(AUTH_KEY,"false").catch(()=>{});window.storage.set(USER_KEY,"").catch(()=>{});},[]);
@@ -415,26 +453,7 @@ export default function App(){
         <div style={{display:"grid",gridTemplateColumns:viewMode==="category"?`repeat(${Math.min(projects.length+1,5)}, 1fr)`:`repeat(${WEEK_DAYS.length}, 1fr)`,gap:10,overflowX:"auto"}}>
           {viewMode==="category"?(<>
             {projects.map((p,idx)=>{const done=p.tasks.filter(t=>t.done).length;const total=p.tasks.length;const pct=total>0?Math.round((done/total)*100):0;return(
-              <div key={p.id} style={{background:"rgba(255,255,255,0.04)",borderRadius:14,border:"1px solid rgba(255,255,255,0.07)",overflow:"hidden",minWidth:180}}>
-                <div style={{padding:"14px 12px",borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
-                  <div style={{display:"flex",alignItems:"center",gap:8}}>
-                    <span style={{fontSize:20}}>{p.emoji}</span>
-                    <div style={{flex:1,minWidth:0}}><div style={{fontSize:13,fontWeight:700,color:"#F1F5F9",fontFamily:F,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.name}</div><span style={{fontSize:11,color:"#94A3B8",fontFamily:F}}>{done}/{total}</span></div>
-                    <div onClick={()=>editProject(p.id,{})} style={{cursor:"pointer",padding:4,opacity:0.4,transition:"opacity 0.2s"}} onMouseEnter={e=>e.currentTarget.style.opacity="1"} onMouseLeave={e=>e.currentTarget.style.opacity="0.4"}>
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                    </div>
-                    <ProgressRing percent={pct} color={pct===100?"#10B981":p.color} size={32}/>
-                  </div>
-                  {reorderMode&&(<div style={{display:"flex",justifyContent:"center",gap:8,marginTop:8}}>
-                    <button onClick={()=>moveProject(idx,-1)} disabled={idx===0} style={{background:"none",border:"1px solid rgba(255,255,255,0.1)",borderRadius:6,cursor:idx===0?"default":"pointer",opacity:idx===0?0.2:0.7,padding:"3px 8px",display:"flex",alignItems:"center",gap:4,color:"#94A3B8",fontSize:10,fontFamily:F}}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.5" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>←</button>
-                    <button onClick={()=>moveProject(idx,1)} disabled={idx===projects.length-1} style={{background:"none",border:"1px solid rgba(255,255,255,0.1)",borderRadius:6,cursor:idx===projects.length-1?"default":"pointer",opacity:idx===projects.length-1?0.2:0.7,padding:"3px 8px",display:"flex",alignItems:"center",gap:4,color:"#94A3B8",fontSize:10,fontFamily:F}}>→<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg></button>
-                  </div>)}
-                </div>
-                <div style={{padding:"8px 8px 12px",display:"flex",flexDirection:"column",gap:5}}>
-                  {[...p.tasks].sort((a,b)=>{const d=WEEK_DAYS_ORDER.indexOf(a.day)-WEEK_DAYS_ORDER.indexOf(b.day);if(d!==0)return d;const o={high:0,medium:1,low:2};const pr=o[a.priority]-o[b.priority];if(pr!==0)return pr;return a.text.localeCompare(b.text,"pt-BR");}).map(task=>(<TaskItem key={task.id} task={task} color={p.color} onToggle={()=>toggleTask(p.id,task.id)} onUpdate={u=>updateTask(p.id,task.id,u)} onMoveWeek={taskMoveWeekFn(p.id,task.id)}/>))}
-                  <AddTaskInput color={p.color} onAdd={(text,day,priority)=>addTask(p.id,text,day,priority)}/>
-                </div>
-              </div>
+              <ColumnProjectCard key={p.id} project={p} done={done} total={total} pct={pct} idx={idx} projectsLen={projects.length} reorderMode={reorderMode} onMoveProject={moveProject} onEditProject={u=>editProject(p.id,u)} onToggleTask={toggleTask} onUpdateTask={updateTask} onAddTask={addTask} taskMoveWeekFn={taskMoveWeekFn}/>
             );})}
             <AddCategoryCard onAdd={addCategory}/>
           </>):(
