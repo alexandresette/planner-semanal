@@ -172,8 +172,9 @@ exports.sendInviteEmail = onRequest(
 
       if (!response.ok) {
         const err = await response.json();
-        console.error("Resend error:", err);
-        res.status(500).json({ error: "Falha ao enviar e-mail." }); return;
+        console.error("Resend error status:", response.status);
+        console.error("Resend error body:", JSON.stringify(err));
+        res.status(500).json({ error: "Falha ao enviar e-mail.", details: err }); return;
       }
 
       const result = await response.json();
