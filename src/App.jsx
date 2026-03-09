@@ -31,7 +31,8 @@ function getSaturday(d) { const r = getSunday(d); r.setDate(r.getDate()+6); retu
 function fmtWeekLabel(sun, sat) {
   const d1 = String(sun.getDate()).padStart(2,"0");
   const d2 = String(sat.getDate()).padStart(2,"0");
-  return `${d1}-${d2}-${MONTHS_PT[sun.getMonth()]}-${sun.getFullYear()}`;
+  const MONTHS_FULL = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+  return `${d1} a ${d2} | ${MONTHS_FULL[sun.getMonth()]}/${sun.getFullYear()}`;
 }
 function fmtWeekDisplay(sun, sat) {
   const f = d => d.toLocaleDateString("pt-BR",{day:"2-digit",month:"short"});
@@ -339,8 +340,7 @@ export default function App(){
             {weeks.map((w,i)=>(<button key={w.id} onClick={()=>setActiveWeekIdx(i)} style={{flex:1,padding:"8px 4px",borderRadius:10,border:"none",cursor:"pointer",fontFamily:F,fontSize:11,fontWeight:600,background:activeWeekIdx===i?"rgba(59,130,246,0.2)":"rgba(255,255,255,0.04)",color:activeWeekIdx===i?"#60A5FA":"#64748B",transition:"all 0.2s"}}>{i===0?"Atual":"Próxima"}</button>))}
           </div>
           <div style={{textAlign:"center"}}>
-            <div style={{fontSize:22,fontWeight:800,color:"#F1F5F9",fontFamily:FS,letterSpacing:"-0.02em"}}>{fmtWeekLabel(currentSun,currentSat)}</div>
-            <div style={{fontSize:13,color:"#64748B",marginTop:4}}>{fmtWeekDisplay(currentSun,currentSat)}</div>
+            <div style={{fontSize:18,fontWeight:700,color:"#F1F5F9",fontFamily:F,letterSpacing:"0.01em"}}>{fmtWeekLabel(currentSun,currentSat)}</div>
           </div>
         </div>
 
