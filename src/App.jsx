@@ -482,16 +482,16 @@ export default function App(){
   const [focosOpen,setFocosOpen]=useState(true);
 
   // Preferências por usuário — carregadas e salvas com userName na chave
-  useEffect(()=>{if(!userName)return;try{localStorage.setItem(`planner-${userName}-viewMode`,viewMode);}catch{}},[viewMode,userName]);
-  useEffect(()=>{if(!userName)return;try{localStorage.setItem(`planner-${userName}-layoutMode`,layoutMode);}catch{}},[layoutMode,userName]);
-  useEffect(()=>{if(!userName)return;try{localStorage.setItem(`planner-${userName}-focosOpen`,String(focosOpen));}catch{}},[focosOpen,userName]);
-  useEffect(()=>{(async()=>{try{const r=await window.storage.get(AUTH_KEY);if(r&&r.value==="true"){setAuthed(true);try{const u=await window.storage.get(USER_KEY);if(u&&u.value){setUserName(u.value);loadUserPrefs(u.value);}}catch{}}}catch{}})();},[loadUserPrefs]);
-  const loadUserPrefs=useCallback(user=>{
+  function loadUserPrefs(user){
     try{const v=localStorage.getItem(`planner-${user}-viewMode`);if(v)setViewMode(v);}catch{}
     try{const l=localStorage.getItem(`planner-${user}-layoutMode`);if(l==="columns"&&window.innerWidth>=768)setLayoutMode("columns");else if(l==="list")setLayoutMode("list");}catch{}
     try{const f=localStorage.getItem(`planner-${user}-focosOpen`);if(f!==null)setFocosOpen(f==="true");}catch{}
-  },[]);
-  const handleLogin=useCallback(user=>{setAuthed(true);setUserName(user);loadUserPrefs(user);window.storage.set(AUTH_KEY,"true").catch(()=>{});window.storage.set(USER_KEY,user).catch(()=>{});},[loadUserPrefs]);
+  }
+  useEffect(()=>{if(!userName)return;try{localStorage.setItem(`planner-${userName}-viewMode`,viewMode);}catch{}},[viewMode,userName]);
+  useEffect(()=>{if(!userName)return;try{localStorage.setItem(`planner-${userName}-layoutMode`,layoutMode);}catch{}},[layoutMode,userName]);
+  useEffect(()=>{if(!userName)return;try{localStorage.setItem(`planner-${userName}-focosOpen`,String(focosOpen));}catch{}},[focosOpen,userName]);
+  useEffect(()=>{(async()=>{try{const r=await window.storage.get(AUTH_KEY);if(r&&r.value==="true"){setAuthed(true);try{const u=await window.storage.get(USER_KEY);if(u&&u.value){setUserName(u.value);loadUserPrefs(u.value);}}catch{}}}catch{}})();},[]);
+  const handleLogin=useCallback(user=>{setAuthed(true);setUserName(user);loadUserPrefs(user);window.storage.set(AUTH_KEY,"true").catch(()=>{});window.storage.set(USER_KEY,user).catch(()=>{});},[]);
   const handleLogout=useCallback(()=>{setAuthed(false);setUserName("");setWeeks([]);setLoading(true);window.storage.set(AUTH_KEY,"false").catch(()=>{});window.storage.set(USER_KEY,"").catch(()=>{});},[]);
 
   useEffect(()=>{
