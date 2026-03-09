@@ -5,7 +5,6 @@ const LOGO_LIGHT = `${import.meta.env.BASE_URL}logo-light.svg`;
 
 const AUTH_KEY = "gestor-auth";
 const USER_KEY = "gestor-user";
-const MONTHS_PT = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
 
 const CREDENTIALS = {
   "xande": "df0a720d14ebe80f38b75efe20f84c740e176e3eca65183ddaf75999510c08e3",
@@ -50,7 +49,8 @@ const WEEK_DAYS = [
 
 const COLOR_OPTIONS = ["#EF4444","#F59E0B","#10B981","#3B82F6","#8B5CF6","#EC4899","#14B8A6","#F97316","#6366F1","#84CC16"];
 
-const DEFAULT_PROJECTS = [
+// DEFAULT_PROJECTS só para o usuário xande
+const DEFAULT_PROJECTS_XANDE = [
   { id:"dexan", name:"Dexan Commerce", emoji:"📦", color:"#F59E0B", tasks:[
     {id:"d1",text:"Resolver viabilidade CNPJ na Prefeitura",done:false,priority:"high",day:"seg"},
     {id:"d2",text:"Continuar processo Redesim após aprovação",done:false,priority:"high",day:"ter"},
@@ -75,6 +75,11 @@ const DEFAULT_PROJECTS = [
   ]},
 ];
 
+function getDefaultProjects(user) {
+  if (user === "xande") return DEFAULT_PROJECTS_XANDE;
+  return []; // outros usuários começam zerados
+}
+
 const priorityConfig = {
   high:{label:"Alta",dot:"#EF4444",bg:"rgba(239,68,68,0.12)"},
   medium:{label:"Média",dot:"#F59E0B",bg:"rgba(245,158,11,0.12)"},
@@ -88,22 +93,17 @@ const themes = {
     bg: "#0B1120", cardBg: "rgba(255,255,255,0.04)", cardBorder: "rgba(255,255,255,0.07)",
     taskBg: "rgba(255,255,255,0.05)", taskBgDone: "rgba(255,255,255,0.02)", taskBorder: "rgba(255,255,255,0.08)", taskBorderDone: "rgba(255,255,255,0.03)",
     text: "#F1F5F9", textSub: "#94A3B8", textMuted: "#64748B", textDim: "#475569",
-    inputBg: "rgba(255,255,255,0.06)", inputBorder: "rgba(255,255,255,0.1)",
-    inputText: "#E2E8F0",
+    inputBg: "rgba(255,255,255,0.06)", inputBorder: "rgba(255,255,255,0.1)", inputText: "#E2E8F0",
     weekBg: "linear-gradient(135deg,rgba(59,130,246,0.08),rgba(139,92,246,0.08))",
     weekNextBg: "linear-gradient(135deg,rgba(88,28,196,0.15),rgba(55,15,120,0.15))",
     progressBg: "linear-gradient(135deg,rgba(59,130,246,0.12),rgba(139,92,246,0.12))",
     progressNextBg: "linear-gradient(135deg,rgba(88,28,196,0.18),rgba(55,15,120,0.18))",
     hoverShadow: "rgba(255,255,255,0.06)", hoverBorder: "rgba(255,255,255,0.15)",
-    logo: LOGO_DARK,
-    loginCardBg: "rgba(255,255,255,0.03)", loginCardBorder: "rgba(255,255,255,0.07)",
-    btnBg: "rgba(255,255,255,0.04)", btnBorder: "rgba(255,255,255,0.08)",
-    modalBg: "#0F1729",
+    logo: LOGO_DARK, loginCardBg: "rgba(255,255,255,0.03)", loginCardBorder: "rgba(255,255,255,0.07)",
+    btnBg: "rgba(255,255,255,0.04)", btnBorder: "rgba(255,255,255,0.08)", modalBg: "#0F1729",
     divider: "rgba(255,255,255,0.05)",
     weekTabActive0: "rgba(59,130,246,0.2)", weekTabActive1: "rgba(88,28,196,0.3)",
-    weekTabInactive: "rgba(255,255,255,0.04)",
-    weekTabColor0: "#60A5FA", weekTabColor1: "#B388FF",
-    weekTabColorInactive: "#64748B",
+    weekTabInactive: "rgba(255,255,255,0.04)", weekTabColor0: "#60A5FA", weekTabColor1: "#B388FF", weekTabColorInactive: "#64748B",
     addTaskBorder: "rgba(255,255,255,0.1)", addTaskColor: "#64748B",
     addCatBorder: "rgba(255,255,255,0.08)", addCatColor: "#64748B",
     reorderBorder: "rgba(255,255,255,0.1)",
@@ -112,31 +112,25 @@ const themes = {
     cancelBg: "transparent", cancelBorder: "rgba(255,255,255,0.08)", cancelColor: "#64748B",
     progressRingBg: "rgba(255,255,255,0.08)",
     viewToggleBg: "rgba(255,255,255,0.04)", viewToggleBorder: "rgba(255,255,255,0.07)",
-    colDayBg: "rgba(255,255,255,0.04)", colDayBorder: "rgba(255,255,255,0.07)",
-    colDayDivider: "rgba(255,255,255,0.05)",
-    dragOverBg: "rgba(59,130,246,0.12)", dragOverBorder: "rgba(59,130,246,0.4)",
-    legendColor: "#64748B",
+    colDayBg: "rgba(255,255,255,0.04)", colDayBorder: "rgba(255,255,255,0.07)", colDayDivider: "rgba(255,255,255,0.05)",
+    dragOverBg: "rgba(59,130,246,0.12)", dragOverBorder: "rgba(59,130,246,0.4)", legendColor: "#64748B",
+    deleteDangerBg: "rgba(239,68,68,0.1)", deleteDangerBorder: "rgba(239,68,68,0.3)",
   },
   light: {
     bg: "#F0F2F5", cardBg: "#FFFFFF", cardBorder: "rgba(0,0,0,0.08)",
     taskBg: "#F8F9FB", taskBgDone: "#ECEEF1", taskBorder: "rgba(0,0,0,0.08)", taskBorderDone: "rgba(0,0,0,0.04)",
     text: "#1E293B", textSub: "#475569", textMuted: "#64748B", textDim: "#94A3B8",
-    inputBg: "#FFFFFF", inputBorder: "rgba(0,0,0,0.15)",
-    inputText: "#1E293B",
+    inputBg: "#FFFFFF", inputBorder: "rgba(0,0,0,0.15)", inputText: "#1E293B",
     weekBg: "linear-gradient(135deg,rgba(59,130,246,0.06),rgba(139,92,246,0.06))",
     weekNextBg: "linear-gradient(135deg,rgba(88,28,196,0.08),rgba(55,15,120,0.08))",
     progressBg: "linear-gradient(135deg,rgba(59,130,246,0.08),rgba(139,92,246,0.08))",
     progressNextBg: "linear-gradient(135deg,rgba(88,28,196,0.1),rgba(55,15,120,0.1))",
     hoverShadow: "rgba(0,0,0,0.08)", hoverBorder: "rgba(0,0,0,0.14)",
-    logo: LOGO_LIGHT,
-    loginCardBg: "#FFFFFF", loginCardBorder: "rgba(0,0,0,0.1)",
-    btnBg: "#ECEEF1", btnBorder: "rgba(0,0,0,0.1)",
-    modalBg: "#FFFFFF",
+    logo: LOGO_LIGHT, loginCardBg: "#FFFFFF", loginCardBorder: "rgba(0,0,0,0.1)",
+    btnBg: "#ECEEF1", btnBorder: "rgba(0,0,0,0.1)", modalBg: "#FFFFFF",
     divider: "rgba(0,0,0,0.06)",
     weekTabActive0: "rgba(59,130,246,0.15)", weekTabActive1: "rgba(88,28,196,0.12)",
-    weekTabInactive: "rgba(0,0,0,0.04)",
-    weekTabColor0: "#2563EB", weekTabColor1: "#7C3AED",
-    weekTabColorInactive: "#64748B",
+    weekTabInactive: "rgba(0,0,0,0.04)", weekTabColor0: "#2563EB", weekTabColor1: "#7C3AED", weekTabColorInactive: "#64748B",
     addTaskBorder: "rgba(0,0,0,0.12)", addTaskColor: "#64748B",
     addCatBorder: "rgba(0,0,0,0.1)", addCatColor: "#64748B",
     reorderBorder: "rgba(0,0,0,0.1)",
@@ -145,10 +139,9 @@ const themes = {
     cancelBg: "#F0F2F5", cancelBorder: "rgba(0,0,0,0.1)", cancelColor: "#475569",
     progressRingBg: "rgba(0,0,0,0.08)",
     viewToggleBg: "#ECEEF1", viewToggleBorder: "rgba(0,0,0,0.08)",
-    colDayBg: "#FFFFFF", colDayBorder: "rgba(0,0,0,0.08)",
-    colDayDivider: "rgba(0,0,0,0.06)",
-    dragOverBg: "rgba(59,130,246,0.08)", dragOverBorder: "rgba(59,130,246,0.35)",
-    legendColor: "#64748B",
+    colDayBg: "#FFFFFF", colDayBorder: "rgba(0,0,0,0.08)", colDayDivider: "rgba(0,0,0,0.06)",
+    dragOverBg: "rgba(59,130,246,0.08)", dragOverBorder: "rgba(59,130,246,0.35)", legendColor: "#64748B",
+    deleteDangerBg: "rgba(239,68,68,0.08)", deleteDangerBorder: "rgba(239,68,68,0.25)",
   }
 };
 
@@ -210,8 +203,28 @@ function ProgressRing({percent,color,size=48,c}){
   return(<svg width={size} height={size} style={{transform:"rotate(-90deg)"}}><circle cx={size/2} cy={size/2} r={r} fill="none" stroke={trackColor} strokeWidth="4"/><circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth="4" strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round" style={{transition:"stroke-dashoffset 0.6s cubic-bezier(0.4,0,0.2,1)"}}/><text x={size/2} y={size/2} textAnchor="middle" dominantBaseline="central" style={{transform:"rotate(90deg)",transformOrigin:"center",fontSize:size<44?11:13,fill:textFill,fontWeight:700}}>{percent}%</text></svg>);
 }
 
+/* ─── Confirm Delete Modal ─── */
+function ConfirmDeleteModal({title,description,onConfirm,onCancel,c}){
+  const tc = c || themes.dark;
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.65)",backdropFilter:"blur(4px)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:2000,padding:16,animation:"fadeIn 0.15s ease"}} onClick={onCancel}>
+      <div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:380,background:tc.modalBg,border:`1px solid rgba(239,68,68,0.25)`,borderRadius:18,padding:24,boxShadow:tc===themes.light?"0 8px 40px rgba(0,0,0,0.15)":"0 8px 40px rgba(0,0,0,0.5)"}}>
+        <div style={{width:44,height:44,borderRadius:12,background:"rgba(239,68,68,0.12)",display:"flex",alignItems:"center",justifyContent:"center",marginBottom:14}}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        </div>
+        <h3 style={{fontSize:16,fontWeight:800,color:tc.text,margin:"0 0 6px",fontFamily:FS}}>{title}</h3>
+        <p style={{fontSize:13,color:tc.textSub,margin:"0 0 20px",lineHeight:1.5,fontFamily:F}}>{description}</p>
+        <div style={{display:"flex",gap:8}}>
+          <button onClick={onConfirm} style={{flex:1,padding:"10px",borderRadius:10,border:"none",cursor:"pointer",background:"#EF4444",color:"#fff",fontSize:13,fontWeight:700,fontFamily:F}}>Excluir</button>
+          <button onClick={onCancel} style={{flex:1,padding:"10px",borderRadius:10,border:`1px solid ${tc.cardBorder}`,background:tc.cancelBg,color:tc.textSub,fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:F}}>Cancelar</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ─── Task Item ─── */
-function TaskItem({task,color,onToggle,onUpdate,projectName,onMoveWeek,onEditingChange,c}){
+function TaskItem({task,color,onToggle,onUpdate,projectName,onMoveWeek,onEditingChange,c,projects,showCategoryPicker}){
   const [showOpts,setShowOpts]=useState(false);
   const [editText,setEditText]=useState(task.text);
   const [isEditing,setIsEditing]=useState(false);
@@ -246,6 +259,15 @@ function TaskItem({task,color,onToggle,onUpdate,projectName,onMoveWeek,onEditing
             {isEditing?(<div style={{display:"flex",gap:6}}><input autoFocus value={editText} onChange={e=>setEditText(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")saveText();if(e.key==="Escape"){setEditText(task.text);setIsEditing(false);}}} style={{flex:1,padding:"6px 10px",fontSize:12,borderRadius:8,background:tc.inputBg,border:`1px solid ${color}40`,color:tc.inputText,outline:"none",fontFamily:F}}/><button onClick={saveText} style={{padding:"6px 12px",borderRadius:8,border:"none",background:color,color:"#fff",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:F}}>OK</button></div>)
             :(<button onClick={()=>setIsEditing(true)} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 10px",borderRadius:8,background:tc.inputBg,border:`1px solid ${tc.cardBorder}`,color:tc.textSub,fontSize:12,cursor:"pointer",fontFamily:F,width:"100%",textAlign:"left"}}>✏️ {task.text}</button>)}
           </div>
+          {/* Categoria (só na view dias da semana) */}
+          {showCategoryPicker&&projects&&projects.length>0&&(
+            <div style={{marginBottom:8}}>
+              <span style={{fontSize:10,color:tc.textMuted,fontWeight:600,display:"block",marginBottom:5,textTransform:"uppercase",letterSpacing:0.5}}>Categoria</span>
+              <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+                {projects.map(p=>(<button key={p.id} onClick={()=>onUpdate({_newProjectId:p.id})} style={{display:"flex",alignItems:"center",gap:4,padding:"4px 8px",fontSize:10,fontWeight:600,borderRadius:6,border:`1px solid ${task._projectId===p.id?p.color:tc.cardBorder}`,cursor:"pointer",fontFamily:F,background:task._projectId===p.id?`${p.color}20`:tc.inputBg,color:task._projectId===p.id?p.color:tc.textSub,transition:"all 0.15s ease"}}><span style={{fontSize:12}}>{p.emoji}</span>{p.name}</button>))}
+              </div>
+            </div>
+          )}
           <div style={{marginBottom:8}}><span style={{fontSize:10,color:tc.textMuted,fontWeight:600,display:"block",marginBottom:5,textTransform:"uppercase",letterSpacing:0.5}}>Dia</span><div style={{display:"flex",gap:3,flexWrap:"wrap"}}>{WEEK_DAYS.map(d=>(<button key={d.key} onClick={()=>onUpdate({day:d.key})} style={{padding:"4px 7px",fontSize:10,fontWeight:600,borderRadius:6,border:"none",cursor:"pointer",fontFamily:F,background:task.day===d.key?color:tc.inputBg,color:task.day===d.key?"#fff":tc.textSub,transition:"all 0.15s ease"}}>{d.label}</button>))}</div></div>
           <div style={{marginBottom:onMoveWeek?10:0}}><span style={{fontSize:10,color:tc.textMuted,fontWeight:600,display:"block",marginBottom:5,textTransform:"uppercase",letterSpacing:0.5}}>Prioridade</span><div style={{display:"flex",gap:4}}>{Object.entries(priorityConfig).map(([k,v])=>(<button key={k} onClick={()=>onUpdate({priority:k})} style={{padding:"4px 10px",fontSize:10,fontWeight:600,borderRadius:6,border:"none",cursor:"pointer",fontFamily:F,background:task.priority===k?v.dot:v.bg,color:task.priority===k?"#fff":v.dot,transition:"all 0.15s ease"}}>{v.label}</button>))}</div></div>
           {onMoveWeek&&(<div><span style={{fontSize:10,color:tc.textMuted,fontWeight:600,display:"block",marginBottom:5,textTransform:"uppercase",letterSpacing:0.5}}>Semana</span>{onMoveWeek}</div>)}
@@ -255,32 +277,84 @@ function TaskItem({task,color,onToggle,onUpdate,projectName,onMoveWeek,onEditing
   );
 }
 
-/* ─── Add Task ─── */
-function AddTaskInput({color,onAdd,c}){
-  const [isOpen,setIsOpen]=useState(false);const [text,setText]=useState("");const [day,setDay]=useState("seg");const [priority,setPriority]=useState("medium");
-  const handleAdd=()=>{if(text.trim()){onAdd(text.trim(),day,priority);setText("");setDay("seg");setPriority("medium");setIsOpen(false);}};
-  const reset=()=>{setIsOpen(false);setText("");setDay("seg");setPriority("medium");};
+/* ─── Add Task (com seletor de categoria opcional) ─── */
+function AddTaskInput({color,onAdd,c,projects,requireCategory,defaultDay}){
+  const [isOpen,setIsOpen]=useState(false);
+  const [text,setText]=useState("");
+  const [day,setDay]=useState(defaultDay||"seg");
+  const [priority,setPriority]=useState("medium");
+  const [projectId,setProjectId]=useState(()=>projects&&projects.length>0?projects[0].id:"");
+  const handleAdd=()=>{
+    if(!text.trim())return;
+    if(requireCategory&&!projectId)return;
+    onAdd(text.trim(),day,priority,requireCategory?projectId:undefined);
+    setText("");setDay(defaultDay||"seg");setPriority("medium");
+    setProjectId(projects&&projects.length>0?projects[0].id:"");
+    setIsOpen(false);
+  };
+  const reset=()=>{setIsOpen(false);setText("");setDay(defaultDay||"seg");setPriority("medium");setProjectId(projects&&projects.length>0?projects[0].id:"");};
   const tc = c || themes.dark;
-  if(!isOpen) return(<button onClick={()=>setIsOpen(true)} style={{display:"flex",alignItems:"center",justifyContent:"center",gap:6,width:"100%",padding:"9px 14px",borderRadius:10,cursor:"pointer",background:"transparent",border:`1px dashed ${tc.addTaskBorder}`,color:tc.addTaskColor,fontSize:13,fontWeight:500,fontFamily:F,transition:"all 0.2s ease"}} onMouseEnter={e=>{e.currentTarget.style.borderColor=color;e.currentTarget.style.color=color;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=tc.addTaskBorder;e.currentTarget.style.color=tc.addTaskColor;}}>+ Nova tarefa</button>);
-  return(<div style={{borderRadius:12,overflow:"hidden",background:tc.taskBg,border:`1px solid ${color}30`,animation:"fadeIn 0.2s ease"}}><div style={{display:"flex",gap:8,padding:"10px 12px"}}><input autoFocus value={text} onChange={e=>setText(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")handleAdd();if(e.key==="Escape")reset();}} placeholder="Descreva a tarefa..." style={{flex:1,padding:"8px 12px",fontSize:13,borderRadius:8,background:tc.inputBg,border:`1px solid ${color}40`,color:tc.inputText,outline:"none",fontFamily:F}}/><button onClick={handleAdd} style={{padding:"8px 14px",borderRadius:8,border:"none",cursor:"pointer",background:color,color:"#fff",fontSize:13,fontWeight:600,fontFamily:F}}>+</button><button onClick={reset} style={{padding:"8px 10px",borderRadius:8,border:`1px solid ${tc.cardBorder}`,background:tc.cancelBg,color:tc.cancelColor,fontSize:13,cursor:"pointer",fontFamily:F}}>✕</button></div><div style={{padding:"0 12px 10px",display:"flex",gap:12,flexWrap:"wrap"}}><div><span style={{fontSize:9,color:tc.textMuted,fontWeight:600,display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:0.5}}>Dia</span><div style={{display:"flex",gap:3}}>{WEEK_DAYS.map(d=>(<button key={d.key} onClick={()=>setDay(d.key)} style={{padding:"3px 6px",fontSize:10,fontWeight:600,borderRadius:5,border:"none",cursor:"pointer",fontFamily:F,background:day===d.key?color:tc.inputBg,color:day===d.key?"#fff":tc.textSub}}>{d.label}</button>))}</div></div><div><span style={{fontSize:9,color:tc.textMuted,fontWeight:600,display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:0.5}}>Prioridade</span><div style={{display:"flex",gap:4}}>{Object.entries(priorityConfig).map(([k,v])=>(<button key={k} onClick={()=>setPriority(k)} style={{padding:"3px 9px",fontSize:10,fontWeight:600,borderRadius:5,border:"none",cursor:"pointer",fontFamily:F,background:priority===k?v.dot:v.bg,color:priority===k?"#fff":v.dot}}>{v.label}</button>))}</div></div></div></div>);
+  const selectedProject = requireCategory&&projects ? projects.find(p=>p.id===projectId) : null;
+  const activeColor = selectedProject ? selectedProject.color : (color||"#3B82F6");
+
+  if(!isOpen) return(<button onClick={()=>setIsOpen(true)} style={{display:"flex",alignItems:"center",justifyContent:"center",gap:6,width:"100%",padding:"9px 14px",borderRadius:10,cursor:"pointer",background:"transparent",border:`1px dashed ${tc.addTaskBorder}`,color:tc.addTaskColor,fontSize:13,fontWeight:500,fontFamily:F,transition:"all 0.2s ease"}} onMouseEnter={e=>{e.currentTarget.style.borderColor=activeColor;e.currentTarget.style.color=activeColor;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=tc.addTaskBorder;e.currentTarget.style.color=tc.addTaskColor;}}>+ Nova tarefa</button>);
+
+  return(
+    <div style={{borderRadius:12,overflow:"hidden",background:tc.taskBg,border:`1px solid ${activeColor}30`,animation:"fadeIn 0.2s ease"}}>
+      <div style={{display:"flex",gap:8,padding:"10px 12px"}}>
+        <input autoFocus value={text} onChange={e=>setText(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")handleAdd();if(e.key==="Escape")reset();}} placeholder="Descreva a tarefa..." style={{flex:1,padding:"8px 12px",fontSize:13,borderRadius:8,background:tc.inputBg,border:`1px solid ${activeColor}40`,color:tc.inputText,outline:"none",fontFamily:F}}/>
+        <button onClick={handleAdd} style={{padding:"8px 14px",borderRadius:8,border:"none",cursor:"pointer",background:activeColor,color:"#fff",fontSize:13,fontWeight:600,fontFamily:F}}>+</button>
+        <button onClick={reset} style={{padding:"8px 10px",borderRadius:8,border:`1px solid ${tc.cardBorder}`,background:tc.cancelBg,color:tc.cancelColor,fontSize:13,cursor:"pointer",fontFamily:F}}>✕</button>
+      </div>
+      <div style={{padding:"0 12px 10px",display:"flex",flexDirection:"column",gap:8}}>
+        {/* Seletor de categoria (na view dias da semana) */}
+        {requireCategory&&(
+          <div>
+            <span style={{fontSize:9,color:tc.textMuted,fontWeight:600,display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:0.5}}>Categoria</span>
+            {projects&&projects.length>0?(
+              <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+                {projects.map(p=>(<button key={p.id} onClick={()=>setProjectId(p.id)} style={{display:"flex",alignItems:"center",gap:4,padding:"4px 8px",fontSize:10,fontWeight:600,borderRadius:6,border:`1px solid ${projectId===p.id?p.color:tc.cardBorder}`,cursor:"pointer",fontFamily:F,background:projectId===p.id?`${p.color}20`:tc.inputBg,color:projectId===p.id?p.color:tc.textSub,transition:"all 0.15s"}}><span style={{fontSize:12}}>{p.emoji}</span>{p.name}</button>))}
+              </div>
+            ):(
+              <div style={{padding:"8px 10px",borderRadius:8,background:tc.inputBg,border:`1px solid ${tc.cardBorder}`,fontSize:11,color:tc.textMuted,fontFamily:F}}>
+                ⚠️ Nenhuma categoria criada. Vá para a aba <strong style={{color:tc.textSub}}>Categorias</strong> e crie uma primeiro.
+              </div>
+            )}
+          </div>
+        )}
+        <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
+          <div>
+            <span style={{fontSize:9,color:tc.textMuted,fontWeight:600,display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:0.5}}>Dia</span>
+            <div style={{display:"flex",gap:3}}>{WEEK_DAYS.map(d=>(<button key={d.key} onClick={()=>setDay(d.key)} style={{padding:"3px 6px",fontSize:10,fontWeight:600,borderRadius:5,border:"none",cursor:"pointer",fontFamily:F,background:day===d.key?activeColor:tc.inputBg,color:day===d.key?"#fff":tc.textSub}}>{d.label}</button>))}</div>
+          </div>
+          <div>
+            <span style={{fontSize:9,color:tc.textMuted,fontWeight:600,display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:0.5}}>Prioridade</span>
+            <div style={{display:"flex",gap:4}}>{Object.entries(priorityConfig).map(([k,v])=>(<button key={k} onClick={()=>setPriority(k)} style={{padding:"3px 9px",fontSize:10,fontWeight:600,borderRadius:5,border:"none",cursor:"pointer",fontFamily:F,background:priority===k?v.dot:v.bg,color:priority===k?"#fff":v.dot}}>{v.label}</button>))}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 /* ─── Project Card ─── */
-function ProjectCard({project,onToggleTask,onUpdateTask,onAddTask,onEditProject,isExpanded,onToggleExpand,reorderMode,onMoveUp,onMoveDown,isFirst,isLast,taskMoveWeek,c}){
+function ProjectCard({project,onToggleTask,onUpdateTask,onAddTask,onEditProject,onDeleteProject,isExpanded,onToggleExpand,reorderMode,onMoveUp,onMoveDown,isFirst,isLast,taskMoveWeek,c}){
   const done=project.tasks.filter(t=>t.done).length,total=project.tasks.length;
   const percent=total>0?Math.round((done/total)*100):0,allDone=done===total&&total>0;
   const [nameVal,setNameVal]=useState(project.name);
   const [emojiVal,setEmojiVal]=useState(project.emoji);
-  const [editingEmoji,setEditingEmoji]=useState(false);
   const [showEdit,setShowEdit]=useState(false);
+  const [showDeleteConfirm,setShowDeleteConfirm]=useState(false);
   const saveName=()=>{if(nameVal.trim()&&nameVal.trim()!==project.name)onEditProject({name:nameVal.trim()});};
-  const saveEmoji=()=>{if(emojiVal.trim()&&emojiVal.trim()!==project.emoji)onEditProject({emoji:emojiVal.trim()});setEditingEmoji(false);};
+  const saveEmoji=()=>{if(emojiVal.trim()&&emojiVal.trim()!==project.emoji)onEditProject({emoji:emojiVal.trim()});};
   const tc = c || themes.dark;
   return(
+    <>
+    {showDeleteConfirm&&<ConfirmDeleteModal title={`Excluir "${project.name}"?`} description={`Essa ação vai excluir a categoria e todas as ${total} tarefa(s) dentro dela. Essa ação não pode ser desfeita.`} onConfirm={()=>{setShowDeleteConfirm(false);onDeleteProject();}} onCancel={()=>setShowDeleteConfirm(false)} c={tc}/>}
     <div className="project-card" style={{background:tc.cardBg,borderRadius:16,border:`1px solid ${tc.cardBorder}`,overflow:"hidden"}}>
       <div style={{display:"flex",alignItems:"center",gap:10,padding:"16px 16px 16px 20px"}}>
         {reorderMode&&(<div style={{display:"flex",flexDirection:"column",gap:2,marginRight:2}}><button onClick={onMoveUp} disabled={isFirst} style={{background:"none",border:"none",cursor:isFirst?"default":"pointer",opacity:isFirst?0.2:0.7,padding:2}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={tc.textSub} strokeWidth="2.5" strokeLinecap="round"><polyline points="18 15 12 9 6 15"/></svg></button><button onClick={onMoveDown} disabled={isLast} style={{background:"none",border:"none",cursor:isLast?"default":"pointer",opacity:isLast?0.2:0.7,padding:2}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={tc.textSub} strokeWidth="2.5" strokeLinecap="round"><polyline points="6 9 12 15 18 9"/></svg></button></div>)}
-        {editingEmoji?(<input autoFocus value={emojiVal} onChange={e=>setEmojiVal(e.target.value)} onClick={e=>e.stopPropagation()} onKeyDown={e=>{if(e.key==="Enter")saveEmoji();if(e.key==="Escape"){setEmojiVal(project.emoji);setEditingEmoji(false);}}} onBlur={saveEmoji} style={{width:42,height:42,fontSize:22,textAlign:"center",borderRadius:10,background:tc.inputBg,border:`2px solid ${project.color}`,color:tc.inputText,outline:"none",padding:0,fontFamily:F}}/>):(<div onClick={onToggleExpand} style={{fontSize:28,cursor:"pointer"}}>{project.emoji}</div>)}
+        <div onClick={onToggleExpand} style={{fontSize:28,cursor:"pointer"}}>{project.emoji}</div>
         <div style={{flex:1,cursor:"pointer"}} onClick={onToggleExpand}>
           <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}><span style={{fontSize:16,fontWeight:700,color:tc.text,fontFamily:F}}>{project.name}</span></div>
           <span style={{fontSize:13,color:tc.textSub,fontFamily:F}}>{done}/{total} concluídas</span>
@@ -291,9 +365,23 @@ function ProjectCard({project,onToggleTask,onUpdateTask,onAddTask,onEditProject,
         <ProgressRing percent={percent} color={allDone?"#10B981":project.color} size={46} c={tc}/>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={tc.textMuted} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{transition:"transform 0.2s ease",transform:isExpanded?"rotate(180deg)":"rotate(0deg)",cursor:"pointer"}} onClick={onToggleExpand}><polyline points="6 9 12 15 18 9"/></svg>
       </div>
-      {showEdit&&(<div style={{padding:"0 16px 14px",borderTop:`1px solid ${tc.divider}`,animation:"fadeIn 0.2s ease"}}><div style={{padding:"12px 0",display:"flex",flexDirection:"column",gap:10}}><div><span style={{fontSize:10,color:tc.textMuted,fontWeight:600,display:"block",marginBottom:5,textTransform:"uppercase",letterSpacing:0.5}}>Ícone</span><div style={{display:"flex",alignItems:"center",gap:10}}><div style={{width:44,height:44,borderRadius:10,background:`${project.color}20`,border:`2px solid ${project.color}40`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:24}}>{emojiVal}</div><input value={emojiVal} onChange={e=>setEmojiVal(e.target.value)} onBlur={saveEmoji} onKeyDown={e=>{if(e.key==="Enter")saveEmoji();}} placeholder="Emoji..." style={{flex:1,padding:"8px 12px",fontSize:18,borderRadius:8,background:tc.inputBg,border:`1px solid ${project.color}40`,color:tc.inputText,outline:"none",fontFamily:F,textAlign:"center"}}/></div></div><div><span style={{fontSize:10,color:tc.textMuted,fontWeight:600,display:"block",marginBottom:5,textTransform:"uppercase",letterSpacing:0.5}}>Nome</span><input value={nameVal} onChange={e=>setNameVal(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")saveName();}} onBlur={saveName} style={{width:"100%",boxSizing:"border-box",padding:"8px 12px",fontSize:14,borderRadius:8,background:tc.inputBg,border:`1px solid ${project.color}40`,color:tc.inputText,outline:"none",fontFamily:F}}/></div><div><span style={{fontSize:10,color:tc.textMuted,fontWeight:600,display:"block",marginBottom:5,textTransform:"uppercase",letterSpacing:0.5}}>Cor</span><div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{COLOR_OPTIONS.map(col=>(<button key={col} onClick={()=>onEditProject({color:col})} style={{width:28,height:28,borderRadius:8,cursor:"pointer",border:project.color===col?`3px solid ${tc.text}`:"3px solid transparent",background:col}}/>))}</div></div></div></div>)}
+      {showEdit&&(<div style={{padding:"0 16px 14px",borderTop:`1px solid ${tc.divider}`,animation:"fadeIn 0.2s ease"}}>
+        <div style={{padding:"12px 0",display:"flex",flexDirection:"column",gap:10}}>
+          <div><span style={{fontSize:10,color:tc.textMuted,fontWeight:600,display:"block",marginBottom:5,textTransform:"uppercase",letterSpacing:0.5}}>Ícone</span><div style={{display:"flex",alignItems:"center",gap:10}}><div style={{width:44,height:44,borderRadius:10,background:`${project.color}20`,border:`2px solid ${project.color}40`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:24}}>{emojiVal}</div><input value={emojiVal} onChange={e=>setEmojiVal(e.target.value)} onBlur={saveEmoji} onKeyDown={e=>{if(e.key==="Enter")saveEmoji();}} placeholder="Emoji..." style={{flex:1,padding:"8px 12px",fontSize:18,borderRadius:8,background:tc.inputBg,border:`1px solid ${project.color}40`,color:tc.inputText,outline:"none",fontFamily:F,textAlign:"center"}}/></div></div>
+          <div><span style={{fontSize:10,color:tc.textMuted,fontWeight:600,display:"block",marginBottom:5,textTransform:"uppercase",letterSpacing:0.5}}>Nome</span><input value={nameVal} onChange={e=>setNameVal(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")saveName();}} onBlur={saveName} style={{width:"100%",boxSizing:"border-box",padding:"8px 12px",fontSize:14,borderRadius:8,background:tc.inputBg,border:`1px solid ${project.color}40`,color:tc.inputText,outline:"none",fontFamily:F}}/></div>
+          <div><span style={{fontSize:10,color:tc.textMuted,fontWeight:600,display:"block",marginBottom:5,textTransform:"uppercase",letterSpacing:0.5}}>Cor</span><div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{COLOR_OPTIONS.map(col=>(<button key={col} onClick={()=>onEditProject({color:col})} style={{width:28,height:28,borderRadius:8,cursor:"pointer",border:project.color===col?`3px solid ${tc.text}`:"3px solid transparent",background:col}}/>))}</div></div>
+          {/* Botão excluir categoria */}
+          <div style={{paddingTop:4,borderTop:`1px solid ${tc.divider}`}}>
+            <button onClick={()=>setShowDeleteConfirm(true)} style={{display:"flex",alignItems:"center",gap:8,width:"100%",padding:"9px 12px",borderRadius:10,border:`1px solid ${tc.deleteDangerBorder}`,background:tc.deleteDangerBg,color:"#EF4444",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:F,transition:"all 0.2s"}}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              Excluir categoria
+            </button>
+          </div>
+        </div>
+      </div>)}
       {isExpanded&&(<div style={{padding:"0 14px 14px",display:"flex",flexDirection:"column",gap:6}}>{[...project.tasks].sort((a,b)=>{const d=WEEK_DAYS_ORDER.indexOf(a.day)-WEEK_DAYS_ORDER.indexOf(b.day);if(d!==0)return d;const o={high:0,medium:1,low:2};const p=o[a.priority]-o[b.priority];if(p!==0)return p;return a.text.localeCompare(b.text,"pt-BR");}).map(task=>(<TaskItem key={task.id} task={task} color={project.color} onToggle={()=>onToggleTask(project.id,task.id)} onUpdate={u=>onUpdateTask(project.id,task.id,u)} onMoveWeek={taskMoveWeek?taskMoveWeek(project.id,task.id):null} c={tc}/>))}<AddTaskInput color={project.color} onAdd={(text,day,priority)=>onAddTask(project.id,text,day,priority)} c={tc}/></div>)}
     </div>
+    </>
   );
 }
 
@@ -325,14 +413,17 @@ function HistoryCard({record,onDelete,c}){
 }
 
 /* ─── Column Project Card ─── */
-function ColumnProjectCard({project:p,done,total,pct,idx,projectsLen,reorderMode,onMoveProject,onEditProject,onToggleTask,onUpdateTask,onAddTask,taskMoveWeekFn,c}){
+function ColumnProjectCard({project:p,done,total,pct,idx,projectsLen,reorderMode,onMoveProject,onEditProject,onDeleteProject,onToggleTask,onUpdateTask,onAddTask,taskMoveWeekFn,c}){
   const [showEdit,setShowEdit]=useState(false);
   const [nameVal,setNameVal]=useState(p.name);
   const [emojiVal,setEmojiVal]=useState(p.emoji);
+  const [showDeleteConfirm,setShowDeleteConfirm]=useState(false);
   const saveName=()=>{if(nameVal.trim()&&nameVal.trim()!==p.name)onEditProject({name:nameVal.trim()});};
   const saveEmoji=()=>{if(emojiVal.trim()&&emojiVal.trim()!==p.emoji)onEditProject({emoji:emojiVal.trim()});};
   const tc = c || themes.dark;
   return(
+    <>
+    {showDeleteConfirm&&<ConfirmDeleteModal title={`Excluir "${p.name}"?`} description={`Essa ação vai excluir a categoria e todas as ${total} tarefa(s). Não pode ser desfeita.`} onConfirm={()=>{setShowDeleteConfirm(false);onDeleteProject();}} onCancel={()=>setShowDeleteConfirm(false)} c={tc}/>}
     <div style={{background:tc.cardBg,borderRadius:14,border:`1px solid ${tc.cardBorder}`,overflow:"hidden",minWidth:180}}>
       <div style={{padding:"14px 12px",borderBottom:`1px solid ${tc.colDayDivider}`}}>
         <div style={{display:"flex",alignItems:"center",gap:8}}>
@@ -347,6 +438,10 @@ function ColumnProjectCard({project:p,done,total,pct,idx,projectsLen,reorderMode
           <div style={{display:"flex",alignItems:"center",gap:6}}><div style={{width:36,height:36,borderRadius:8,background:`${p.color}20`,border:`1px solid ${p.color}40`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>{emojiVal}</div><input value={emojiVal} onChange={e=>setEmojiVal(e.target.value)} onBlur={saveEmoji} onKeyDown={e=>{if(e.key==="Enter")saveEmoji();}} style={{width:50,padding:"4px 6px",fontSize:16,borderRadius:6,background:tc.inputBg,border:`1px solid ${p.color}40`,color:tc.inputText,outline:"none",fontFamily:F,textAlign:"center"}}/></div>
           <input value={nameVal} onChange={e=>setNameVal(e.target.value)} onBlur={saveName} onKeyDown={e=>{if(e.key==="Enter")saveName();}} style={{width:"100%",boxSizing:"border-box",padding:"6px 10px",fontSize:12,borderRadius:6,background:tc.inputBg,border:`1px solid ${p.color}40`,color:tc.inputText,outline:"none",fontFamily:F}}/>
           <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>{COLOR_OPTIONS.map(col=>(<button key={col} onClick={()=>onEditProject({color:col})} style={{width:22,height:22,borderRadius:6,cursor:"pointer",border:p.color===col?`2px solid ${tc.text}`:"2px solid transparent",background:col}}/>))}</div>
+          <button onClick={()=>setShowDeleteConfirm(true)} style={{display:"flex",alignItems:"center",gap:6,padding:"7px 10px",borderRadius:8,border:`1px solid ${tc.deleteDangerBorder}`,background:tc.deleteDangerBg,color:"#EF4444",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:F}}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            Excluir categoria
+          </button>
         </div>)}
         {reorderMode&&(<div style={{display:"flex",justifyContent:"center",gap:8,marginTop:8}}>
           <button onClick={()=>onMoveProject(idx,-1)} disabled={idx===0} style={{background:"none",border:`1px solid ${tc.reorderBorder}`,borderRadius:6,cursor:idx===0?"default":"pointer",opacity:idx===0?0.2:0.7,padding:"3px 8px",display:"flex",alignItems:"center",gap:4,color:tc.textSub,fontSize:10,fontFamily:F}}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={tc.textSub} strokeWidth="2.5" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>←</button>
@@ -358,6 +453,7 @@ function ColumnProjectCard({project:p,done,total,pct,idx,projectsLen,reorderMode
         <AddTaskInput color={p.color} onAdd={(text,day,priority)=>onAddTask(p.id,text,day,priority)} c={tc}/>
       </div>
     </div>
+    </>
   );
 }
 
@@ -390,7 +486,7 @@ export default function App(){
   useEffect(()=>{
     if(!authed||!userName)return;
     (async()=>{
-      try{const r=await window.storage.get(userDataKey(userName));if(r&&r.value){setWeeks(JSON.parse(r.value));}else{const sun=getSunday(new Date());const sat=getSaturday(new Date());setWeeks([{id:weekId(sun),sun:sun.toISOString(),sat:sat.toISOString(),projects:DEFAULT_PROJECTS}]);}}catch{const sun=getSunday(new Date());const sat=getSaturday(new Date());setWeeks([{id:weekId(sun),sun:sun.toISOString(),sat:sat.toISOString(),projects:DEFAULT_PROJECTS}]);}
+      try{const r=await window.storage.get(userDataKey(userName));if(r&&r.value){setWeeks(JSON.parse(r.value));}else{const sun=getSunday(new Date());const sat=getSaturday(new Date());setWeeks([{id:weekId(sun),sun:sun.toISOString(),sat:sat.toISOString(),projects:getDefaultProjects(userName)}]);}}catch{const sun=getSunday(new Date());const sat=getSaturday(new Date());setWeeks([{id:weekId(sun),sun:sun.toISOString(),sat:sat.toISOString(),projects:getDefaultProjects(userName)}]);}
       try{const h=await window.storage.get(userHistoryKey(userName));if(h&&h.value)setHistory(JSON.parse(h.value));else setHistory([]);}catch{setHistory([]);}
       setLoading(false);
     })();
@@ -405,10 +501,42 @@ export default function App(){
 
   const updateProjects=useCallback(fn=>{setWeeks(prev=>{const arr=[...prev];if(!arr[activeWeekIdx])return prev;arr[activeWeekIdx]={...arr[activeWeekIdx],projects:fn(arr[activeWeekIdx].projects)};return arr;});},[activeWeekIdx]);
   const toggleTask=useCallback((pid,tid)=>updateProjects(ps=>ps.map(p=>p.id===pid?{...p,tasks:p.tasks.map(t=>t.id===tid?{...t,done:!t.done}:t)}:p)),[updateProjects]);
-  const updateTask=useCallback((pid,tid,u)=>updateProjects(ps=>ps.map(p=>p.id===pid?{...p,tasks:p.tasks.map(t=>t.id===tid?{...t,...u}:t)}:p)),[updateProjects]);
+
+  // updateTask suporta _newProjectId para mover tarefa entre categorias (view dias da semana)
+  const updateTask=useCallback((pid,tid,u)=>{
+    if(u._newProjectId&&u._newProjectId!==pid){
+      updateProjects(ps=>{
+        let movedTask=null;
+        const ps2=ps.map(p=>{if(p.id!==pid)return p;const t=p.tasks.find(t=>t.id===tid);if(t)movedTask={...t,...Object.fromEntries(Object.entries(u).filter(([k])=>k!=='_newProjectId'))};return{...p,tasks:p.tasks.filter(t=>t.id!==tid)};});
+        if(!movedTask)return ps;
+        return ps2.map(p=>p.id===u._newProjectId?{...p,tasks:[...p.tasks,{...movedTask,id:`${u._newProjectId}_${Date.now()}`}]}:p);
+      });
+    } else {
+      const {_newProjectId,...rest}=u;
+      updateProjects(ps=>ps.map(p=>p.id===pid?{...p,tasks:p.tasks.map(t=>t.id===tid?{...t,...rest}:t)}:p));
+    }
+  },[updateProjects]);
+
   const addTask=useCallback((pid,text,day,priority)=>updateProjects(ps=>ps.map(p=>{if(p.id!==pid)return p;return{...p,tasks:[...p.tasks,{id:`${p.id}_${Date.now()}`,text,done:false,priority:priority||"medium",day:day||"seg"}]};})),[updateProjects]);
+
+  // addTaskToProject: usado na view dias da semana (pid vem do seletor de categoria)
+  const addTaskToProject=useCallback((text,day,priority,pid)=>{
+    if(!pid)return;
+    addTask(pid,text,day,priority);
+  },[addTask]);
+
   const editProject=useCallback((pid,u)=>updateProjects(ps=>ps.map(p=>p.id===pid?{...p,...u}:p)),[updateProjects]);
   const addCategory=useCallback(({name,color,emoji})=>updateProjects(ps=>[...ps,{id:`cat_${Date.now()}`,name,emoji,color,tasks:[]}]),[updateProjects]);
+
+  // deleteProject: exclui em todas as semanas
+  const deleteProject=useCallback((pid)=>{
+    setWeeks(prev=>{
+      const arr=JSON.parse(JSON.stringify(prev));
+      for(let i=0;i<arr.length;i++){arr[i].projects=arr[i].projects.filter(p=>p.id!==pid);}
+      return arr;
+    });
+  },[]);
+
   const moveProject=useCallback((index,dir)=>{
     setWeeks(prev=>{
       const arr=JSON.parse(JSON.stringify(prev));
@@ -516,10 +644,11 @@ export default function App(){
         {layoutMode==="list"?(
         <div style={{display:"flex",flexDirection:"column",gap:12}}>
           {viewMode==="category"?(<>
-            {projects.map((p,idx)=>(<ProjectCard key={p.id} project={p} onToggleTask={toggleTask} onUpdateTask={updateTask} onAddTask={addTask} onEditProject={u=>editProject(p.id,u)} isExpanded={expanded[p.id]??true} onToggleExpand={()=>toggleExpand(p.id)} reorderMode={reorderMode} onMoveUp={()=>moveProject(idx,-1)} onMoveDown={()=>moveProject(idx,1)} isFirst={idx===0} isLast={idx===projects.length-1} taskMoveWeek={taskMoveWeekFn} c={c}/>))}
+            {projects.map((p,idx)=>(<ProjectCard key={p.id} project={p} onToggleTask={toggleTask} onUpdateTask={updateTask} onAddTask={addTask} onEditProject={u=>editProject(p.id,u)} onDeleteProject={()=>deleteProject(p.id)} isExpanded={expanded[p.id]??true} onToggleExpand={()=>toggleExpand(p.id)} reorderMode={reorderMode} onMoveUp={()=>moveProject(idx,-1)} onMoveDown={()=>moveProject(idx,1)} isFirst={idx===0} isLast={idx===projects.length-1} taskMoveWeek={taskMoveWeekFn} c={c}/>))}
             <AddCategoryCard onAdd={addCategory} c={c}/>
           </>):(
-            weekData.map(({day,tasks})=>(<div key={day.key} className="project-card"
+            <>
+            {weekData.map(({day,tasks})=>(<div key={day.key} className="project-card"
               onDragOver={e=>{e.preventDefault();setDragOverDay(day.key);}}
               onDragLeave={()=>setDragOverDay(null)}
               onDrop={e=>{e.preventDefault();setDragOverDay(null);if(dragTask){updateTask(dragTask.projectId,dragTask.taskId,{day:day.key});setDragTask(null);}}}
@@ -529,11 +658,14 @@ export default function App(){
                 <div style={{flex:1}}><span style={{fontSize:16,fontWeight:700,color:c.text,fontFamily:F}}>{day.full}</span><span style={{fontSize:12,color:c.textMuted,display:"block",fontFamily:F}}>{tasks.filter(t=>t.done).length}/{tasks.length} concluídas</span></div>
                 {tasks.length>0&&<ProgressRing percent={Math.round((tasks.filter(t=>t.done).length/tasks.length)*100)} color="#3B82F6" size={42} c={c}/>}
               </div>
-              {tasks.length>0&&(<div style={{padding:"0 14px 14px",display:"flex",flexDirection:"column",gap:6}}>
-                {[...tasks].sort((a,b)=>{const o={high:0,medium:1,low:2};const p=o[a.priority]-o[b.priority];if(p!==0)return p;const pa=projects.find(x=>x.id===a._projectId);const pb=projects.find(x=>x.id===b._projectId);const pn=(pa?.name||"").localeCompare(pb?.name||"","pt-BR");if(pn!==0)return pn;return a.text.localeCompare(b.text,"pt-BR");}).map(t=>{const proj=projects.find(p=>p.id===t._projectId);return(<div key={t.id} draggable={!editingTasks.has(t.id)} onDragStart={()=>{if(!editingTasks.has(t.id))setDragTask({projectId:t._projectId,taskId:t.id});}} onDragEnd={()=>{setDragTask(null);setDragOverDay(null);}} style={{cursor:editingTasks.has(t.id)?"default":"grab",opacity:dragTask?.taskId===t.id?0.4:1,transition:"opacity 0.2s"}}><TaskItem task={t} color={proj?.color||"#64748B"} projectName={proj?.name} onToggle={()=>toggleTask(t._projectId,t.id)} onUpdate={u=>updateTask(t._projectId,t.id,u)} onMoveWeek={taskMoveWeekFn(t._projectId,t.id)} onEditingChange={v=>{setEditingTasks(prev=>{const n=new Set(prev);if(v)n.add(t.id);else n.delete(t.id);return n;})}} c={c}/></div>);})}
+              {tasks.length>0&&(<div style={{padding:"0 14px 6px",display:"flex",flexDirection:"column",gap:6}}>
+                {[...tasks].sort((a,b)=>{const o={high:0,medium:1,low:2};const p=o[a.priority]-o[b.priority];if(p!==0)return p;const pa=projects.find(x=>x.id===a._projectId);const pb=projects.find(x=>x.id===b._projectId);const pn=(pa?.name||"").localeCompare(pb?.name||"","pt-BR");if(pn!==0)return pn;return a.text.localeCompare(b.text,"pt-BR");}).map(t=>{const proj=projects.find(p=>p.id===t._projectId);return(<div key={t.id} draggable={!editingTasks.has(t.id)} onDragStart={()=>{if(!editingTasks.has(t.id))setDragTask({projectId:t._projectId,taskId:t.id});}} onDragEnd={()=>{setDragTask(null);setDragOverDay(null);}} style={{cursor:editingTasks.has(t.id)?"default":"grab",opacity:dragTask?.taskId===t.id?0.4:1,transition:"opacity 0.2s"}}><TaskItem task={t} color={proj?.color||"#64748B"} projectName={proj?.name} onToggle={()=>toggleTask(t._projectId,t.id)} onUpdate={u=>updateTask(t._projectId,t.id,u)} onMoveWeek={taskMoveWeekFn(t._projectId,t.id)} onEditingChange={v=>{setEditingTasks(prev=>{const n=new Set(prev);if(v)n.add(t.id);else n.delete(t.id);return n;})}} c={c} projects={projects} showCategoryPicker={true}/></div>);})}
               </div>)}
-              {tasks.length===0&&(<div style={{padding:"0 20px 16px",fontSize:13,color:dragOverDay===day.key?"#3B82F6":c.textMuted,fontFamily:F,transition:"color 0.2s"}}>{dragOverDay===day.key?"Soltar aqui":"Nenhuma tarefa"}</div>)}
-            </div>))
+              <div style={{padding:"6px 14px 14px"}}>
+                <AddTaskInput color="#3B82F6" onAdd={addTaskToProject} c={c} projects={projects} requireCategory={true} defaultDay={day.key}/>
+              </div>
+            </div>))}
+            </>
           )}
         </div>
         ):(
@@ -541,7 +673,7 @@ export default function App(){
         <div style={{display:"grid",gridTemplateColumns:viewMode==="category"?`repeat(${Math.min(projects.length+1,5)}, 1fr)`:`repeat(${WEEK_DAYS.length}, 1fr)`,gap:10,overflowX:"auto"}}>
           {viewMode==="category"?(<>
             {projects.map((p,idx)=>{const done=p.tasks.filter(t=>t.done).length;const total=p.tasks.length;const pct=total>0?Math.round((done/total)*100):0;return(
-              <ColumnProjectCard key={p.id} project={p} done={done} total={total} pct={pct} idx={idx} projectsLen={projects.length} reorderMode={reorderMode} onMoveProject={moveProject} onEditProject={u=>editProject(p.id,u)} onToggleTask={toggleTask} onUpdateTask={updateTask} onAddTask={addTask} taskMoveWeekFn={taskMoveWeekFn} c={c}/>
+              <ColumnProjectCard key={p.id} project={p} done={done} total={total} pct={pct} idx={idx} projectsLen={projects.length} reorderMode={reorderMode} onMoveProject={moveProject} onEditProject={u=>editProject(p.id,u)} onDeleteProject={()=>deleteProject(p.id)} onToggleTask={toggleTask} onUpdateTask={updateTask} onAddTask={addTask} taskMoveWeekFn={taskMoveWeekFn} c={c}/>
             );})}
             <AddCategoryCard onAdd={addCategory} c={c}/>
           </>):(
@@ -556,9 +688,12 @@ export default function App(){
                   <div style={{fontSize:10,color:c.textMuted,fontFamily:F}}>{day.full}</div>
                   {tasks.length>0&&<div style={{marginTop:6}}><ProgressRing percent={Math.round((tasks.filter(t=>t.done).length/tasks.length)*100)} color="#3B82F6" size={32} c={c}/></div>}
                 </div>
-                <div style={{padding:"8px 6px 12px",display:"flex",flexDirection:"column",gap:5,minHeight:60}}>
-                  {[...tasks].sort((a,b)=>{const o={high:0,medium:1,low:2};const p=o[a.priority]-o[b.priority];if(p!==0)return p;const pa=projects.find(x=>x.id===a._projectId);const pb=projects.find(x=>x.id===b._projectId);const pn=(pa?.name||"").localeCompare(pb?.name||"","pt-BR");if(pn!==0)return pn;return a.text.localeCompare(b.text,"pt-BR");}).map(t=>{const proj=projects.find(pp=>pp.id===t._projectId);return(<div key={t.id} draggable={!editingTasks.has(t.id)} onDragStart={()=>{if(!editingTasks.has(t.id))setDragTask({projectId:t._projectId,taskId:t.id});}} onDragEnd={()=>{setDragTask(null);setDragOverDay(null);}} style={{cursor:editingTasks.has(t.id)?"default":"grab",opacity:dragTask?.taskId===t.id?0.4:1,transition:"opacity 0.2s"}}><TaskItem task={t} color={proj?.color||"#64748B"} projectName={proj?.name} onToggle={()=>toggleTask(t._projectId,t.id)} onUpdate={u=>updateTask(t._projectId,t.id,u)} onMoveWeek={taskMoveWeekFn(t._projectId,t.id)} onEditingChange={v=>{setEditingTasks(prev=>{const n=new Set(prev);if(v)n.add(t.id);else n.delete(t.id);return n;})}} c={c}/></div>);})}
+                <div style={{padding:"8px 6px 6px",display:"flex",flexDirection:"column",gap:5,minHeight:60}}>
+                  {[...tasks].sort((a,b)=>{const o={high:0,medium:1,low:2};const p=o[a.priority]-o[b.priority];if(p!==0)return p;const pa=projects.find(x=>x.id===a._projectId);const pb=projects.find(x=>x.id===b._projectId);const pn=(pa?.name||"").localeCompare(pb?.name||"","pt-BR");if(pn!==0)return pn;return a.text.localeCompare(b.text,"pt-BR");}).map(t=>{const proj=projects.find(pp=>pp.id===t._projectId);return(<div key={t.id} draggable={!editingTasks.has(t.id)} onDragStart={()=>{if(!editingTasks.has(t.id))setDragTask({projectId:t._projectId,taskId:t.id});}} onDragEnd={()=>{setDragTask(null);setDragOverDay(null);}} style={{cursor:editingTasks.has(t.id)?"default":"grab",opacity:dragTask?.taskId===t.id?0.4:1,transition:"opacity 0.2s"}}><TaskItem task={t} color={proj?.color||"#64748B"} projectName={proj?.name} onToggle={()=>toggleTask(t._projectId,t.id)} onUpdate={u=>updateTask(t._projectId,t.id,u)} onMoveWeek={taskMoveWeekFn(t._projectId,t.id)} onEditingChange={v=>{setEditingTasks(prev=>{const n=new Set(prev);if(v)n.add(t.id);else n.delete(t.id);return n;})}} c={c} projects={projects} showCategoryPicker={true}/></div>);})}
                   {tasks.length===0&&<div style={{fontSize:11,color:dragOverDay===day.key?"#3B82F6":c.textMuted,fontFamily:F,textAlign:"center",padding:"8px 0"}}>{dragOverDay===day.key?"Soltar aqui":"—"}</div>}
+                </div>
+                <div style={{padding:"0 6px 8px"}}>
+                  <AddTaskInput color="#3B82F6" onAdd={addTaskToProject} c={c} projects={projects} requireCategory={true} defaultDay={day.key}/>
                 </div>
               </div>
             ))
