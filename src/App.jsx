@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 
 // Replace this URL with your hosted logo when deploying to GitHub
-const LOGO_URL = null; // e.g. "https://raw.githubusercontent.com/user/repo/main/logo.svg"
+const LOGO_URL = `${import.meta.env.BASE_URL}logo.svg`;
 
 const AUTH_KEY = "gestor-auth";
 const USER_KEY = "gestor-user";
