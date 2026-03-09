@@ -21,7 +21,7 @@ exports.sendInviteEmail = onRequest(
       return;
     }
 
-    const appUrl = "https://alexandresette.github.io/planner-semanal/";
+    const appUrl = `https://alexandresette.github.io/planner-semanal/?invite=${encodeURIComponent(email)}`;
 
     const htmlBody = `<!DOCTYPE html>
 <html lang="pt-BR">
