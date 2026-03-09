@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 
 // Replace this URL with your hosted logo when deploying to GitHub
-const LOGO_URL = `${import.meta.env.BASE_URL}logo.svg`;
+const LOGO_DARK = `${import.meta.env.BASE_URL}logo.svg`;
+const LOGO_LIGHT = `${import.meta.env.BASE_URL}logo-light.svg`;
 
 const AUTH_KEY = "gestor-auth";
 const USER_KEY = "gestor-user";
@@ -87,22 +88,49 @@ const priorityConfig = {
 const F = "'DM Sans', sans-serif";
 const FS = "'Syne', sans-serif";
 
-function Logo({ size = "normal" }) {
-  if (LOGO_URL) return <img src={LOGO_URL} alt="Planner Semanal" style={{ width: size === "normal" ? 180 : 200, display: "block", marginLeft: size === "large" ? "auto" : undefined, marginRight: size === "large" ? "auto" : undefined }} />;
-  const s = size === "large" ? 28 : 22;
-  const s2 = size === "large" ? 16 : 13;
-  return (
-    <div style={{ display: "inline-block" }}>
-      <div style={{ fontFamily: FS, fontWeight: 800, fontSize: s, letterSpacing: "-0.03em", lineHeight: 1 }}>
-        <span style={{ background: "linear-gradient(135deg, #7432F6, #B46EE5)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>PLANNER</span>
-      </div>
-      <div style={{ fontFamily: FS, fontWeight: 800, fontSize: s2, letterSpacing: "0.15em", color: "#94A3B8", marginTop: 2 }}>SEMANAL</div>
-    </div>
-  );
+const themes = {
+  dark: {
+    bg: "#0B1120", cardBg: "rgba(255,255,255,0.04)", cardBorder: "rgba(255,255,255,0.07)",
+    taskBg: "rgba(255,255,255,0.05)", taskBgDone: "rgba(255,255,255,0.02)", taskBorder: "rgba(255,255,255,0.08)", taskBorderDone: "rgba(255,255,255,0.03)",
+    text: "#F1F5F9", textSub: "#94A3B8", textMuted: "#64748B", textDim: "#475569",
+    inputBg: "rgba(255,255,255,0.06)", inputBorder: "rgba(255,255,255,0.1)",
+    weekBg: "linear-gradient(135deg,rgba(59,130,246,0.08),rgba(139,92,246,0.08))",
+    weekNextBg: "linear-gradient(135deg,rgba(88,28,196,0.15),rgba(55,15,120,0.15))",
+    progressBg: "linear-gradient(135deg,rgba(59,130,246,0.12),rgba(139,92,246,0.12))",
+    progressNextBg: "linear-gradient(135deg,rgba(88,28,196,0.18),rgba(55,15,120,0.18))",
+    hoverShadow: "rgba(255,255,255,0.06)", hoverBorder: "rgba(255,255,255,0.15)",
+    logo: LOGO_DARK,
+    loginCardBg: "rgba(255,255,255,0.03)", loginCardBorder: "rgba(255,255,255,0.07)",
+    btnBg: "rgba(255,255,255,0.04)", btnBorder: "rgba(255,255,255,0.08)",
+    modalBg: "#0F1729",
+  },
+  light: {
+    bg: "#F0F2F5", cardBg: "#FFFFFF", cardBorder: "rgba(0,0,0,0.08)",
+    taskBg: "#F8F9FB", taskBgDone: "#F0F1F3", taskBorder: "rgba(0,0,0,0.08)", taskBorderDone: "rgba(0,0,0,0.05)",
+    text: "#1E293B", textSub: "#475569", textMuted: "#64748B", textDim: "#94A3B8",
+    inputBg: "#FFFFFF", inputBorder: "rgba(0,0,0,0.15)",
+    weekBg: "linear-gradient(135deg,rgba(59,130,246,0.06),rgba(139,92,246,0.06))",
+    weekNextBg: "linear-gradient(135deg,rgba(88,28,196,0.08),rgba(55,15,120,0.08))",
+    progressBg: "linear-gradient(135deg,rgba(59,130,246,0.08),rgba(139,92,246,0.08))",
+    progressNextBg: "linear-gradient(135deg,rgba(88,28,196,0.1),rgba(55,15,120,0.1))",
+    hoverShadow: "rgba(0,0,0,0.08)", hoverBorder: "rgba(0,0,0,0.12)",
+    logo: LOGO_LIGHT,
+    loginCardBg: "#FFFFFF", loginCardBorder: "rgba(0,0,0,0.1)",
+    btnBg: "#F0F2F5", btnBorder: "rgba(0,0,0,0.1)",
+    modalBg: "#FFFFFF",
+  }
+};
+
+const ThemeCtx = React.createContext ? React.createContext("dark") : null;
+function useTheme() { const [t,setT]=useState(()=>{try{return localStorage.getItem("planner-theme")||"dark";}catch{return "dark";}});const toggle=()=>{const n=t==="dark"?"light":"dark";setT(n);try{localStorage.setItem("planner-theme",n);}catch{}};return {mode:t,toggle,t:themes[t]}; }
+
+function Logo({ size = "normal", theme = "dark" }) {
+  const src = theme === "light" ? LOGO_LIGHT : LOGO_DARK;
+  return <img src={src} alt="Planner Semanal" style={{ width: size === "normal" ? 180 : 200, display: "block", marginLeft: size === "large" ? "auto" : undefined, marginRight: size === "large" ? "auto" : undefined }} />;
 }
 
 /* ─── Login ─── */
-function LoginScreen({ onLogin }) {
+function LoginScreen({ onLogin, theme }) {
   const [user,setUser]=useState(""); const [pin,setPin]=useState("");
   const [error,setError]=useState(false); const [shake,setShake]=useState(false);
   const handleSubmit = async () => {
@@ -110,28 +138,31 @@ function LoginScreen({ onLogin }) {
     if(await verifyCredentials(user,pin)){onLogin(user.trim().toLowerCase());}
     else{setError(true);setShake(true);setTimeout(()=>setShake(false),500);setTimeout(()=>setError(false),2000);}
   };
+  const c=theme.t;
   return (
-    <div style={{minHeight:"100vh",background:"#0B1120",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:F,padding:"24px 16px"}}>
+    <div style={{minHeight:"100vh",background:c.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:F,padding:"24px 16px",transition:"background 0.3s ease"}}>
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
-      <div style={{width:340,padding:40,textAlign:"center",background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:24,animation:shake?"shake 0.5s ease":"fadeIn 0.6s ease"}}>
-        <div style={{ marginBottom: 16 }}><Logo size="large" /></div>
-        <p style={{fontSize:13,color:"#94A3B8",margin:"0 0 24px",lineHeight:1.5}}>Organize sua semana, acompanhe seus projetos e avance com velocidade!</p>
+      {/* Theme toggle */}
+      <button onClick={theme.toggle} style={{position:"fixed",top:16,right:16,background:c.btnBg,border:`1px solid ${c.btnBorder}`,borderRadius:10,padding:"8px 10px",cursor:"pointer",fontSize:18,lineHeight:1,zIndex:10}} title={theme.mode==="dark"?"Modo claro":"Modo escuro"}>{theme.mode==="dark"?"☀️":"🌙"}</button>
+      <div style={{width:340,padding:40,textAlign:"center",background:c.loginCardBg,border:`1px solid ${c.loginCardBorder}`,borderRadius:24,animation:shake?"shake 0.5s ease":"fadeIn 0.6s ease",boxShadow:theme.mode==="light"?"0 4px 24px rgba(0,0,0,0.08)":"none"}}>
+        <div style={{ marginBottom: 16 }}><Logo size="large" theme={theme.mode} /></div>
+        <p style={{fontSize:13,color:c.textSub,margin:"0 0 24px",lineHeight:1.5}}>Organize sua semana, acompanhe seus projetos e avance com velocidade!</p>
         <div style={{textAlign:"left",marginBottom:12}}>
-          <span style={{fontSize:11,color:"#64748B",fontWeight:600,textTransform:"uppercase",letterSpacing:0.5}}>Usuário</span>
+          <span style={{fontSize:11,color:c.textMuted,fontWeight:600,textTransform:"uppercase",letterSpacing:0.5}}>Usuário</span>
           <input type="text" value={user} onChange={e=>setUser(e.target.value)} onKeyDown={e=>e.key==="Enter"&&document.getElementById("pin-input")?.focus()} placeholder="seu usuário" autoFocus
-            style={{width:"100%",boxSizing:"border-box",marginTop:6,padding:"12px 16px",fontSize:15,background:"rgba(255,255,255,0.06)",border:`2px solid ${error?"#EF4444":"rgba(255,255,255,0.1)"}`,borderRadius:12,color:"#F1F5F9",outline:"none",fontFamily:F,transition:"border-color 0.2s ease"}}/>
+            style={{width:"100%",boxSizing:"border-box",marginTop:6,padding:"12px 16px",fontSize:15,background:c.inputBg,border:`2px solid ${error?"#EF4444":c.inputBorder}`,borderRadius:12,color:c.text,outline:"none",fontFamily:F,transition:"border-color 0.2s ease"}}/>
         </div>
         <div style={{textAlign:"left",marginBottom:6}}>
-          <span style={{fontSize:11,color:"#64748B",fontWeight:600,textTransform:"uppercase",letterSpacing:0.5}}>PIN</span>
+          <span style={{fontSize:11,color:c.textMuted,fontWeight:600,textTransform:"uppercase",letterSpacing:0.5}}>PIN</span>
           <input id="pin-input" type="password" maxLength={6} value={pin} onChange={e=>setPin(e.target.value.replace(/\D/g,""))} onKeyDown={e=>e.key==="Enter"&&handleSubmit()} placeholder="• • • •"
-            style={{width:"100%",boxSizing:"border-box",marginTop:6,padding:"12px 16px",fontSize:20,textAlign:"center",background:"rgba(255,255,255,0.06)",border:`2px solid ${error?"#EF4444":"rgba(255,255,255,0.1)"}`,borderRadius:12,color:"#F1F5F9",outline:"none",fontFamily:F,letterSpacing:8,transition:"border-color 0.2s ease"}}/>
+            style={{width:"100%",boxSizing:"border-box",marginTop:6,padding:"12px 16px",fontSize:20,textAlign:"center",background:c.inputBg,border:`2px solid ${error?"#EF4444":c.inputBorder}`,borderRadius:12,color:c.text,outline:"none",fontFamily:F,letterSpacing:8,transition:"border-color 0.2s ease"}}/>
         </div>
         {error&&<p style={{color:"#FCA5A5",fontSize:13,margin:"10px 0 0"}}>Usuário ou PIN incorreto</p>}
         <button onClick={handleSubmit} style={{width:"100%",marginTop:18,padding:"14px",background:"linear-gradient(135deg,#3B82F6,#8B5CF6)",border:"none",borderRadius:14,color:"#fff",fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:F}}>Entrar</button>
       </div>
       <div style={{textAlign:"center",marginTop:28,opacity:0.4}}>
-        <p style={{fontSize:11,color:"#94A3B8",margin:0,fontWeight:500}}>Desenvolvido por Alexandre Sette</p>
-        <p style={{fontSize:10,color:"#64748B",margin:"4px 0 0",fontStyle:"italic"}}>Colossenses 3:23-24</p>
+        <p style={{fontSize:11,color:c.textSub,margin:0,fontWeight:500}}>Desenvolvido por Alexandre Sette</p>
+        <p style={{fontSize:10,color:c.textMuted,margin:"4px 0 0",fontStyle:"italic"}}>Colossenses 3:23-24</p>
       </div>
       <style>{`@keyframes fadeIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-6px)}80%{transform:translateX(6px)}}`}</style>
     </div>
@@ -291,6 +322,8 @@ function ColumnProjectCard({project:p,done,total,pct,idx,projectsLen,reorderMode
 
 /* ─── Main App ─── */
 export default function App(){
+  const theme=useTheme();
+  const c=theme.t;
   const [authed,setAuthed]=useState(false);
   const [userName,setUserName]=useState("");
   const [weeks,setWeeks]=useState([]);
@@ -369,7 +402,7 @@ export default function App(){
   const confirmComplete=useCallback(()=>{if(!userName)return;const rec={week:fmtWeekLabel(currentSun,currentSat),date:new Date().toISOString(),projects:projects.map(p=>{const d=p.tasks.filter(t=>t.done);return d.length>0?{name:p.name,emoji:p.emoji,color:p.color,tasks:d.map(t=>({text:t.text,day:t.day,priority:t.priority}))}:null;}).filter(Boolean)};rec.total=rec.projects.reduce((s,p)=>s+p.tasks.length,0);const newH=[rec,...history].slice(0,52);setHistory(newH);window.storage.set(userHistoryKey(userName),JSON.stringify(newH)).catch(()=>{});setWeeks(prev=>{const arr=[...prev];arr[activeWeekIdx]={...arr[activeWeekIdx],projects:arr[activeWeekIdx].projects.map(p=>({...p,tasks:p.tasks.filter(t=>!t.done)}))};return arr;});setShowConfirm(false);},[projects,userName,history,currentSun,currentSat,activeWeekIdx]);
   const deleteHistoryEntry=useCallback(i=>{const n=history.filter((_,j)=>j!==i);setHistory(n);window.storage.set(userHistoryKey(userName),JSON.stringify(n)).catch(()=>{});},[history,userName]);
 
-  if(!authed) return <LoginScreen onLogin={handleLogin}/>;
+  if(!authed) return <LoginScreen onLogin={handleLogin} theme={theme}/>;
   if(loading||weeks.length===0) return(<div style={{minHeight:"100vh",background:"#0B1120",display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{color:"#64748B",fontSize:16,fontFamily:F}}>Carregando...</div></div>);
 
   const totalTasks=projects.reduce((s,p)=>s+p.tasks.length,0);
@@ -390,35 +423,38 @@ export default function App(){
   const totalPending=pendingProjects.reduce((s,p)=>s+p.pendingTasks.length,0);
 
   return(
-    <div style={{minHeight:"100vh",background:"#0B1120",fontFamily:F}}>
+    <div style={{minHeight:"100vh",background:c.bg,fontFamily:F,transition:"background 0.3s ease"}}>
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
-      <style>{`@keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}.task-card{transition:all 0.25s cubic-bezier(0.4,0,0.2,1)}.task-card:hover{transform:translateY(-1px);box-shadow:0 4px 20px rgba(255,255,255,0.06);border-color:rgba(255,255,255,0.15)!important;background:rgba(255,255,255,0.07)!important}.project-card{transition:all 0.3s cubic-bezier(0.4,0,0.2,1)}.project-card:hover{box-shadow:0 6px 28px rgba(255,255,255,0.05);border-color:rgba(255,255,255,0.12)!important}.logout-btn{transition:all 0.25s ease}.logout-btn:hover{background:rgba(255,255,255,0.1)!important;border-color:rgba(239,68,68,0.35)!important;box-shadow:0 0 16px rgba(239,68,68,0.12)}@media(max-width:767px){.layout-toggle{display:none!important}}`}</style>
+      <style>{`@keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}.task-card{transition:all 0.25s cubic-bezier(0.4,0,0.2,1)}.task-card:hover{transform:translateY(-1px);box-shadow:0 4px 20px ${c.hoverShadow};border-color:${c.hoverBorder}!important}.project-card{transition:all 0.3s cubic-bezier(0.4,0,0.2,1)}.project-card:hover{box-shadow:0 6px 28px ${c.hoverShadow};border-color:${c.hoverBorder}!important}.logout-btn{transition:all 0.25s ease}.logout-btn:hover{background:rgba(239,68,68,0.08)!important;border-color:rgba(239,68,68,0.35)!important;box-shadow:0 0 16px rgba(239,68,68,0.12)}@media(max-width:767px){.layout-toggle{display:none!important}}`}</style>
 
       <div style={{maxWidth:layoutMode==="columns"?1200:520,margin:"0 auto",padding:"24px 16px 40px",transition:"max-width 0.3s ease"}}>
         {/* Header */}
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
           <div>
-            <Logo />
-            {userName&&<p style={{fontSize:13,color:"#94A3B8",margin:"8px 0 0",fontWeight:500}}>Seja bem-vindo, <span style={{color:"#60A5FA",fontWeight:700}}>{userName}</span></p>}
-            <p style={{fontSize:11,color:"#64748B",margin:"4px 0 0"}}>Organize sua semana, acompanhe seus projetos e avance com velocidade!</p>
+            <Logo theme={theme.mode} />
+            {userName&&<p style={{fontSize:13,color:c.textSub,margin:"8px 0 0",fontWeight:500}}>Seja bem-vindo, <span style={{color:"#60A5FA",fontWeight:700}}>{userName}</span></p>}
+            <p style={{fontSize:11,color:c.textMuted,margin:"4px 0 0"}}>Organize sua semana, acompanhe seus projetos e avance com velocidade!</p>
           </div>
-          <button className="logout-btn" onClick={handleLogout} title="Sair" style={{background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:10,padding:"8px 10px",cursor:"pointer"}}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
+          <div style={{display:"flex",gap:6}}>
+            <button onClick={theme.toggle} style={{background:c.btnBg,border:`1px solid ${c.btnBorder}`,borderRadius:10,padding:"8px 10px",cursor:"pointer",fontSize:16,lineHeight:1}} title={theme.mode==="dark"?"Modo claro":"Modo escuro"}>{theme.mode==="dark"?"☀️":"🌙"}</button>
+            <button className="logout-btn" onClick={handleLogout} title="Sair" style={{background:c.btnBg,border:`1px solid ${c.btnBorder}`,borderRadius:10,padding:"8px 10px",cursor:"pointer"}}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={c.textSub} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
+          </div>
         </div>
 
         {/* Week Selector */}
-        <div style={{background:isCurrentWeek?"linear-gradient(135deg,rgba(59,130,246,0.08),rgba(139,92,246,0.08))":"linear-gradient(135deg,rgba(88,28,196,0.15),rgba(55,15,120,0.15))",border:`1px solid ${isCurrentWeek?"rgba(255,255,255,0.07)":"rgba(88,28,196,0.25)"}`,borderRadius:16,padding:"16px 20px",marginBottom:16,transition:"all 0.3s ease"}}>
+        <div style={{background:isCurrentWeek?c.weekBg:c.weekNextBg,border:`1px solid ${c.cardBorder}`,borderRadius:16,padding:"16px 20px",marginBottom:16,transition:"all 0.3s ease"}}>
           <div style={{display:"flex",gap:6,marginBottom:12}}>
             {weeks.map((w,i)=>(<button key={w.id} onClick={()=>setActiveWeekIdx(i)} style={{flex:1,padding:"8px 4px",borderRadius:10,border:"none",cursor:"pointer",fontFamily:F,fontSize:11,fontWeight:600,background:activeWeekIdx===i?(i===0?"rgba(59,130,246,0.2)":"rgba(88,28,196,0.3)"):"rgba(255,255,255,0.04)",color:activeWeekIdx===i?(i===0?"#60A5FA":"#B388FF"):"#64748B",transition:"all 0.2s"}}>{i===0?"Atual":"Próxima"}</button>))}
           </div>
           <div style={{textAlign:"center"}}>
-            <div style={{fontSize:18,fontWeight:700,color:"#F1F5F9",fontFamily:F,letterSpacing:"0.01em"}}>{fmtWeekLabel(currentSun,currentSat)}</div>
+            <div style={{fontSize:18,fontWeight:700,color:c.text,fontFamily:F,letterSpacing:"0.01em"}}>{fmtWeekLabel(currentSun,currentSat)}</div>
           </div>
         </div>
 
         {/* Global Progress */}
-        <div style={{background:isCurrentWeek?"linear-gradient(135deg,rgba(59,130,246,0.12),rgba(139,92,246,0.12))":"linear-gradient(135deg,rgba(88,28,196,0.18),rgba(55,15,120,0.18))",border:`1px solid ${isCurrentWeek?"rgba(255,255,255,0.07)":"rgba(88,28,196,0.2)"}`,borderRadius:16,padding:"20px 24px",display:"flex",alignItems:"center",gap:20,marginBottom:16,transition:"all 0.3s ease"}}>
+        <div style={{background:isCurrentWeek?c.progressBg:c.progressNextBg,border:`1px solid ${c.cardBorder}`,borderRadius:16,padding:"20px 24px",display:"flex",alignItems:"center",gap:20,marginBottom:16,transition:"all 0.3s ease"}}>
           <ProgressRing percent={globalPercent} color={globalPercent===100?"#10B981":(isCurrentWeek?"#3B82F6":"#7C3AED")} size={64}/>
-          <div><div style={{fontSize:22,fontWeight:700,color:"#F1F5F9"}}>{doneTasks} de {totalTasks}</div><div style={{fontSize:13,color:"#94A3B8",marginTop:2}}>tarefas concluídas</div></div>
+          <div><div style={{fontSize:22,fontWeight:700,color:c.text}}>{doneTasks} de {totalTasks}</div><div style={{fontSize:13,color:c.textSub,marginTop:2}}>tarefas concluídas</div></div>
         </div>
 
         {/* View Toggle */}
@@ -501,8 +537,8 @@ export default function App(){
 
         {/* Footer */}
         <div style={{textAlign:"center",marginTop:32,opacity:0.35}}>
-          <p style={{fontSize:11,color:"#94A3B8",margin:0,fontWeight:500}}>Desenvolvido por Alexandre Sette</p>
-          <p style={{fontSize:10,color:"#64748B",margin:"4px 0 0",fontStyle:"italic"}}>Colossenses 3:23-24</p>
+          <p style={{fontSize:11,color:c.textSub,margin:0,fontWeight:500}}>Desenvolvido por Alexandre Sette</p>
+          <p style={{fontSize:10,color:c.textMuted,margin:"4px 0 0",fontStyle:"italic"}}>Colossenses 3:23-24</p>
         </div>
       </div>
     </div>
