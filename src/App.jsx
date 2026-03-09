@@ -234,7 +234,7 @@ function TaskItem({task,color,onToggle,onUpdate,onDelete,projectName,onMoveWeek,
       if(e.key==="Escape"){
         e.stopPropagation();
         if(isEditing){setEditText(task.text);setIsEditing(false);}
-        else{if(onOpen)onOpen(null);}
+        else{if(onOpen)onOpen(null);if(onEditingChange)onEditingChange(false);}
       }
     };
     window.addEventListener("keydown",handler,true);
