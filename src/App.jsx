@@ -485,8 +485,28 @@ export default function App(){
 
   useEffect(()=>{
     if(!authed||!userName)return;
+    const XANDE_DEFAULT_IDS=["dexan","ministerio","gc","teologia","extras"];
+    const hasXandeDefaults=(wks)=>wks.some(w=>w.projects.some(p=>XANDE_DEFAULT_IDS.includes(p.id)));
     (async()=>{
-      try{const r=await window.storage.get(userDataKey(userName));if(r&&r.value){setWeeks(JSON.parse(r.value));}else{const sun=getSunday(new Date());const sat=getSaturday(new Date());setWeeks([{id:weekId(sun),sun:sun.toISOString(),sat:sat.toISOString(),projects:getDefaultProjects(userName)}]);}}catch{const sun=getSunday(new Date());const sat=getSaturday(new Date());setWeeks([{id:weekId(sun),sun:sun.toISOString(),sat:sat.toISOString(),projects:getDefaultProjects(userName)}]);}
+      try{
+        const r=await window.storage.get(userDataKey(userName));
+        if(r&&r.value){
+          const parsed=JSON.parse(r.value);
+          // Se não é xande mas tem dados dos projetos padrão do xande, limpa tudo
+          if(userName!=="xande"&&hasXandeDefaults(parsed)){
+            const sun=getSunday(new Date());const sat=getSaturday(new Date());
+            const clean=[{id:weekId(sun),sun:sun.toISOString(),sat:sat.toISOString(),projects:[]}];
+            setWeeks(clean);
+            window.storage.set(userDataKey(userName),JSON.stringify(clean)).catch(()=>{});
+            window.storage.set(userHistoryKey(userName),JSON.stringify([])).catch(()=>{});
+            setHistory([]);setLoading(false);return;
+          }
+          setWeeks(parsed);
+        }else{
+          const sun=getSunday(new Date());const sat=getSaturday(new Date());
+          setWeeks([{id:weekId(sun),sun:sun.toISOString(),sat:sat.toISOString(),projects:getDefaultProjects(userName)}]);
+        }
+      }catch{const sun=getSunday(new Date());const sat=getSaturday(new Date());setWeeks([{id:weekId(sun),sun:sun.toISOString(),sat:sat.toISOString(),projects:getDefaultProjects(userName)}]);}
       try{const h=await window.storage.get(userHistoryKey(userName));if(h&&h.value)setHistory(JSON.parse(h.value));else setHistory([]);}catch{setHistory([]);}
       setLoading(false);
     })();
