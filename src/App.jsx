@@ -304,9 +304,9 @@ function AddTaskInput({color,onAdd,c,projects,requireCategory,defaultDay}){
   return(
     <div style={{borderRadius:12,overflow:"hidden",background:tc.taskBg,border:`1px solid ${activeColor}30`,animation:"fadeIn 0.2s ease"}}>
       <div style={{display:"flex",gap:8,padding:"10px 12px"}}>
-        <input autoFocus value={text} onChange={e=>setText(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")handleAdd();if(e.key==="Escape")reset();}} placeholder="Descreva a tarefa..." style={{flex:1,padding:"8px 12px",fontSize:13,borderRadius:8,background:tc.inputBg,border:`1px solid ${activeColor}40`,color:tc.inputText,outline:"none",fontFamily:F}}/>
-        <button onClick={handleAdd} style={{padding:"8px 14px",borderRadius:8,border:"none",cursor:"pointer",background:activeColor,color:"#fff",fontSize:13,fontWeight:600,fontFamily:F}}>+</button>
-        <button onClick={reset} style={{padding:"8px 10px",borderRadius:8,border:`1px solid ${tc.cardBorder}`,background:tc.cancelBg,color:tc.cancelColor,fontSize:13,cursor:"pointer",fontFamily:F}}>✕</button>
+        <input autoFocus value={text} onChange={e=>setText(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")handleAdd();if(e.key==="Escape")reset();}} placeholder="Descreva a tarefa..." style={{flex:1,minWidth:0,padding:"8px 12px",fontSize:13,borderRadius:8,background:tc.inputBg,border:`1px solid ${activeColor}40`,color:tc.inputText,outline:"none",fontFamily:F}}/>
+        <button onClick={handleAdd} style={{flexShrink:0,padding:"8px 14px",borderRadius:8,border:"none",cursor:"pointer",background:activeColor,color:"#fff",fontSize:13,fontWeight:600,fontFamily:F}}>+</button>
+        <button onClick={reset} style={{flexShrink:0,padding:"8px 10px",borderRadius:8,border:`1px solid ${tc.cardBorder}`,background:tc.cancelBg,color:tc.cancelColor,fontSize:13,cursor:"pointer",fontFamily:F}}>✕</button>
       </div>
       <div style={{padding:"0 12px 10px",display:"flex",flexDirection:"column",gap:8}}>
         {/* Seletor de categoria (na view dias da semana) */}
