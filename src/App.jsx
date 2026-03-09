@@ -1150,8 +1150,8 @@ function UserSettingsModal({userName,profile,onSave,onClose,c}){
   };
 
   return(
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.65)",backdropFilter:"blur(6px)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:3000,padding:16,animation:"fadeIn 0.2s ease"}} onClick={()=>cropSrc?null:onClose()}>
-      <div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:420,background:tc.modalBg,border:`1px solid ${tc.cardBorder}`,borderRadius:22,boxShadow:"0 12px 56px rgba(0,0,0,0.5)",overflow:"hidden"}}>
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.65)",backdropFilter:"blur(6px)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:3000,padding:16,animation:"fadeIn 0.2s ease"}}>
+      <div style={{width:"100%",maxWidth:420,background:tc.modalBg,border:`1px solid ${tc.cardBorder}`,borderRadius:22,boxShadow:"0 12px 56px rgba(0,0,0,0.5)",overflow:"hidden"}}>
         {/* Header */}
         <div style={{padding:"20px 20px 16px",borderBottom:`1px solid ${tc.divider}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
           <div style={{display:"flex",alignItems:"center",gap:10}}>
@@ -1459,23 +1459,25 @@ export default function App(){
 
       <div style={{maxWidth:layoutMode==="columns"?1200:520,margin:"0 auto",padding:"24px 16px 40px",transition:"max-width 0.3s ease"}}>
         {/* Header */}
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
-          <div style={{display:"flex",alignItems:"center",gap:14}}>
-            {/* Avatar */}
-            {userName&&(
-              <div onClick={()=>setShowSettings(true)} style={{flexShrink:0,cursor:"pointer",position:"relative"}} title="Configurações do perfil">
-                {userProfile.photoURL?(
-                  <img src={userProfile.photoURL} alt="avatar" style={{width:52,height:52,borderRadius:"50%",objectFit:"cover",border:`2.5px solid ${c.cardBorder}`,transition:"border-color 0.2s"}} onMouseEnter={e=>e.currentTarget.style.borderColor="#3B82F6"} onMouseLeave={e=>e.currentTarget.style.borderColor=c.cardBorder}/>
-                ):(
-                  <div style={{width:52,height:52,borderRadius:"50%",background:"linear-gradient(135deg,#3B82F6,#6366F1)",display:"flex",alignItems:"center",justifyContent:"center",border:`2.5px solid ${c.cardBorder}`,transition:"border-color 0.2s",flexShrink:0}} onMouseEnter={e=>e.currentTarget.style.borderColor="#3B82F6"} onMouseLeave={e=>e.currentTarget.style.borderColor=c.cardBorder}>
-                    <span style={{fontSize:20,fontWeight:800,color:"#fff",fontFamily:FS}}>{(userProfile.displayName||userName).charAt(0).toUpperCase()}</span>
-                  </div>
-                )}
+        <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:20}}>
+          <div>
+            <Logo theme={theme.mode} />
+            <div style={{display:"flex",alignItems:"center",gap:12,marginTop:10}}>
+              {userName&&(
+                <div onClick={()=>setShowSettings(true)} style={{flexShrink:0,cursor:"pointer"}} title="Configurações do perfil">
+                  {userProfile.photoURL?(
+                    <img src={userProfile.photoURL} alt="avatar" style={{width:48,height:48,borderRadius:"50%",objectFit:"cover",border:`2.5px solid ${c.cardBorder}`,transition:"border-color 0.2s"}} onMouseEnter={e=>e.currentTarget.style.borderColor="#3B82F6"} onMouseLeave={e=>e.currentTarget.style.borderColor=c.cardBorder}/>
+                  ):(
+                    <div style={{width:48,height:48,borderRadius:"50%",background:"linear-gradient(135deg,#3B82F6,#6366F1)",display:"flex",alignItems:"center",justifyContent:"center",border:`2.5px solid ${c.cardBorder}`,transition:"border-color 0.2s",flexShrink:0}} onMouseEnter={e=>e.currentTarget.style.borderColor="#3B82F6"} onMouseLeave={e=>e.currentTarget.style.borderColor=c.cardBorder}>
+                      <span style={{fontSize:18,fontWeight:800,color:"#fff",fontFamily:FS}}>{(userProfile.displayName||userName).charAt(0).toUpperCase()}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+              <div>
+                {userName&&<p style={{fontSize:13,color:c.textSub,margin:"0 0 2px",fontWeight:500}}>Olá, <span style={{color:"#3B82F6",fontWeight:700}}>{userProfile.displayName||userName}</span></p>}
+                <p style={{fontSize:11,color:c.textMuted,margin:0}}>Organize sua semana, acompanhe seus projetos e avance com velocidade!</p>
               </div>
-            )}
-            <div>
-              <Logo theme={theme.mode} />
-              {userName&&<p style={{fontSize:13,color:c.textSub,margin:"6px 0 0",fontWeight:500}}>Olá, <span style={{color:"#3B82F6",fontWeight:700}}>{userProfile.displayName||userName}</span></p>}
             </div>
           </div>
           <div className="header-actions" style={{display:"flex",gap:6,flexShrink:0}}>
