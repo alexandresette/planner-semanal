@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { signInWithGoogle, firebaseSignOut, auth, callSendInviteEmail, callSendResetEmail } from "./storage.js";
 
 const LOGO_DARK = `${import.meta.env.BASE_URL}logo.svg`;
