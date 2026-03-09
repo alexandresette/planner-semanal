@@ -681,83 +681,183 @@ function ConfirmDeleteModal({title,description,onConfirm,onCancel,c}){
   );
 }
 
+/* ─── Task Detail Modal ─── */
+function TaskDetailModal({task,color,projectName,onToggle,onUpdate,onDelete,onMoveWeek,onClose,c,projects,showCategoryPicker}){
+  const tc = c || themes.dark;
+  const dayInfo=WEEK_DAYS.find(d=>d.key===task.day);
+  const prio=priorityConfig[task.priority];
+  const [editTitle,setEditTitle]=useState(task.text);
+  const [editDesc,setEditDesc]=useState(task.description||"");
+  const [editingTitle,setEditingTitle]=useState(false);
+  const [editingDesc,setEditingDesc]=useState(false);
+  const [showDeleteConfirm,setShowDeleteConfirm]=useState(false);
+
+  useEffect(()=>{
+    const h=(e)=>{if(e.key==="Escape"){e.stopPropagation();onClose();}};
+    window.addEventListener("keydown",h,true);
+    return()=>window.removeEventListener("keydown",h,true);
+  },[]);
+
+  const saveTitle=()=>{if(editTitle.trim()&&editTitle.trim()!==task.text)onUpdate({text:editTitle.trim()});setEditingTitle(false);};
+  const saveDesc=()=>{const d=editDesc.trim();if(d!==(task.description||"").trim())onUpdate({description:d});setEditingDesc(false);};
+
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.65)",backdropFilter:"blur(5px)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:2000,padding:16,animation:"fadeIn 0.2s ease"}} onClick={onClose}>
+      <div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:480,maxHeight:"88vh",overflowY:"auto",background:tc.modalBg,border:`1px solid ${color}30`,borderRadius:20,boxShadow:"0 8px 48px rgba(0,0,0,0.5)",display:"flex",flexDirection:"column"}}>
+        {/* Header colorido */}
+        <div style={{background:`linear-gradient(135deg,${color}18,${color}08)`,borderBottom:`1px solid ${color}20`,padding:"20px 20px 16px",borderRadius:"20px 20px 0 0"}}>
+          <div style={{display:"flex",alignItems:"flex-start",gap:12}}>
+            {/* Checkbox */}
+            <div onClick={e=>{e.stopPropagation();onToggle();}} style={{width:24,height:24,borderRadius:7,flexShrink:0,cursor:"pointer",border:task.done?"none":`2.5px solid ${color}`,background:task.done?color:"transparent",display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.2s ease",marginTop:2}}>
+              {task.done&&<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
+            </div>
+            {/* Título */}
+            <div style={{flex:1,minWidth:0}}>
+              {editingTitle?(
+                <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                  <textarea autoFocus value={editTitle} onChange={e=>setEditTitle(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();saveTitle();}if(e.key==="Escape"){setEditTitle(task.text);setEditingTitle(false);}}} rows={Math.max(1,editTitle.split("\n").length)} style={{width:"100%",boxSizing:"border-box",padding:"6px 10px",fontSize:15,fontWeight:700,borderRadius:8,background:tc.inputBg,border:`1.5px solid ${color}60`,color:tc.inputText,outline:"none",fontFamily:FS,resize:"none",lineHeight:1.4}}/>
+                  <div style={{display:"flex",gap:6}}><button onClick={saveTitle} style={{padding:"5px 16px",borderRadius:8,border:"none",background:color,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:F}}>Salvar</button><button onClick={()=>{setEditTitle(task.text);setEditingTitle(false);}} style={{padding:"5px 12px",borderRadius:8,border:`1px solid ${tc.cardBorder}`,background:"transparent",color:tc.textSub,fontSize:12,cursor:"pointer",fontFamily:F}}>Cancelar</button></div>
+                </div>
+              ):(
+                <h2 onClick={()=>setEditingTitle(true)} title="Clique para editar o título" style={{margin:0,fontSize:16,fontWeight:800,color:task.done?tc.textMuted:tc.text,fontFamily:FS,lineHeight:1.4,textDecoration:task.done?"line-through":"none",cursor:"text",wordBreak:"break-word"}}>{task.text}</h2>
+              )}
+              {/* Tags */}
+              <div style={{display:"flex",alignItems:"center",gap:6,marginTop:8,flexWrap:"wrap"}}>
+                {projectName&&<span style={{fontSize:10,fontWeight:600,padding:"3px 8px",borderRadius:5,background:`${color}22`,color,fontFamily:F}}>{projectName}</span>}
+                {dayInfo&&<span style={{fontSize:10,fontWeight:600,padding:"3px 8px",borderRadius:5,background:tc.tagBg,color:tc.tagColor,fontFamily:F}}>{dayInfo.full}</span>}
+                <span style={{fontSize:10,fontWeight:600,padding:"3px 8px",borderRadius:5,background:prio.bg,color:prio.dot,fontFamily:F}}>{prio.label}</span>
+                {task.done&&<span style={{fontSize:10,fontWeight:600,padding:"3px 8px",borderRadius:5,background:"rgba(16,185,129,0.12)",color:"#10B981",fontFamily:F}}>✓ Concluída</span>}
+              </div>
+            </div>
+            {/* Fechar */}
+            <button onClick={onClose} style={{background:"none",border:"none",cursor:"pointer",padding:4,opacity:0.4,flexShrink:0,lineHeight:1}} onMouseEnter={e=>e.currentTarget.style.opacity="1"} onMouseLeave={e=>e.currentTarget.style.opacity="0.4"}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={tc.textSub} strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Corpo */}
+        <div style={{padding:"18px 20px",display:"flex",flexDirection:"column",gap:16}}>
+
+          {/* Descrição */}
+          <div>
+            <span style={{fontSize:10,color:tc.textMuted,fontWeight:700,display:"block",marginBottom:8,textTransform:"uppercase",letterSpacing:0.6}}>Descrição</span>
+            {editingDesc?(
+              <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                <textarea autoFocus value={editDesc} onChange={e=>setEditDesc(e.target.value)} onKeyDown={e=>{if(e.key==="Escape"){setEditDesc(task.description||"");setEditingDesc(false);}}} placeholder="Adicione uma descrição..." rows={4} style={{width:"100%",boxSizing:"border-box",padding:"10px 12px",fontSize:13,borderRadius:10,background:tc.inputBg,border:`1.5px solid ${color}50`,color:tc.inputText,outline:"none",fontFamily:F,resize:"none",lineHeight:1.6}}/>
+                <div style={{display:"flex",gap:6}}><button onClick={saveDesc} style={{padding:"6px 18px",borderRadius:8,border:"none",background:color,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:F}}>Salvar</button><button onClick={()=>{setEditDesc(task.description||"");setEditingDesc(false);}} style={{padding:"6px 12px",borderRadius:8,border:`1px solid ${tc.cardBorder}`,background:"transparent",color:tc.textSub,fontSize:12,cursor:"pointer",fontFamily:F}}>Cancelar</button></div>
+              </div>
+            ):(
+              <div onClick={()=>setEditingDesc(true)} style={{minHeight:48,padding:"10px 12px",borderRadius:10,background:tc.inputBg,border:`1px solid ${tc.cardBorder}`,cursor:"text",transition:"border-color 0.2s"}} onMouseEnter={e=>e.currentTarget.style.borderColor=`${color}50`} onMouseLeave={e=>e.currentTarget.style.borderColor=tc.cardBorder}>
+                {task.description?(
+                  <p style={{margin:0,fontSize:13,color:tc.textSub,fontFamily:F,lineHeight:1.6,whiteSpace:"pre-wrap",wordBreak:"break-word"}}>{task.description}</p>
+                ):(
+                  <p style={{margin:0,fontSize:13,color:tc.textMuted,fontFamily:F,fontStyle:"italic",opacity:0.6}}>Clique para adicionar uma descrição...</p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Detalhes editáveis */}
+          <div style={{display:"flex",flexDirection:"column",gap:12,background:tc.taskBg,borderRadius:12,padding:"14px 16px",border:`1px solid ${tc.cardBorder}`}}>
+
+            {/* Projeto (view dias) */}
+            {showCategoryPicker&&projects&&projects.length>0&&(
+              <div>
+                <span style={{fontSize:10,color:tc.textMuted,fontWeight:700,display:"block",marginBottom:6,textTransform:"uppercase",letterSpacing:0.6}}>Projeto</span>
+                <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+                  {projects.map(p=>(<button key={p.id} onClick={()=>onUpdate({_newProjectId:p.id})} style={{display:"flex",alignItems:"center",gap:4,padding:"4px 9px",fontSize:11,fontWeight:600,borderRadius:7,border:`1px solid ${task._projectId===p.id?p.color:tc.cardBorder}`,cursor:"pointer",fontFamily:F,background:task._projectId===p.id?`${p.color}20`:tc.inputBg,color:task._projectId===p.id?p.color:tc.textSub,transition:"all 0.15s"}}><span style={{fontSize:13}}>{p.emoji}</span>{p.name}</button>))}
+                </div>
+              </div>
+            )}
+
+            {/* Dia */}
+            <div>
+              <span style={{fontSize:10,color:tc.textMuted,fontWeight:700,display:"block",marginBottom:6,textTransform:"uppercase",letterSpacing:0.6}}>Dia da semana</span>
+              <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+                {WEEK_DAYS.map(d=>(<button key={d.key} onClick={()=>onUpdate({day:d.key})} style={{padding:"5px 9px",fontSize:11,fontWeight:600,borderRadius:7,border:"none",cursor:"pointer",fontFamily:F,background:task.day===d.key?color:tc.inputBg,color:task.day===d.key?"#fff":tc.textSub,transition:"all 0.15s"}}>{d.label}</button>))}
+              </div>
+            </div>
+
+            {/* Prioridade */}
+            <div>
+              <span style={{fontSize:10,color:tc.textMuted,fontWeight:700,display:"block",marginBottom:6,textTransform:"uppercase",letterSpacing:0.6}}>Prioridade</span>
+              <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                {Object.entries(priorityConfig).map(([k,v])=>(<button key={k} onClick={()=>onUpdate({priority:k})} style={{display:"flex",alignItems:"center",gap:5,padding:"5px 12px",fontSize:11,fontWeight:600,borderRadius:7,border:`1px solid ${task.priority===k?v.dot:"transparent"}`,cursor:"pointer",fontFamily:F,background:task.priority===k?v.dot:v.bg,color:task.priority===k?"#fff":v.dot,transition:"all 0.15s"}}><div style={{width:6,height:6,borderRadius:"50%",background:task.priority===k?"rgba(255,255,255,0.8)":v.dot}}/>{v.label}</button>))}
+              </div>
+            </div>
+
+            {/* Semana */}
+            {onMoveWeek&&(
+              <div>
+                <span style={{fontSize:10,color:tc.textMuted,fontWeight:700,display:"block",marginBottom:6,textTransform:"uppercase",letterSpacing:0.6}}>Mover semana</span>
+                {onMoveWeek}
+              </div>
+            )}
+          </div>
+
+          {/* Ações */}
+          <div style={{display:"flex",gap:8,paddingTop:4}}>
+            <button onClick={()=>{onToggle();}} style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:6,padding:"10px",borderRadius:10,border:`1px solid ${task.done?"rgba(16,185,129,0.3)":color+"40"}`,background:task.done?"rgba(16,185,129,0.08)":`${color}10`,color:task.done?"#10B981":color,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:F,transition:"all 0.2s"}}>
+              {task.done?(<><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg>Reabrir</>):(<><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Concluir</>)}
+            </button>
+            {onDelete&&(
+              showDeleteConfirm?(
+                <div style={{flex:1,display:"flex",gap:6}}>
+                  <button onClick={()=>{onDelete();onClose();}} style={{flex:1,padding:"10px",borderRadius:10,border:"none",background:"#EF4444",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:F}}>Confirmar</button>
+                  <button onClick={()=>setShowDeleteConfirm(false)} style={{flex:1,padding:"10px",borderRadius:10,border:`1px solid ${tc.cardBorder}`,background:"transparent",color:tc.textSub,fontSize:12,cursor:"pointer",fontFamily:F}}>Cancelar</button>
+                </div>
+              ):(
+                <button onClick={()=>setShowDeleteConfirm(true)} style={{display:"flex",alignItems:"center",justifyContent:"center",gap:6,padding:"10px 16px",borderRadius:10,border:`1px solid ${tc.deleteDangerBorder}`,background:tc.deleteDangerBg,color:"#EF4444",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:F}}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                  Excluir
+                </button>
+              )
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ─── Task Item ─── */
 function TaskItem({task,color,onToggle,onUpdate,onDelete,projectName,onMoveWeek,onEditingChange,openTaskId,onOpen,c,projects,showCategoryPicker}){
+  const [showModal,setShowModal]=useState(false);
   const showOpts = openTaskId === task.id;
-  const [editText,setEditText]=useState(task.text);
-  const [isEditing,setIsEditing]=useState(false);
   useEffect(()=>{
     if(!showOpts)return;
-    const handler=(e)=>{
-      if(e.key==="Escape"){
-        e.stopPropagation();
-        if(isEditing){setEditText(task.text);setIsEditing(false);}
-        else{if(onOpen)onOpen(null);if(onEditingChange)onEditingChange(false);}
-      }
-    };
+    const handler=(e)=>{if(e.key==="Escape"){e.stopPropagation();if(onOpen)onOpen(null);if(onEditingChange)onEditingChange(false);}};
     window.addEventListener("keydown",handler,true);
     return()=>window.removeEventListener("keydown",handler,true);
-  },[showOpts,isEditing]);
-  const [showDeleteConfirm,setShowDeleteConfirm]=useState(false);
+  },[showOpts]);
   const dayInfo=WEEK_DAYS.find(d=>d.key===task.day);
-  const saveText=()=>{if(editText.trim()&&editText.trim()!==task.text)onUpdate({text:editText.trim()});setIsEditing(false);};
-  const toggleOpts=()=>{const next=!showOpts;if(onOpen)onOpen(next?task.id:null);if(onEditingChange)onEditingChange(next);setShowDeleteConfirm(false);};
   const tc = c || themes.dark;
+  const openModal=()=>{setShowModal(true);};
+  const closeModal=()=>{setShowModal(false);};
   return(
-    <div className="task-card" style={{borderRadius:12,overflow:"hidden",background:task.done?tc.taskBgDone:tc.taskBg,border:`1px solid ${task.done?tc.taskBorderDone:tc.taskBorder}`,opacity:task.done?0.55:1}}>
+    <>
+    {showModal&&<TaskDetailModal task={task} color={color} projectName={projectName} onToggle={()=>{onToggle();}} onUpdate={u=>{onUpdate(u);}} onDelete={onDelete} onMoveWeek={onMoveWeek} onClose={closeModal} c={tc} projects={projects} showCategoryPicker={showCategoryPicker}/>}
+    <div className="task-card" onClick={openModal} style={{borderRadius:12,overflow:"hidden",background:task.done?tc.taskBgDone:tc.taskBg,border:`1px solid ${task.done?tc.taskBorderDone:tc.taskBorder}`,opacity:task.done?0.55:1,cursor:"pointer"}}>
       <div style={{padding:"10px 12px"}}>
         <div style={{display:"flex",alignItems:"flex-start",gap:10}}>
-          <div onClick={onToggle} style={{width:22,height:22,borderRadius:6,flexShrink:0,cursor:"pointer",border:task.done?"none":`2px solid ${color}`,background:task.done?color:"transparent",display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.2s ease",marginTop:1}}>
+          <div onClick={e=>{e.stopPropagation();onToggle();}} style={{width:22,height:22,borderRadius:6,flexShrink:0,cursor:"pointer",border:task.done?"none":`2px solid ${color}`,background:task.done?color:"transparent",display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.2s ease",marginTop:1}}>
             {task.done&&<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
           </div>
           <div style={{flex:1,minWidth:0}}>
-            <span onClick={onToggle} style={{fontSize:13.5,lineHeight:1.4,color:tc.text,cursor:"pointer",textDecoration:task.done?"line-through":"none",fontFamily:F,display:"block"}}>{task.text}</span>
+            <span style={{fontSize:13.5,lineHeight:1.4,color:tc.text,textDecoration:task.done?"line-through":"none",fontFamily:F,display:"block"}}>{task.text}</span>
+            {task.description&&<span style={{fontSize:11,color:tc.textMuted,fontFamily:F,display:"block",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{task.description}</span>}
             <div style={{display:"flex",alignItems:"center",gap:6,marginTop:5,flexWrap:"wrap"}}>
               {projectName&&<span style={{fontSize:9,fontWeight:600,padding:"2px 6px",borderRadius:4,background:`${color}20`,color,fontFamily:F,whiteSpace:"nowrap"}}>{projectName}</span>}
               {dayInfo&&!projectName&&<span style={{fontSize:10,fontWeight:600,padding:"2px 7px",borderRadius:5,background:tc.tagBg,color:tc.tagColor,fontFamily:F}}>{dayInfo.label}</span>}
               <div style={{width:8,height:8,borderRadius:"50%",flexShrink:0,background:priorityConfig[task.priority].dot}}/>
             </div>
           </div>
-          <div onClick={e=>{e.stopPropagation();toggleOpts();}} style={{cursor:"pointer",padding:"2px 4px",opacity:0.5,transition:"opacity 0.2s",flexShrink:0}} onMouseEnter={e=>e.currentTarget.style.opacity="1"} onMouseLeave={e=>e.currentTarget.style.opacity="0.5"}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={tc.textSub} strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
-          </div>
+          <div style={{width:6,height:6,borderRadius:"50%",background:`${color}60`,flexShrink:0,marginTop:6,alignSelf:"flex-start"}}/>
         </div>
       </div>
-      {showOpts&&(
-        <div draggable={false} onDragStart={e=>e.stopPropagation()} onMouseDown={e=>e.stopPropagation()} style={{padding:"8px 12px 12px",borderTop:`1px solid ${tc.divider}`,animation:"fadeIn 0.2s ease"}}>
-          <div style={{marginBottom:10}}>
-            <span style={{fontSize:10,color:tc.textMuted,fontWeight:600,display:"block",marginBottom:5,textTransform:"uppercase",letterSpacing:0.5}}>Descrição</span>
-            {isEditing?(<div style={{display:"flex",flexDirection:"column",gap:6}}><textarea autoFocus value={editText} onChange={e=>setEditText(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();saveText();}if(e.key==="Escape"){setEditText(task.text);setIsEditing(false);}}} rows={Math.max(2,editText.split("\n").length)} style={{width:"100%",boxSizing:"border-box",padding:"6px 10px",fontSize:12,borderRadius:8,background:tc.inputBg,border:`1px solid ${color}40`,color:tc.inputText,outline:"none",fontFamily:F,resize:"none",lineHeight:1.5,overflow:"hidden"}}/><button onClick={saveText} style={{alignSelf:"flex-end",padding:"5px 14px",borderRadius:8,border:"none",background:color,color:"#fff",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:F}}>OK</button></div>)
-            :(<button onClick={()=>setIsEditing(true)} style={{display:"flex",alignItems:"flex-start",gap:6,padding:"6px 10px",borderRadius:8,background:tc.inputBg,border:`1px solid ${tc.cardBorder}`,color:tc.textSub,fontSize:12,cursor:"pointer",fontFamily:F,width:"100%",textAlign:"left",whiteSpace:"pre-wrap",wordBreak:"break-word"}}>✏️ {task.text}</button>)}
-          </div>
-          {/* Categoria (só na view dias da semana) */}
-          {showCategoryPicker&&projects&&projects.length>0&&(
-            <div style={{marginBottom:8}}>
-              <span style={{fontSize:10,color:tc.textMuted,fontWeight:600,display:"block",marginBottom:5,textTransform:"uppercase",letterSpacing:0.5}}>Projeto</span>
-              <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
-                {projects.map(p=>(<button key={p.id} onClick={()=>onUpdate({_newProjectId:p.id})} style={{display:"flex",alignItems:"center",gap:4,padding:"4px 8px",fontSize:10,fontWeight:600,borderRadius:6,border:`1px solid ${task._projectId===p.id?p.color:tc.cardBorder}`,cursor:"pointer",fontFamily:F,background:task._projectId===p.id?`${p.color}20`:tc.inputBg,color:task._projectId===p.id?p.color:tc.textSub,transition:"all 0.15s ease"}}><span style={{fontSize:12}}>{p.emoji}</span>{p.name}</button>))}
-              </div>
-            </div>
-          )}
-          <div style={{marginBottom:8}}><span style={{fontSize:10,color:tc.textMuted,fontWeight:600,display:"block",marginBottom:5,textTransform:"uppercase",letterSpacing:0.5}}>Dia</span><div style={{display:"flex",gap:3,flexWrap:"wrap"}}>{WEEK_DAYS.map(d=>(<button key={d.key} onClick={()=>onUpdate({day:d.key})} style={{padding:"4px 7px",fontSize:10,fontWeight:600,borderRadius:6,border:"none",cursor:"pointer",fontFamily:F,background:task.day===d.key?color:tc.inputBg,color:task.day===d.key?"#fff":tc.textSub,transition:"all 0.15s ease"}}>{d.label}</button>))}</div></div>
-          <div style={{marginBottom:onMoveWeek?10:0}}><span style={{fontSize:10,color:tc.textMuted,fontWeight:600,display:"block",marginBottom:5,textTransform:"uppercase",letterSpacing:0.5}}>Prioridade</span><div style={{display:"flex",gap:4,flexWrap:"wrap"}}>{Object.entries(priorityConfig).map(([k,v])=>(<button key={k} onClick={()=>onUpdate({priority:k})} style={{padding:"4px 10px",fontSize:10,fontWeight:600,borderRadius:6,border:"none",cursor:"pointer",fontFamily:F,background:task.priority===k?v.dot:v.bg,color:task.priority===k?"#fff":v.dot,transition:"all 0.15s ease"}}>{v.label}</button>))}</div></div>
-          {onMoveWeek&&(<div style={{marginBottom:10}}><span style={{fontSize:10,color:tc.textMuted,fontWeight:600,display:"block",marginBottom:5,textTransform:"uppercase",letterSpacing:0.5}}>Semana</span>{onMoveWeek}</div>)}
-          {onDelete&&(<div style={{paddingTop:6,borderTop:`1px solid ${tc.divider}`}}>
-            {showDeleteConfirm?(
-              <div style={{borderRadius:8,background:tc.deleteDangerBg,border:`1px solid ${tc.deleteDangerBorder}`,padding:"10px 12px",animation:"fadeIn 0.15s ease"}}>
-                <p style={{fontSize:11,color:"#EF4444",fontWeight:600,margin:"0 0 8px",fontFamily:F}}>Excluir esta tarefa?</p>
-                <div style={{display:"flex",gap:6}}>
-                  <button onClick={onDelete} style={{flex:1,padding:"6px",borderRadius:7,border:"none",background:"#EF4444",color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:F}}>Excluir</button>
-                  <button onClick={()=>setShowDeleteConfirm(false)} style={{flex:1,padding:"6px",borderRadius:7,border:`1px solid ${tc.cardBorder}`,background:tc.cancelBg,color:tc.textSub,fontSize:11,fontWeight:500,cursor:"pointer",fontFamily:F}}>Cancelar</button>
-                </div>
-              </div>
-            ):(
-              <button onClick={()=>setShowDeleteConfirm(true)} style={{display:"flex",alignItems:"center",gap:6,width:"100%",padding:"7px 10px",borderRadius:8,border:`1px solid ${tc.deleteDangerBorder}`,background:tc.deleteDangerBg,color:"#EF4444",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:F}}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Excluir tarefa</button>
-            )}
-          </div>)}
-        </div>
-      )}
     </div>
+    </>
   );
 }
 
@@ -788,7 +888,7 @@ function AddTaskInput({color,onAdd,c,projects,requireCategory,defaultDay}){
     <div style={{borderRadius:12,overflow:"hidden",background:tc.taskBg,border:`1px solid ${activeColor}30`,animation:"fadeIn 0.2s ease"}}>
       <div style={{padding:"10px 12px",display:"flex",flexDirection:"column",gap:8}}>
         <div style={{display:"flex",gap:6}}>
-          <textarea autoFocus value={text} onChange={e=>setText(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();handleAdd();}if(e.key==="Escape")reset();}} placeholder="Descreva a tarefa..." rows={Math.max(2,text.split("\n").length)} style={{flex:1,minWidth:0,padding:"8px 12px",fontSize:13,borderRadius:8,background:tc.inputBg,border:`1px solid ${activeColor}40`,color:tc.inputText,outline:"none",fontFamily:F,resize:"none",lineHeight:1.5,overflow:"hidden"}}/>
+          <textarea autoFocus value={text} onChange={e=>setText(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();handleAdd();}if(e.key==="Escape")reset();}} placeholder="Título da tarefa..." rows={Math.max(1,text.split("\n").length)} style={{flex:1,minWidth:0,padding:"8px 12px",fontSize:13,borderRadius:8,background:tc.inputBg,border:`1px solid ${activeColor}40`,color:tc.inputText,outline:"none",fontFamily:F,resize:"none",lineHeight:1.5,overflow:"hidden"}}/>
           <div style={{display:"flex",flexDirection:"column",gap:4}}>
             <button onClick={handleAdd} style={{flexShrink:0,padding:"8px 12px",borderRadius:8,border:"none",cursor:"pointer",background:activeColor,color:"#fff",fontSize:13,fontWeight:600,fontFamily:F}}>+</button>
             <button onClick={reset} style={{flexShrink:0,padding:"8px 10px",borderRadius:8,border:`1px solid ${tc.cardBorder}`,background:tc.cancelBg,color:tc.cancelColor,fontSize:13,cursor:"pointer",fontFamily:F}}>✕</button>
