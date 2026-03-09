@@ -226,6 +226,18 @@ function ConfirmDeleteModal({title,description,onConfirm,onCancel,c}){
 /* ─── Task Item ─── */
 function TaskItem({task,color,onToggle,onUpdate,onDelete,projectName,onMoveWeek,onEditingChange,openTaskId,onOpen,c,projects,showCategoryPicker}){
   const showOpts = openTaskId === task.id;
+  useEffect(()=>{
+    if(!showOpts)return;
+    const handler=(e)=>{
+      if(e.key==="Escape"){
+        e.stopPropagation();
+        if(isEditing){setEditText(task.text);setIsEditing(false);}
+        else{if(onOpen)onOpen(null);}
+      }
+    };
+    window.addEventListener("keydown",handler,true);
+    return()=>window.removeEventListener("keydown",handler,true);
+  },[showOpts,isEditing]);
   const [editText,setEditText]=useState(task.text);
   const [isEditing,setIsEditing]=useState(false);
   const dayInfo=WEEK_DAYS.find(d=>d.key===task.day);
@@ -253,10 +265,10 @@ function TaskItem({task,color,onToggle,onUpdate,onDelete,projectName,onMoveWeek,
         </div>
       </div>
       {showOpts&&(
-        <div draggable={false} onDragStart={e=>e.stopPropagation()} onMouseDown={e=>e.stopPropagation()} onKeyDown={e=>{if(e.key==="Escape"&&!isEditing){e.stopPropagation();if(onOpen)onOpen(null);}}} style={{padding:"8px 12px 12px",borderTop:`1px solid ${tc.divider}`,animation:"fadeIn 0.2s ease"}}>
+        <div draggable={false} onDragStart={e=>e.stopPropagation()} onMouseDown={e=>e.stopPropagation()} style={{padding:"8px 12px 12px",borderTop:`1px solid ${tc.divider}`,animation:"fadeIn 0.2s ease"}}>
           <div style={{marginBottom:10}}>
             <span style={{fontSize:10,color:tc.textMuted,fontWeight:600,display:"block",marginBottom:5,textTransform:"uppercase",letterSpacing:0.5}}>Descrição</span>
-            {isEditing?(<div style={{display:"flex",flexDirection:"column",gap:6}}><textarea autoFocus value={editText} onChange={e=>setEditText(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();saveText();}if(e.key==="Escape"){if(isEditing){setEditText(task.text);setIsEditing(false);}else{if(onOpen)onOpen(null);}}}} rows={Math.max(2,editText.split("\n").length)} style={{width:"100%",boxSizing:"border-box",padding:"6px 10px",fontSize:12,borderRadius:8,background:tc.inputBg,border:`1px solid ${color}40`,color:tc.inputText,outline:"none",fontFamily:F,resize:"none",lineHeight:1.5,overflow:"hidden"}}/><button onClick={saveText} style={{alignSelf:"flex-end",padding:"5px 14px",borderRadius:8,border:"none",background:color,color:"#fff",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:F}}>OK</button></div>)
+            {isEditing?(<div style={{display:"flex",flexDirection:"column",gap:6}}><textarea autoFocus value={editText} onChange={e=>setEditText(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();saveText();}if(e.key==="Escape"){setEditText(task.text);setIsEditing(false);}}} rows={Math.max(2,editText.split("\n").length)} style={{width:"100%",boxSizing:"border-box",padding:"6px 10px",fontSize:12,borderRadius:8,background:tc.inputBg,border:`1px solid ${color}40`,color:tc.inputText,outline:"none",fontFamily:F,resize:"none",lineHeight:1.5,overflow:"hidden"}}/><button onClick={saveText} style={{alignSelf:"flex-end",padding:"5px 14px",borderRadius:8,border:"none",background:color,color:"#fff",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:F}}>OK</button></div>)
             :(<button onClick={()=>setIsEditing(true)} style={{display:"flex",alignItems:"flex-start",gap:6,padding:"6px 10px",borderRadius:8,background:tc.inputBg,border:`1px solid ${tc.cardBorder}`,color:tc.textSub,fontSize:12,cursor:"pointer",fontFamily:F,width:"100%",textAlign:"left",whiteSpace:"pre-wrap",wordBreak:"break-word"}}>✏️ {task.text}</button>)}
           </div>
           {/* Categoria (só na view dias da semana) */}
