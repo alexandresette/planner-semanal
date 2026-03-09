@@ -437,8 +437,7 @@ export default function App(){
               </div>
             );})}
             <AddCategoryCard onAdd={addCategory}/>
-          </>)
-          ):(
+          </>):(
             weekData.map(({day,tasks})=>(
               <div key={day.key}
                 onDragOver={e=>{e.preventDefault();setDragOverDay(day.key);}}
