@@ -353,6 +353,37 @@ function AddTaskInput({color,onAdd,c,projects,requireCategory,defaultDay}){
   );
 }
 
+/* ─── Week Title Editor ─── */
+function WeekTitleEditor({title,defaultTitle,color,c,onSave}){
+  const [editing,setEditing]=useState(false);
+  const [val,setVal]=useState(title||defaultTitle);
+  const tc=c||themes.dark;
+  useEffect(()=>{setVal(title||defaultTitle);},[title,defaultTitle]);
+  const save=()=>{const v=val.trim();onSave(v===defaultTitle?"":v);setEditing(false);};
+  const reset=()=>{setVal(title||defaultTitle);setEditing(false);};
+  useEffect(()=>{if(!editing)return;const h=(e)=>{if(e.key==="Escape")reset();if(e.key==="Enter"){e.preventDefault();save();}};window.addEventListener("keydown",h,true);return()=>window.removeEventListener("keydown",h,true);},[editing,val]);
+  const displayTitle=title||defaultTitle;
+  if(editing) return(
+    <div style={{display:"flex",gap:6,alignItems:"center",justifyContent:"center",padding:"2px 0"}}>
+      <input autoFocus value={val} onChange={e=>setVal(e.target.value)} style={{flex:1,maxWidth:320,padding:"5px 10px",fontSize:15,fontWeight:600,borderRadius:8,background:tc.inputBg,border:`1px solid ${color}50`,color:tc.text,outline:"none",fontFamily:F,textAlign:"center"}}/>
+      <button onClick={save} style={{padding:"5px 12px",borderRadius:8,border:"none",background:color,color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:F,flexShrink:0}}>OK</button>
+      <button onClick={reset} style={{padding:"5px 8px",borderRadius:8,border:`1px solid ${tc.cardBorder}`,background:tc.cancelBg,color:tc.textSub,fontSize:11,cursor:"pointer",fontFamily:F,flexShrink:0}}>✕</button>
+    </div>
+  );
+  return(
+    <div onClick={()=>setEditing(true)} style={{textAlign:"center",cursor:"pointer",padding:"2px 0",borderRadius:8,transition:"all 0.15s ease"}}
+      title="Clique para editar o nome da semana"
+      onMouseEnter={e=>{e.currentTarget.style.opacity="0.8";}}
+      onMouseLeave={e=>{e.currentTarget.style.opacity="1";}}>
+      <div style={{display:"inline-flex",alignItems:"center",gap:6}}>
+        <span style={{fontSize:15,fontWeight:700,color:tc.text,fontFamily:F,letterSpacing:"0.01em"}}>{displayTitle}</span>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" style={{opacity:0.6,flexShrink:0}}><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 1 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      </div>
+      {title&&<div style={{fontSize:9,color:color,fontFamily:F,opacity:0.55,marginTop:1,letterSpacing:"0.03em"}}>{defaultTitle}</div>}
+    </div>
+  );
+}
+
 /* ─── Project Card ─── */
 function ProjectCard({project,onToggleTask,onUpdateTask,onDeleteTask,onAddTask,onEditProject,onDeleteProject,isExpanded,onToggleExpand,reorderMode,onMoveUp,onMoveDown,isFirst,isLast,taskMoveWeek,openTaskId,onOpen,c}){
   const done=project.tasks.filter(t=>t.done).length,total=project.tasks.length;
@@ -612,7 +643,7 @@ export default function App(){
   const addNextWeek=useCallback(()=>{const last=weeks[weeks.length-1];const lastSun=last?new Date(last.sun):getSunday(new Date());const nextSun=addWeeks(lastSun,1);const nextSat=getSaturday(nextSun);const empty=projects.map(p=>({...p,tasks:[]}));setWeeks(prev=>[...prev,{id:weekId(nextSun),sun:nextSun.toISOString(),sat:nextSat.toISOString(),projects:empty}]);},[weeks,projects]);
 
   const canComplete=projects.some(p=>p.tasks.some(t=>t.done));
-  const confirmComplete=useCallback(()=>{if(!userName)return;const rec={week:fmtWeekLabel(currentSun,currentSat),date:new Date().toISOString(),projects:projects.map(p=>{const d=p.tasks.filter(t=>t.done);return d.length>0?{name:p.name,emoji:p.emoji,color:p.color,tasks:d.map(t=>({text:t.text,day:t.day,priority:t.priority}))}:null;}).filter(Boolean)};rec.total=rec.projects.reduce((s,p)=>s+p.tasks.length,0);const newH=[rec,...history].slice(0,52);setHistory(newH);window.storage.set(userHistoryKey(userName),JSON.stringify(newH)).catch(()=>{});setWeeks(prev=>{const arr=[...prev];arr[activeWeekIdx]={...arr[activeWeekIdx],projects:arr[activeWeekIdx].projects.map(p=>({...p,tasks:p.tasks.filter(t=>!t.done)}))};return arr;});setShowConfirm(false);},[projects,userName,history,currentSun,currentSat,activeWeekIdx]);
+  const confirmComplete=useCallback(()=>{if(!userName)return;const curTitle=weeks[activeWeekIdx]?.title||fmtWeekLabel(currentSun,currentSat);const rec={week:curTitle,date:new Date().toISOString(),projects:projects.map(p=>{const d=p.tasks.filter(t=>t.done);return d.length>0?{name:p.name,emoji:p.emoji,color:p.color,tasks:d.map(t=>({text:t.text,day:t.day,priority:t.priority}))}:null;}).filter(Boolean)};rec.total=rec.projects.reduce((s,p)=>s+p.tasks.length,0);const newH=[rec,...history].slice(0,52);setHistory(newH);window.storage.set(userHistoryKey(userName),JSON.stringify(newH)).catch(()=>{});setWeeks(prev=>{const arr=[...prev];arr[activeWeekIdx]={...arr[activeWeekIdx],projects:arr[activeWeekIdx].projects.map(p=>({...p,tasks:p.tasks.filter(t=>!t.done)}))};if(arr[1]&&!arr[1].title){const nSun=new Date(arr[1].sun);const nSat=new Date(arr[1].sat);arr[1]={...arr[1],title:fmtWeekLabel(nSun,nSat)};}return arr;});setShowConfirm(false);},[projects,userName,history,currentSun,currentSat,activeWeekIdx,weeks]);
   const deleteHistoryEntry=useCallback(i=>{const n=history.filter((_,j)=>j!==i);setHistory(n);window.storage.set(userHistoryKey(userName),JSON.stringify(n)).catch(()=>{});},[history,userName]);
 
   if(!authed) return <LoginScreen onLogin={handleLogin} theme={theme}/>;
@@ -660,9 +691,13 @@ export default function App(){
           <div style={{display:"flex",gap:6,marginBottom:12}}>
             {weeks.map((w,i)=>(<button key={w.id} onClick={()=>setActiveWeekIdx(i)} style={{flex:1,padding:"8px 4px",borderRadius:10,border:"none",cursor:"pointer",fontFamily:F,fontSize:11,fontWeight:600,background:activeWeekIdx===i?(i===0?c.weekTabActive0:c.weekTabActive1):c.weekTabInactive,color:activeWeekIdx===i?(i===0?c.weekTabColor0:c.weekTabColor1):c.weekTabColorInactive,transition:"all 0.2s"}}>{i===0?"Atual":"Próxima"}</button>))}
           </div>
-          <div style={{textAlign:"center"}}>
-            <div style={{fontSize:18,fontWeight:700,color:c.text,fontFamily:F,letterSpacing:"0.01em"}}>{fmtWeekLabel(currentSun,currentSat)}</div>
-          </div>
+          <WeekTitleEditor
+            title={weeks[activeWeekIdx]?.title||""}
+            defaultTitle={fmtWeekLabel(currentSun,currentSat)}
+            color={isCurrentWeek?c.weekTabColor0:c.weekTabColor1}
+            c={c}
+            onSave={t=>updateWeekTitle(activeWeekIdx,t)}
+          />
           {(()=>{const highTasks=projects.flatMap(p=>p.tasks.filter(t=>t.priority==="high").map(t=>({...t,_projectEmoji:p.emoji,_projectColor:p.color})));if(highTasks.length===0)return null;const focosColor=isCurrentWeek?c.weekTabColor0:c.weekTabColor1;const focosBg=isCurrentWeek?"rgba(59,130,246,0.12)":"rgba(139,92,246,0.12)";return(<div style={{marginTop:14,paddingTop:12,borderTop:`1px solid ${c.divider}`}}><div onClick={()=>setFocosOpen(o=>!o)} style={{display:"flex",alignItems:"center",gap:6,marginBottom:focosOpen?8:0,cursor:"pointer",userSelect:"none"}}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={focosColor} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg><div style={{display:"flex",flexDirection:"column",gap:1}}><span style={{fontSize:11,fontWeight:700,color:focosColor,fontFamily:F,textTransform:"uppercase",letterSpacing:"0.06em"}}>Focos da semana</span><span style={{fontSize:9,fontWeight:500,color:focosColor,fontFamily:F,opacity:0.6,letterSpacing:"0.02em"}}>Tarefas com alta prioridade</span></div><span style={{fontSize:10,fontWeight:600,color:focosColor,background:focosBg,borderRadius:5,padding:"1px 6px",fontFamily:F}}>{highTasks.filter(t=>!t.done).length}/{highTasks.length}</span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={focosColor} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{marginLeft:"auto",transition:"transform 0.2s ease",transform:focosOpen?"rotate(180deg)":"rotate(0deg)"}}><polyline points="6 9 12 15 18 9"/></svg></div>{focosOpen&&<div style={{display:"flex",flexDirection:"column",gap:5,animation:"fadeIn 0.2s ease"}}>{highTasks.map((t,i)=>(<div key={i} style={{display:"flex",alignItems:"center",gap:8,opacity:t.done?0.35:1,transition:"opacity 0.3s ease"}}><div style={{width:6,height:6,borderRadius:"50%",background:t.done?"transparent":t._projectColor,border:t.done?`1.5px solid ${t._projectColor}40`:"none",flexShrink:0}}/><span style={{fontSize:12,color:t.done?c.textMuted:c.textSub,fontFamily:F,lineHeight:1.4,flex:1,textDecoration:t.done?"line-through":"none"}}>{t.text}</span><span style={{fontSize:10,fontFamily:F,color:t.done?c.textMuted:t._projectColor,background:t.done?c.tagBg:`${t._projectColor}18`,padding:"1px 6px",borderRadius:4,whiteSpace:"nowrap"}}>{t._projectEmoji}</span></div>))}</div>}</div>);})()}
         </div>
 
@@ -758,7 +793,7 @@ export default function App(){
         {/* Confirm Modal */}
         {showConfirm&&(<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",backdropFilter:"blur(4px)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,animation:"fadeIn 0.2s ease",padding:16}} onClick={()=>setShowConfirm(false)}><div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:460,maxHeight:"85vh",overflowY:"auto",background:c.modalBg,border:`1px solid ${c.cardBorder}`,borderRadius:20,padding:24,boxShadow:theme.mode==="light"?"0 8px 40px rgba(0,0,0,0.15)":"0 8px 40px rgba(0,0,0,0.5)"}}>
           <h2 style={{fontSize:18,fontWeight:800,color:c.text,margin:"0 0 4px",fontFamily:FS}}>Completar semana</h2>
-          <p style={{fontSize:12,color:c.textMuted,margin:"0 0 18px",fontFamily:F}}>{fmtWeekLabel(currentSun,currentSat)}</p>
+          <p style={{fontSize:12,color:c.textMuted,margin:"0 0 18px",fontFamily:F}}>{weeks[activeWeekIdx]?.title||fmtWeekLabel(currentSun,currentSat)}</p>
           <div style={{marginBottom:16}}><div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}><div style={{width:8,height:8,borderRadius:"50%",background:"#10B981"}}/><span style={{fontSize:12,fontWeight:700,color:"#10B981",fontFamily:F}}>Concluídas ({totalDone})</span></div>{doneProjects.map((p,i)=>(<div key={i} style={{marginBottom:6,paddingLeft:4}}><div style={{display:"flex",alignItems:"center",gap:6,marginBottom:3}}><span style={{fontSize:14}}>{p.emoji}</span><span style={{fontSize:11,fontWeight:700,color:p.color,fontFamily:F}}>{p.name}</span></div>{p.doneTasks.map((t,k)=>(<div key={k} style={{display:"flex",alignItems:"center",gap:6,padding:"2px 0 2px 22px"}}><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="3" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg><span style={{fontSize:11,color:c.textSub,fontFamily:F}}>{t.text}</span></div>))}</div>))}</div>
           {totalPending>0&&<div style={{marginBottom:18}}><div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}><div style={{width:8,height:8,borderRadius:"50%",background:"#F59E0B"}}/><span style={{fontSize:12,fontWeight:700,color:"#D97706",fontFamily:F}}>Pendentes — permanecem ({totalPending})</span></div>{pendingProjects.map((p,i)=>(<div key={i} style={{marginBottom:6,paddingLeft:4}}><div style={{display:"flex",alignItems:"center",gap:6,marginBottom:3}}><span style={{fontSize:14}}>{p.emoji}</span><span style={{fontSize:11,fontWeight:700,color:p.color,fontFamily:F}}>{p.name}</span></div>{p.pendingTasks.map((t,k)=>(<div key={k} style={{display:"flex",alignItems:"center",gap:6,padding:"2px 0 2px 22px"}}><div style={{width:8,height:8,borderRadius:4,border:`1.5px solid ${c.textMuted}`,flexShrink:0}}/><span style={{fontSize:11,color:c.textSub,fontFamily:F}}>{t.text}</span></div>))}</div>))}</div>}
           <div style={{display:"flex",gap:10}}><button onClick={confirmComplete} style={{flex:1,padding:"12px",borderRadius:12,border:"none",cursor:"pointer",background:"linear-gradient(135deg,#10B981,#3B82F6)",color:"#fff",fontSize:14,fontWeight:700,fontFamily:F}}>Confirmar</button><button onClick={()=>setShowConfirm(false)} style={{padding:"12px 20px",borderRadius:12,border:`1px solid ${c.cardBorder}`,background:c.cancelBg,color:c.textSub,fontSize:14,fontWeight:500,cursor:"pointer",fontFamily:F}}>Cancelar</button></div>
