@@ -682,46 +682,244 @@ function ConfirmDeleteModal({title,description,onConfirm,onCancel,c}){
   );
 }
 
-/* ─── Task View Modal (somente visualização) ─── */
-function TaskViewModal({task,color,projectName,projectEmoji,onToggle,onClose,c}){
+/* ─── Task View Modal (visualização + edição + anexos) ─── */
+function TaskViewModal({task,color,projectName,projectEmoji,onToggle,onUpdate,onClose,c}){
   const tc = c || themes.dark;
   const dayInfo=WEEK_DAYS.find(d=>d.key===task.day);
   const prio=priorityConfig[task.priority];
+
+  // Modo edição
+  const [editing,setEditing]=useState(false);
+  const [editText,setEditText]=useState(task.text);
+  const [editDesc,setEditDesc]=useState(task.description||"");
+  const [editPriority,setEditPriority]=useState(task.priority);
+  const [editDay,setEditDay]=useState(task.day);
+
+  // Anexos: { type: 'image'|'video_link'|'document', name, data (base64 ou url) }
+  const [attachments,setAttachments]=useState(task.attachments||[]);
+  const [showAttachMenu,setShowAttachMenu]=useState(false);
+  const [videoLinkInput,setVideoLinkInput]=useState("");
+  const [showVideoInput,setShowVideoInput]=useState(false);
+  const fileInputRef=useRef(null);
+  const docInputRef=useRef(null);
+
+  const startEdit=()=>{
+    setEditText(task.text);setEditDesc(task.description||"");
+    setEditPriority(task.priority);setEditDay(task.day);
+    setAttachments(task.attachments||[]);
+    setEditing(true);setShowAttachMenu(false);
+  };
+  const cancelEdit=()=>{setEditing(false);setAttachments(task.attachments||[]);};
+  const saveEdit=()=>{
+    const updates={text:editText.trim()||task.text,description:editDesc.trim(),priority:editPriority,day:editDay,attachments};
+    onUpdate(updates);setEditing(false);
+  };
+
   useEffect(()=>{
-    const h=(e)=>{if(e.key==="Escape"){e.stopPropagation();onClose();}};
+    const h=(e)=>{if(e.key==="Escape"){e.stopPropagation();if(editing)cancelEdit();else onClose();}};
     window.addEventListener("keydown",h,true);
     return()=>window.removeEventListener("keydown",h,true);
-  },[]);
+  },[editing]);
+
+  // Upload de imagem/doc
+  const handleFileUpload=(e,type)=>{
+    const f=e.target.files[0];if(!f)return;
+    const reader=new FileReader();
+    reader.onload=(ev)=>{
+      setAttachments(prev=>[...prev,{type,name:f.name,data:ev.target.result}]);
+    };
+    reader.readAsDataURL(f);
+    e.target.value="";
+    setShowAttachMenu(false);
+  };
+
+  const addVideoLink=()=>{
+    const url=videoLinkInput.trim();if(!url)return;
+    setAttachments(prev=>[...prev,{type:"video_link",name:url,data:url}]);
+    setVideoLinkInput("");setShowVideoInput(false);setShowAttachMenu(false);
+  };
+
+  const removeAttachment=(idx)=>{setAttachments(prev=>prev.filter((_,i)=>i!==idx));};
+
+  // Converter link do YouTube para embed
+  function getYoutubeEmbedUrl(url){
+    try{
+      const u=new URL(url);
+      let id=u.searchParams.get("v")||u.pathname.split("/").pop();
+      if(u.hostname==="youtu.be")id=u.pathname.slice(1);
+      return id?`https://www.youtube.com/embed/${id}`:null;
+    }catch{return null;}
+  }
+  function getVimeoEmbedUrl(url){
+    try{const m=url.match(/vimeo\.com\/(\d+)/);return m?`https://player.vimeo.com/video/${m[1]}`:null;}catch{return null;}
+  }
+  function getVideoEmbed(url){
+    return getYoutubeEmbedUrl(url)||getVimeoEmbedUrl(url)||null;
+  }
+
+  const overlayClick=()=>{if(!editing)onClose();};
+
+  const currentPrio=editing?priorityConfig[editPriority]:prio;
+
   return(
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",backdropFilter:"blur(5px)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:2000,padding:16,animation:"fadeIn 0.2s ease"}} onClick={onClose}>
-      <div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:440,background:tc.modalBg,border:`1px solid ${color}30`,borderRadius:20,boxShadow:"0 8px 48px rgba(0,0,0,0.45)",overflow:"hidden"}}>
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",backdropFilter:"blur(5px)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:2000,padding:16,animation:"fadeIn 0.2s ease"}} onClick={overlayClick}>
+      <div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:480,maxHeight:"90vh",overflowY:"auto",background:tc.modalBg,border:`1px solid ${color}30`,borderRadius:20,boxShadow:"0 8px 48px rgba(0,0,0,0.45)",overflow:"hidden",display:"flex",flexDirection:"column"}}>
+
         {/* Header */}
-        <div style={{background:`linear-gradient(135deg,${color}18,${color}06)`,borderBottom:`1px solid ${color}18`,padding:"20px 20px 16px"}}>
+        <div style={{background:`linear-gradient(135deg,${color}18,${color}06)`,borderBottom:`1px solid ${color}18`,padding:"20px 20px 16px",flexShrink:0}}>
           <div style={{display:"flex",alignItems:"flex-start",gap:12}}>
-            <div onClick={e=>{e.stopPropagation();onToggle();}} style={{width:24,height:24,borderRadius:7,flexShrink:0,cursor:"pointer",border:task.done?"none":`2.5px solid ${color}`,background:task.done?color:"transparent",display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.2s ease",marginTop:2}}>
+            <div onClick={e=>{e.stopPropagation();if(!editing)onToggle();}} style={{width:24,height:24,borderRadius:7,flexShrink:0,cursor:editing?"default":"pointer",border:task.done?"none":`2.5px solid ${color}`,background:task.done?color:"transparent",display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.2s ease",marginTop:2,opacity:editing?0.4:1}}>
               {task.done&&<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
             </div>
             <div style={{flex:1,minWidth:0}}>
-              <h2 style={{margin:0,fontSize:17,fontWeight:800,color:task.done?tc.textMuted:tc.text,fontFamily:FS,lineHeight:1.4,textDecoration:task.done?"line-through":"none",wordBreak:"break-word"}}>{task.text}</h2>
-              <div style={{display:"flex",alignItems:"center",gap:6,marginTop:8,flexWrap:"wrap"}}>
+              {editing?(
+                <textarea value={editText} onChange={e=>setEditText(e.target.value)} rows={Math.max(1,editText.split("\n").length)} style={{width:"100%",boxSizing:"border-box",padding:"6px 10px",fontSize:16,fontWeight:700,borderRadius:8,background:tc.inputBg,border:`1.5px solid ${color}50`,color:tc.inputText,outline:"none",fontFamily:FS,resize:"none",lineHeight:1.4,overflow:"hidden"}}/>
+              ):(
+                <h2 style={{margin:0,fontSize:17,fontWeight:800,color:task.done?tc.textMuted:tc.text,fontFamily:FS,lineHeight:1.4,textDecoration:task.done?"line-through":"none",wordBreak:"break-word"}}>{task.text}</h2>
+              )}
+              {!editing&&<div style={{display:"flex",alignItems:"center",gap:6,marginTop:8,flexWrap:"wrap"}}>
                 {projectName&&<span style={{fontSize:10,fontWeight:600,padding:"3px 8px",borderRadius:5,background:`${color}22`,color,fontFamily:F,display:"flex",alignItems:"center",gap:4}}>{projectEmoji&&<span style={{fontSize:12}}>{projectEmoji}</span>}{projectName}</span>}
                 {dayInfo&&<span style={{fontSize:10,fontWeight:600,padding:"3px 8px",borderRadius:5,background:tc.tagBg,color:tc.tagColor,fontFamily:F}}>{dayInfo.full}</span>}
                 <span style={{fontSize:10,fontWeight:600,padding:"3px 8px",borderRadius:5,background:prio.bg,color:prio.dot,fontFamily:F,display:"flex",alignItems:"center",gap:4}}><div style={{width:6,height:6,borderRadius:"50%",background:prio.dot}}/>{prio.label}</span>
                 {task.done&&<span style={{fontSize:10,fontWeight:600,padding:"3px 8px",borderRadius:5,background:"rgba(16,185,129,0.12)",color:"#10B981",fontFamily:F}}>✓ Concluída</span>}
-              </div>
+              </div>}
             </div>
-            <button onClick={onClose} style={{background:"none",border:"none",cursor:"pointer",padding:4,opacity:0.35,flexShrink:0,lineHeight:1,marginTop:-2}} onMouseEnter={e=>e.currentTarget.style.opacity="0.8"} onMouseLeave={e=>e.currentTarget.style.opacity="0.35"}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={tc.textSub} strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </button>
+            {/* Botões do header */}
+            <div style={{display:"flex",gap:6,flexShrink:0,alignItems:"center"}}>
+              {!editing&&(
+                <button onClick={startEdit} title="Editar tarefa" style={{background:`${color}18`,border:`1px solid ${color}30`,borderRadius:8,cursor:"pointer",padding:"5px 7px",display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.2s"}} onMouseEnter={e=>{e.currentTarget.style.background=`${color}30`;}} onMouseLeave={e=>{e.currentTarget.style.background=`${color}18`;}}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                </button>
+              )}
+              <button onClick={editing?cancelEdit:onClose} title={editing?"Cancelar edição":"Fechar"} style={{background:"none",border:"none",cursor:"pointer",padding:4,opacity:0.35,lineHeight:1}} onMouseEnter={e=>e.currentTarget.style.opacity="0.8"} onMouseLeave={e=>e.currentTarget.style.opacity="0.35"}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={tc.textSub} strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
           </div>
         </div>
-        {/* Descrição */}
-        <div style={{padding:"18px 20px 20px"}}>
-          <span style={{fontSize:10,color:tc.textMuted,fontWeight:700,display:"block",marginBottom:8,textTransform:"uppercase",letterSpacing:0.6}}>Descrição</span>
-          {task.description?(
-            <p style={{margin:0,fontSize:13,color:tc.textSub,fontFamily:F,lineHeight:1.7,whiteSpace:"pre-wrap",wordBreak:"break-word"}}>{task.description}</p>
-          ):(
-            <p style={{margin:0,fontSize:13,color:tc.textMuted,fontFamily:F,fontStyle:"italic",opacity:0.5}}>Sem descrição.</p>
+
+        {/* Body */}
+        <div style={{padding:"18px 20px 20px",overflowY:"auto",flex:1}}>
+
+          {/* Prioridade + Dia (só em modo edição) */}
+          {editing&&(
+            <div style={{display:"flex",gap:16,marginBottom:14,flexWrap:"wrap"}}>
+              <div style={{flex:1,minWidth:120}}>
+                <span style={{fontSize:10,color:tc.textMuted,fontWeight:700,display:"block",marginBottom:6,textTransform:"uppercase",letterSpacing:0.6}}>Dia</span>
+                <div style={{display:"flex",gap:3,flexWrap:"wrap"}}>{WEEK_DAYS.map(d=>(<button key={d.key} onClick={()=>setEditDay(d.key)} style={{padding:"4px 7px",fontSize:10,fontWeight:600,borderRadius:6,border:"none",cursor:"pointer",fontFamily:F,background:editDay===d.key?color:tc.inputBg,color:editDay===d.key?"#fff":tc.textSub,transition:"all 0.15s"}}>{d.label}</button>))}</div>
+              </div>
+              <div style={{flex:1,minWidth:140}}>
+                <span style={{fontSize:10,color:tc.textMuted,fontWeight:700,display:"block",marginBottom:6,textTransform:"uppercase",letterSpacing:0.6}}>Prioridade</span>
+                <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>{Object.entries(priorityConfig).map(([k,v])=>(<button key={k} onClick={()=>setEditPriority(k)} style={{padding:"4px 10px",fontSize:10,fontWeight:600,borderRadius:6,border:"none",cursor:"pointer",fontFamily:F,background:editPriority===k?v.dot:v.bg,color:editPriority===k?"#fff":v.dot,transition:"all 0.15s"}}>{v.label}</button>))}</div>
+              </div>
+            </div>
+          )}
+
+          {/* Descrição */}
+          <div style={{marginBottom:16}}>
+            <span style={{fontSize:10,color:tc.textMuted,fontWeight:700,display:"block",marginBottom:8,textTransform:"uppercase",letterSpacing:0.6}}>Descrição</span>
+            {editing?(
+              <textarea value={editDesc} onChange={e=>setEditDesc(e.target.value)} placeholder="Adicione uma descrição..." rows={3} style={{width:"100%",boxSizing:"border-box",padding:"8px 12px",fontSize:13,borderRadius:10,background:tc.inputBg,border:`1.5px solid ${color}40`,color:tc.inputText,outline:"none",fontFamily:F,resize:"vertical",lineHeight:1.6}}/>
+            ):task.description?(
+              <p style={{margin:0,fontSize:13,color:tc.textSub,fontFamily:F,lineHeight:1.7,whiteSpace:"pre-wrap",wordBreak:"break-word"}}>{task.description}</p>
+            ):(
+              <p style={{margin:0,fontSize:13,color:tc.textMuted,fontFamily:F,fontStyle:"italic",opacity:0.5}}>Sem descrição.</p>
+            )}
+          </div>
+
+          {/* Anexos (visualização) */}
+          {!editing&&(task.attachments||[]).length>0&&(
+            <div style={{marginBottom:8}}>
+              <span style={{fontSize:10,color:tc.textMuted,fontWeight:700,display:"block",marginBottom:10,textTransform:"uppercase",letterSpacing:0.6}}>Anexos</span>
+              <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                {(task.attachments||[]).map((att,i)=>(
+                  <div key={i} style={{borderRadius:12,overflow:"hidden",border:`1px solid ${tc.cardBorder}`}}>
+                    {att.type==="image"&&(
+                      <img src={att.data} alt={att.name} style={{width:"100%",display:"block",maxHeight:300,objectFit:"contain",background:"rgba(0,0,0,0.3)"}}/>
+                    )}
+                    {att.type==="video_link"&&(()=>{
+                      const embed=getVideoEmbed(att.data);
+                      return embed?(
+                        <iframe src={embed} style={{width:"100%",height:220,border:"none",display:"block"}} allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture" allowFullScreen title={att.name}/>
+                      ):(
+                        <a href={att.data} target="_blank" rel="noopener noreferrer" style={{display:"flex",alignItems:"center",gap:10,padding:"12px 14px",color:color,fontFamily:F,fontSize:12,fontWeight:600,textDecoration:"none",wordBreak:"break-all"}}>
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+                          {att.data}
+                        </a>
+                      );
+                    })()}
+                    {att.type==="document"&&(
+                      att.data.startsWith("data:application/pdf")?(
+                        <iframe src={att.data} style={{width:"100%",height:280,border:"none",display:"block"}} title={att.name}/>
+                      ):(
+                        <a href={att.data} download={att.name} style={{display:"flex",alignItems:"center",gap:10,padding:"12px 14px",color:color,fontFamily:F,fontSize:12,fontWeight:600,textDecoration:"none"}}>
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                          {att.name}
+                        </a>
+                      )
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Edição de anexos */}
+          {editing&&(
+            <div style={{marginBottom:16}}>
+              <span style={{fontSize:10,color:tc.textMuted,fontWeight:700,display:"block",marginBottom:8,textTransform:"uppercase",letterSpacing:0.6}}>Anexos</span>
+
+              {/* Lista de anexos para remover */}
+              {attachments.length>0&&(
+                <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:10}}>
+                  {attachments.map((att,i)=>(
+                    <div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",borderRadius:10,background:tc.taskBg,border:`1px solid ${tc.cardBorder}`}}>
+                      <span style={{fontSize:16,flexShrink:0}}>{att.type==="image"?"🖼️":att.type==="video_link"?"🎬":"📄"}</span>
+                      <span style={{flex:1,fontSize:12,color:tc.textSub,fontFamily:F,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{att.name}</span>
+                      <button onClick={()=>removeAttachment(i)} style={{background:"none",border:"none",cursor:"pointer",padding:2,opacity:0.45,flexShrink:0}} onMouseEnter={e=>e.currentTarget.style.opacity="1"} onMouseLeave={e=>e.currentTarget.style.opacity="0.45"}>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Botão adicionar */}
+              <div style={{position:"relative"}}>
+                <button onClick={()=>{setShowAttachMenu(v=>!v);setShowVideoInput(false);}} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 14px",borderRadius:10,border:`1px dashed ${color}50`,background:"transparent",color:color,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:F,transition:"all 0.2s"}} onMouseEnter={e=>{e.currentTarget.style.background=`${color}10`;}} onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  Adicionar anexo
+                </button>
+                {showAttachMenu&&(
+                  <div style={{position:"absolute",top:"110%",left:0,zIndex:100,background:tc.modalBg,border:`1px solid ${tc.cardBorder}`,borderRadius:12,padding:6,boxShadow:"0 4px 20px rgba(0,0,0,0.35)",minWidth:180,animation:"fadeIn 0.15s ease"}}>
+                    <button onClick={()=>fileInputRef.current?.click()} style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"9px 12px",background:"none",border:"none",cursor:"pointer",borderRadius:8,color:tc.text,fontSize:12,fontFamily:F,fontWeight:500,textAlign:"left"}} onMouseEnter={e=>e.currentTarget.style.background=tc.inputBg} onMouseLeave={e=>e.currentTarget.style.background="none"}>🖼️ Foto / Imagem</button>
+                    <button onClick={()=>{setShowVideoInput(true);setShowAttachMenu(false);}} style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"9px 12px",background:"none",border:"none",cursor:"pointer",borderRadius:8,color:tc.text,fontSize:12,fontFamily:F,fontWeight:500,textAlign:"left"}} onMouseEnter={e=>e.currentTarget.style.background=tc.inputBg} onMouseLeave={e=>e.currentTarget.style.background="none"}>🎬 Link de vídeo</button>
+                    <button onClick={()=>docInputRef.current?.click()} style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"9px 12px",background:"none",border:"none",cursor:"pointer",borderRadius:8,color:tc.text,fontSize:12,fontFamily:F,fontWeight:500,textAlign:"left"}} onMouseEnter={e=>e.currentTarget.style.background=tc.inputBg} onMouseLeave={e=>e.currentTarget.style.background="none"}>📄 Documento / PDF</button>
+                  </div>
+                )}
+              </div>
+
+              {/* Input de link de vídeo */}
+              {showVideoInput&&(
+                <div style={{marginTop:10,display:"flex",gap:6,animation:"fadeIn 0.2s ease"}}>
+                  <input autoFocus value={videoLinkInput} onChange={e=>setVideoLinkInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")addVideoLink();if(e.key==="Escape")setShowVideoInput(false);}} placeholder="YouTube, Vimeo ou outro link..." style={{flex:1,padding:"8px 12px",fontSize:12,borderRadius:8,background:tc.inputBg,border:`1.5px solid ${color}40`,color:tc.inputText,outline:"none",fontFamily:F}}/>
+                  <button onClick={addVideoLink} style={{padding:"8px 14px",borderRadius:8,border:"none",background:color,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:F}}>OK</button>
+                  <button onClick={()=>{setShowVideoInput(false);setVideoLinkInput("");}} style={{padding:"8px 10px",borderRadius:8,border:`1px solid ${tc.cardBorder}`,background:"transparent",color:tc.textSub,fontSize:12,cursor:"pointer",fontFamily:F}}>✕</button>
+                </div>
+              )}
+
+              {/* Inputs ocultos */}
+              <input ref={fileInputRef} type="file" accept="image/*" style={{display:"none"}} onChange={e=>handleFileUpload(e,"image")}/>
+              <input ref={docInputRef} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt" style={{display:"none"}} onChange={e=>handleFileUpload(e,"document")}/>
+            </div>
+          )}
+
+          {/* Botões Salvar/Cancelar (modo edição) */}
+          {editing&&(
+            <div style={{display:"flex",gap:8,paddingTop:4,borderTop:`1px solid ${tc.divider}`,marginTop:4}}>
+              <button onClick={saveEdit} style={{flex:1,padding:"11px",borderRadius:11,border:"none",cursor:"pointer",background:`linear-gradient(135deg,${color},${color}cc)`,color:"#fff",fontSize:13,fontWeight:700,fontFamily:F}}>Salvar</button>
+              <button onClick={cancelEdit} style={{padding:"11px 20px",borderRadius:11,border:`1px solid ${tc.cardBorder}`,background:tc.cancelBg,color:tc.textSub,fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:F}}>Cancelar</button>
+            </div>
           )}
         </div>
       </div>
@@ -754,7 +952,7 @@ function TaskItem({task,color,onToggle,onUpdate,onDelete,projectName,projectEmoj
   const tc = c || themes.dark;
   return(
     <>
-    {showViewModal&&<TaskViewModal task={task} color={color} projectName={projectName} projectEmoji={projectEmoji} onToggle={()=>{onToggle();setShowViewModal(false);}} onClose={()=>setShowViewModal(false)} c={tc}/>}
+    {showViewModal&&<TaskViewModal task={task} color={color} projectName={projectName} projectEmoji={projectEmoji} onToggle={()=>{onToggle();setShowViewModal(false);}} onUpdate={u=>onUpdate(u)} onClose={()=>setShowViewModal(false)} c={tc}/>}
     <div className="task-card" style={{borderRadius:12,overflow:"hidden",background:task.done?tc.taskBgDone:tc.taskBg,border:`1px solid ${task.done?tc.taskBorderDone:tc.taskBorder}`,opacity:task.done?0.55:1}}>
       <div onClick={()=>setShowViewModal(true)} style={{padding:"10px 12px",cursor:"pointer"}}>
         <div style={{display:"flex",alignItems:"flex-start",gap:10}}>
