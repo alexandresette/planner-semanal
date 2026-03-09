@@ -28,8 +28,17 @@ export async function firebaseSignOut() {
 }
 
 export async function callSendInviteEmail(email) {
-  const fn = httpsCallable(functions, 'sendInviteEmail');
-  return fn({ email });
+  const url = "https://sendinviteemail-s7b3bontja-rj.a.run.app";
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || "Falha ao enviar e-mail.");
+  }
+  return response.json();
 }
 
 const storage = {
