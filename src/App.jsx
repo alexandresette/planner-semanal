@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { signInWithGoogle, firebaseSignOut, auth } from "./storage.js";
+import { signInWithGoogle, firebaseSignOut, auth, callSendInviteEmail } from "./storage.js";
 
 const LOGO_DARK = `${import.meta.env.BASE_URL}logo.svg`;
 const LOGO_LIGHT = `${import.meta.env.BASE_URL}logo-light.svg`;
@@ -302,9 +302,16 @@ function AdminPanel({ onClose, theme }) {
     const updated = [...invites, { email, createdAt: new Date().toISOString() }];
     await saveInvites(updated);
     setInvites(updated); setNewEmail("");
-    setMsg(`✅ ${email} convidado com sucesso!`);
+    // Disparar e-mail de convite via Cloud Function
+    try {
+      await callSendInviteEmail(email);
+      setMsg(`✅ Convite enviado para ${email}!`);
+    } catch (e) {
+      console.error("Erro ao enviar e-mail:", e);
+      setMsg(`⚠️ Salvo, mas falha ao enviar e-mail: ${e.message}`);
+    }
     setSaving(false);
-    setTimeout(() => setMsg(""), 3000);
+    setTimeout(() => setMsg(""), 5000);
   };
 
   const removeInvite = async (email) => {

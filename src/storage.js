@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, getDocs } from 'firebase/firestore';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 
 const firebaseConfig = {
   apiKey: "AIzaSyBm2_d4stfbDp7ZuLF7k3BmX6EPsPk3ZEE",
@@ -15,6 +16,7 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
+const functions = getFunctions(app, 'southamerica-east1');
 
 export async function signInWithGoogle() {
   const result = await signInWithPopup(auth, googleProvider);
@@ -23,6 +25,11 @@ export async function signInWithGoogle() {
 
 export async function firebaseSignOut() {
   await signOut(auth);
+}
+
+export async function callSendInviteEmail(email) {
+  const fn = httpsCallable(functions, 'sendInviteEmail');
+  return fn({ email });
 }
 
 const storage = {
