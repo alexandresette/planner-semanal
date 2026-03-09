@@ -476,10 +476,11 @@ export default function App(){
   const [editingTasks,setEditingTasks]=useState(new Set());
   const [dragOverDay,setDragOverDay]=useState(null);
   const [layoutMode,setLayoutMode]=useState(()=>{try{const s=localStorage.getItem("planner-layoutMode");if(s==="columns"&&window.innerWidth>=768)return "columns";return "list";}catch{return "list";}});
-  const [focosOpen,setFocosOpen]=useState(true);
+  const [focosOpen,setFocosOpen]=useState(()=>{try{const s=localStorage.getItem("planner-focosOpen");return s===null?true:s==="true";}catch{return true;}});
 
   useEffect(()=>{try{localStorage.setItem("planner-viewMode",viewMode);}catch{}},[viewMode]);
   useEffect(()=>{try{localStorage.setItem("planner-layoutMode",layoutMode);}catch{}},[layoutMode]);
+  useEffect(()=>{try{localStorage.setItem("planner-focosOpen",String(focosOpen));}catch{}},[focosOpen]);
   useEffect(()=>{(async()=>{try{const r=await window.storage.get(AUTH_KEY);if(r&&r.value==="true"){setAuthed(true);try{const u=await window.storage.get(USER_KEY);if(u&&u.value)setUserName(u.value);}catch{}}}catch{}})();},[]);
   const handleLogin=useCallback(user=>{setAuthed(true);setUserName(user);window.storage.set(AUTH_KEY,"true").catch(()=>{});window.storage.set(USER_KEY,user).catch(()=>{});},[]);
   const handleLogout=useCallback(()=>{setAuthed(false);setUserName("");setWeeks([]);setLoading(true);window.storage.set(AUTH_KEY,"false").catch(()=>{});window.storage.set(USER_KEY,"").catch(()=>{});},[]);
