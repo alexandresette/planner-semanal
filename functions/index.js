@@ -30,49 +30,61 @@ exports.sendInviteEmail = onRequest(
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Convite — Planner Semanal</title>
 </head>
-<body style="margin:0;padding:0;background:#0B1120;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0B1120;padding:40px 16px;">
+<body style="margin:0;padding:0;background:#F1F5F9;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#F1F5F9;padding:40px 16px;">
     <tr><td align="center">
-      <table width="100%" style="max-width:480px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:20px;overflow:hidden;">
+      <table width="100%" style="max-width:500px;background:#FFFFFF;border:1px solid #E2E8F0;border-radius:20px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.06);">
+
+        <!-- HEADER com logo -->
         <tr>
-          <td style="background:linear-gradient(135deg,rgba(59,130,246,0.15),rgba(139,92,246,0.15));padding:32px 32px 24px;text-align:center;border-bottom:1px solid rgba(255,255,255,0.06);">
-            <div style="font-size:28px;margin-bottom:8px;">📋</div>
-            <h1 style="margin:0;font-size:22px;font-weight:800;color:#F1F5F9;">Planner Semanal</h1>
-            <p style="margin:6px 0 0;font-size:13px;color:#64748B;">Organize sua semana, avance com velocidade.</p>
+          <td style="padding:36px 32px 28px;text-align:center;border-bottom:1px solid #F1F5F9;">
+            <img src="https://alexandresette.github.io/planner-semanal/logo-light.svg"
+                 alt="Planner Semanal"
+                 width="260"
+                 style="display:block;margin:0 auto;max-width:260px;height:auto;" />
           </td>
         </tr>
+
+        <!-- BODY -->
         <tr>
-          <td style="padding:28px 32px;">
-            <p style="margin:0 0 16px;font-size:15px;color:#94A3B8;line-height:1.6;">
-              Você recebeu um convite para acessar o <strong style="color:#F1F5F9;">Planner Semanal</strong>!
+          <td style="padding:32px 36px 8px;">
+            <p style="margin:0 0 14px;font-size:16px;color:#1E293B;line-height:1.6;">
+              Olá! Você recebeu um convite para acessar o <strong style="color:#5B5FBF;">Planner Semanal</strong>.
             </p>
-            <p style="margin:0 0 24px;font-size:14px;color:#64748B;line-height:1.6;">
+            <p style="margin:0 0 28px;font-size:14px;color:#64748B;line-height:1.7;">
               Clique no botão abaixo para acessar o app. Na primeira vez, você poderá entrar com sua conta Google ou criar um usuário e senha.
             </p>
+
+            <!-- BOTÃO -->
             <table width="100%" cellpadding="0" cellspacing="0">
               <tr>
-                <td align="center" style="padding:4px 0 28px;">
-                  <a href="${appUrl}" style="display:inline-block;padding:14px 32px;background:linear-gradient(135deg,#3B82F6,#8B5CF6);color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;border-radius:12px;">
+                <td align="center" style="padding:0 0 32px;">
+                  <a href="${appUrl}" style="display:inline-block;padding:14px 36px;background:linear-gradient(135deg,#5B5FBF,#3B82F6);color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;border-radius:12px;letter-spacing:0.2px;">
                     Acessar o Planner &rarr;
                   </a>
                 </td>
               </tr>
             </table>
-            <div style="background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.15);border-radius:12px;padding:16px 18px;">
-              <p style="margin:0 0 6px;font-size:12px;font-weight:700;color:#60A5FA;text-transform:uppercase;letter-spacing:0.5px;">Como acessar</p>
-              <p style="margin:0;font-size:13px;color:#94A3B8;line-height:1.6;">
-                <strong style="color:#CBD5E1;">Com Google:</strong> clique em "Entrar com Google" usando este e-mail.<br>
-                <strong style="color:#CBD5E1;">Com senha:</strong> clique em "Entrar com Google" e crie seu usuário no primeiro acesso.
+
+            <!-- CARD COMO ACESSAR -->
+            <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:18px 20px;margin-bottom:8px;">
+              <p style="margin:0 0 8px;font-size:11px;font-weight:700;color:#5B5FBF;text-transform:uppercase;letter-spacing:0.8px;">Como acessar</p>
+              <p style="margin:0;font-size:13px;color:#475569;line-height:1.7;">
+                <strong style="color:#1E293B;">Com Google:</strong> clique em "Entrar com Google" usando este e-mail.<br>
+                <strong style="color:#1E293B;">Com senha:</strong> acesse o app e crie seu usuário no primeiro acesso.
               </p>
             </div>
           </td>
         </tr>
+
+        <!-- FOOTER -->
         <tr>
-          <td style="padding:16px 32px 28px;border-top:1px solid rgba(255,255,255,0.05);text-align:center;">
-            <p style="margin:0;font-size:11px;color:#475569;">Desenvolvido por Alexandre Sette</p>
-            <p style="margin:4px 0 0;font-size:10px;color:#334155;font-style:italic;">Colossenses 3:23-24</p>
+          <td style="padding:20px 36px 28px;border-top:1px solid #F1F5F9;text-align:center;">
+            <p style="margin:0;font-size:11px;color:#94A3B8;">Desenvolvido por Alexandre Sette</p>
+            <p style="margin:4px 0 0;font-size:10px;color:#CBD5E1;font-style:italic;">Colossenses 3:23-24</p>
           </td>
         </tr>
+
       </table>
     </td></tr>
   </table>
