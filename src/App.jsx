@@ -603,7 +603,7 @@ function LoginScreen({ onLogin, theme }) {
     <div style={{minHeight:"100vh",background:c.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:F,padding:"24px 16px",transition:"background 0.3s ease"}}>
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
       <button className="theme-btn" onClick={theme.toggle} style={{position:"fixed",top:16,right:16,background:c.btnBg,border:`1px solid ${c.btnBorder}`,borderRadius:10,padding:"8px 10px",cursor:"pointer",lineHeight:1,zIndex:10,display:"flex",alignItems:"center",justifyContent:"center"}} title={theme.mode==="dark"?"Modo claro":"Modo escuro"}>{theme.mode==="dark"?(<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={c.textSub} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>):(<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={c.textSub} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>)}</button>
-      <div style={{width:360,padding:40,textAlign:"center",background:c.loginCardBg,border:`1px solid ${c.loginCardBorder}`,borderRadius:24,animation:shake?"shake 0.5s ease":"fadeIn 0.6s ease",boxShadow:theme.mode==="light"?"0 4px 24px rgba(0,0,0,0.08)":"none"}}>
+      <div style={{width:"100%",maxWidth:400,padding:"32px 24px",textAlign:"center",background:c.loginCardBg,border:`1px solid ${c.loginCardBorder}`,borderRadius:24,animation:shake?"shake 0.5s ease":"fadeIn 0.6s ease",boxShadow:theme.mode==="light"?"0 4px 24px rgba(0,0,0,0.08)":"none",boxSizing:"border-box"}}>
         <div style={{ marginBottom: 16 }}><Logo size="large" theme={theme.mode} /></div>
         <p style={{fontSize:13,color:c.textSub,margin:"0 0 20px",lineHeight:1.5}}>Organize sua semana, acompanhe seus projetos e avance com velocidade!</p>
 
@@ -650,7 +650,7 @@ function ProgressRing({percent,color,size=48,c}){
   const r=(size-6)/2,circ=2*Math.PI*r,offset=circ-(percent/100)*circ;
   const trackColor = c ? c.progressRingBg : "rgba(255,255,255,0.08)";
   const textFill = c ? c.text : "#fff";
-  return(<svg width={size} height={size} style={{transform:"rotate(-90deg)"}}><circle cx={size/2} cy={size/2} r={r} fill="none" stroke={trackColor} strokeWidth="4"/><circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth="4" strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round" style={{transition:"stroke-dashoffset 0.6s cubic-bezier(0.4,0,0.2,1)"}}/><text x={size/2} y={size/2} textAnchor="middle" dominantBaseline="central" style={{transform:"rotate(90deg)",transformOrigin:"center",fontSize:size<44?11:13,fill:textFill,fontWeight:700}}>{percent}%</text></svg>);
+  return(<svg width={size} height={size} style={{transform:"rotate(-90deg)",overflow:"visible"}}><circle cx={size/2} cy={size/2} r={r} fill="none" stroke={trackColor} strokeWidth="4"/><circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth="4" strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round" style={{transition:"stroke-dashoffset 0.6s cubic-bezier(0.4,0,0.2,1)"}}/><text x={size/2} y={size/2} textAnchor="middle" dominantBaseline="central" style={{transform:"rotate(90deg)",transformOrigin:`${size/2}px ${size/2}px`,fontSize:size<44?11:13,fill:textFill,fontWeight:700,fontFamily:"DM Sans, sans-serif"}}>{percent}%</text></svg>);
 }
 
 /* ─── Confirm Delete Modal ─── */
@@ -725,7 +725,7 @@ function TaskItem({task,color,onToggle,onUpdate,onDelete,projectName,onMoveWeek,
           {/* Categoria (só na view dias da semana) */}
           {showCategoryPicker&&projects&&projects.length>0&&(
             <div style={{marginBottom:8}}>
-              <span style={{fontSize:10,color:tc.textMuted,fontWeight:600,display:"block",marginBottom:5,textTransform:"uppercase",letterSpacing:0.5}}>Categoria</span>
+              <span style={{fontSize:10,color:tc.textMuted,fontWeight:600,display:"block",marginBottom:5,textTransform:"uppercase",letterSpacing:0.5}}>Projeto</span>
               <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
                 {projects.map(p=>(<button key={p.id} onClick={()=>onUpdate({_newProjectId:p.id})} style={{display:"flex",alignItems:"center",gap:4,padding:"4px 8px",fontSize:10,fontWeight:600,borderRadius:6,border:`1px solid ${task._projectId===p.id?p.color:tc.cardBorder}`,cursor:"pointer",fontFamily:F,background:task._projectId===p.id?`${p.color}20`:tc.inputBg,color:task._projectId===p.id?p.color:tc.textSub,transition:"all 0.15s ease"}}><span style={{fontSize:12}}>{p.emoji}</span>{p.name}</button>))}
               </div>
@@ -789,14 +789,14 @@ function AddTaskInput({color,onAdd,c,projects,requireCategory,defaultDay}){
         {/* Seletor de categoria (na view dias da semana) */}
         {requireCategory&&(
           <div>
-            <span style={{fontSize:9,color:tc.textMuted,fontWeight:600,display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:0.5}}>Categoria</span>
+            <span style={{fontSize:9,color:tc.textMuted,fontWeight:600,display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:0.5}}>Projeto</span>
             {projects&&projects.length>0?(
               <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
                 {projects.map(p=>(<button key={p.id} onClick={()=>setProjectId(p.id)} style={{display:"flex",alignItems:"center",gap:4,padding:"4px 8px",fontSize:10,fontWeight:600,borderRadius:6,border:`1px solid ${projectId===p.id?p.color:tc.cardBorder}`,cursor:"pointer",fontFamily:F,background:projectId===p.id?`${p.color}20`:tc.inputBg,color:projectId===p.id?p.color:tc.textSub,transition:"all 0.15s"}}><span style={{fontSize:12}}>{p.emoji}</span>{p.name}</button>))}
               </div>
             ):(
               <div style={{padding:"8px 10px",borderRadius:8,background:tc.inputBg,border:`1px solid ${tc.cardBorder}`,fontSize:11,color:tc.textMuted,fontFamily:F}}>
-                ⚠️ Nenhuma categoria criada. Vá para a aba <strong style={{color:tc.textSub}}>Categorias</strong> e crie uma primeiro.
+                ⚠️ Nenhum projeto criado. Vá para a aba <strong style={{color:tc.textSub}}>Projetos</strong> e crie uma primeiro.
               </div>
             )}
           </div>
@@ -864,7 +864,7 @@ function ProjectCard({project,onToggleTask,onUpdateTask,onDeleteTask,onAddTask,o
   const tc = c || themes.dark;
   return(
     <>
-    {showDeleteConfirm&&<ConfirmDeleteModal title={`Excluir "${project.name}"?`} description={`Essa ação vai excluir a categoria e todas as ${total} tarefa(s) dentro dela. Essa ação não pode ser desfeita.`} onConfirm={()=>{setShowDeleteConfirm(false);onDeleteProject();}} onCancel={()=>setShowDeleteConfirm(false)} c={tc}/>}
+    {showDeleteConfirm&&<ConfirmDeleteModal title={`Excluir "${project.name}"?`} description={`Essa ação vai excluir o projeto e todas as ${total} tarefa(s) dentro dela. Essa ação não pode ser desfeita.`} onConfirm={()=>{setShowDeleteConfirm(false);onDeleteProject();}} onCancel={()=>setShowDeleteConfirm(false)} c={tc}/>}
     <div className="project-card" style={{background:tc.cardBg,borderRadius:16,border:`1px solid ${tc.cardBorder}`,overflow:"hidden"}}>
       <div style={{display:"flex",alignItems:"center",gap:10,padding:"16px 16px 16px 20px"}}>
         {reorderMode&&(<div style={{display:"flex",flexDirection:"column",gap:2,marginRight:2}}><button onClick={onMoveUp} disabled={isFirst} style={{background:"none",border:"none",cursor:isFirst?"default":"pointer",opacity:isFirst?0.2:0.7,padding:2}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={tc.textSub} strokeWidth="2.5" strokeLinecap="round"><polyline points="18 15 12 9 6 15"/></svg></button><button onClick={onMoveDown} disabled={isLast} style={{background:"none",border:"none",cursor:isLast?"default":"pointer",opacity:isLast?0.2:0.7,padding:2}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={tc.textSub} strokeWidth="2.5" strokeLinecap="round"><polyline points="6 9 12 15 18 9"/></svg></button></div>)}
@@ -888,7 +888,7 @@ function ProjectCard({project,onToggleTask,onUpdateTask,onDeleteTask,onAddTask,o
           <div style={{paddingTop:4,borderTop:`1px solid ${tc.divider}`}}>
             <button onClick={()=>setShowDeleteConfirm(true)} style={{display:"flex",alignItems:"center",gap:8,width:"100%",padding:"9px 12px",borderRadius:10,border:`1px solid ${tc.deleteDangerBorder}`,background:tc.deleteDangerBg,color:"#EF4444",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:F,transition:"all 0.2s"}}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-              Excluir categoria
+              Excluir projeto
             </button>
           </div>
         </div>
@@ -904,8 +904,8 @@ function AddCategoryCard({onAdd,c}){
   const [isOpen,setIsOpen]=useState(false);const [name,setName]=useState("");const [color,setColor]=useState(COLOR_OPTIONS[0]);const [emoji,setEmoji]=useState("📌");
   const handleAdd=()=>{if(name.trim()){onAdd({name:name.trim(),color,emoji});setName("");setColor(COLOR_OPTIONS[0]);setEmoji("📌");setIsOpen(false);}};
   const tc = c || themes.dark;
-  if(!isOpen) return(<button className="add-cat-btn" onClick={()=>setIsOpen(true)} style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8,width:"100%",padding:"16px",borderRadius:16,cursor:"pointer",background:"transparent",border:`2px dashed ${tc.addCatBorder}`,color:tc.addCatColor,fontSize:14,fontWeight:600,fontFamily:F}} onMouseEnter={e=>{e.currentTarget.style.borderColor="rgba(59,130,246,0.4)";e.currentTarget.style.color="#3B82F6";}} onMouseLeave={e=>{e.currentTarget.style.borderColor=tc.addCatBorder;e.currentTarget.style.color=tc.addCatColor;}}>+ Nova categoria</button>);
-  return(<div style={{background:tc.cardBg,borderRadius:16,border:`1px solid ${tc.cardBorder}`,padding:20,animation:"fadeIn 0.2s ease"}}><span style={{fontSize:14,fontWeight:700,color:tc.text,fontFamily:F,display:"block",marginBottom:14}}>Nova Categoria</span><span style={{fontSize:10,color:tc.textMuted,fontWeight:600,display:"block",marginBottom:6,textTransform:"uppercase",letterSpacing:0.5}}>Ícone</span><div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}><div style={{width:48,height:48,borderRadius:12,background:`${color}20`,border:`2px solid ${color}40`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:26}}>{emoji}</div><input value={emoji} onChange={e=>setEmoji(e.target.value)} placeholder="Cole um emoji..." style={{flex:1,padding:"10px 12px",fontSize:18,borderRadius:10,background:tc.inputBg,border:`1px solid ${color}40`,color:tc.inputText,outline:"none",fontFamily:F,textAlign:"center"}}/></div><span style={{fontSize:10,color:tc.textMuted,fontWeight:600,display:"block",marginBottom:6,textTransform:"uppercase",letterSpacing:0.5}}>Nome</span><input value={name} onChange={e=>setName(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleAdd()} placeholder="Nome da categoria..." style={{width:"100%",boxSizing:"border-box",padding:"10px 12px",fontSize:14,borderRadius:10,background:tc.inputBg,border:`1px solid ${color}40`,color:tc.inputText,outline:"none",fontFamily:F,marginBottom:12}}/><span style={{fontSize:10,color:tc.textMuted,fontWeight:600,display:"block",marginBottom:6,textTransform:"uppercase",letterSpacing:0.5}}>Cor</span><div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:16}}>{COLOR_OPTIONS.map(col=>(<button key={col} onClick={()=>setColor(col)} style={{width:28,height:28,borderRadius:8,border:color===col?`3px solid ${tc.text}`:"3px solid transparent",background:col,cursor:"pointer"}}/>))}</div><div style={{display:"flex",gap:8}}><button onClick={handleAdd} style={{flex:1,padding:"10px",borderRadius:10,border:"none",background:color,color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:F}}>Criar</button><button onClick={()=>setIsOpen(false)} style={{padding:"10px 16px",borderRadius:10,border:`1px solid ${tc.cardBorder}`,background:tc.cancelBg,color:tc.cancelColor,fontSize:14,cursor:"pointer",fontFamily:F}}>Cancelar</button></div></div>);
+  if(!isOpen) return(<button className="add-cat-btn" onClick={()=>setIsOpen(true)} style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8,width:"100%",padding:"16px",borderRadius:16,cursor:"pointer",background:"transparent",border:`2px dashed ${tc.addCatBorder}`,color:tc.addCatColor,fontSize:14,fontWeight:600,fontFamily:F}} onMouseEnter={e=>{e.currentTarget.style.borderColor="rgba(59,130,246,0.4)";e.currentTarget.style.color="#3B82F6";}} onMouseLeave={e=>{e.currentTarget.style.borderColor=tc.addCatBorder;e.currentTarget.style.color=tc.addCatColor;}}>+ Novo Projeto</button>);
+  return(<div style={{background:tc.cardBg,borderRadius:16,border:`1px solid ${tc.cardBorder}`,padding:20,animation:"fadeIn 0.2s ease"}}><span style={{fontSize:14,fontWeight:700,color:tc.text,fontFamily:F,display:"block",marginBottom:14}}>Novo Projeto</span><span style={{fontSize:10,color:tc.textMuted,fontWeight:600,display:"block",marginBottom:6,textTransform:"uppercase",letterSpacing:0.5}}>Ícone</span><div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}><div style={{width:48,height:48,borderRadius:12,background:`${color}20`,border:`2px solid ${color}40`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:26}}>{emoji}</div><input value={emoji} onChange={e=>setEmoji(e.target.value)} placeholder="Cole um emoji..." style={{flex:1,padding:"10px 12px",fontSize:18,borderRadius:10,background:tc.inputBg,border:`1px solid ${color}40`,color:tc.inputText,outline:"none",fontFamily:F,textAlign:"center"}}/></div><span style={{fontSize:10,color:tc.textMuted,fontWeight:600,display:"block",marginBottom:6,textTransform:"uppercase",letterSpacing:0.5}}>Nome</span><input value={name} onChange={e=>setName(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleAdd()} placeholder="Nome do projeto..." style={{width:"100%",boxSizing:"border-box",padding:"10px 12px",fontSize:14,borderRadius:10,background:tc.inputBg,border:`1px solid ${color}40`,color:tc.inputText,outline:"none",fontFamily:F,marginBottom:12}}/><span style={{fontSize:10,color:tc.textMuted,fontWeight:600,display:"block",marginBottom:6,textTransform:"uppercase",letterSpacing:0.5}}>Cor</span><div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:16}}>{COLOR_OPTIONS.map(col=>(<button key={col} onClick={()=>setColor(col)} style={{width:28,height:28,borderRadius:8,border:color===col?`3px solid ${tc.text}`:"3px solid transparent",background:col,cursor:"pointer"}}/>))}</div><div style={{display:"flex",gap:8}}><button onClick={handleAdd} style={{flex:1,padding:"10px",borderRadius:10,border:"none",background:color,color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:F}}>Criar</button><button onClick={()=>setIsOpen(false)} style={{padding:"10px 16px",borderRadius:10,border:`1px solid ${tc.cardBorder}`,background:tc.cancelBg,color:tc.cancelColor,fontSize:14,cursor:"pointer",fontFamily:F}}>Cancelar</button></div></div>);
 }
 
 /* ─── History Card ─── */
@@ -938,7 +938,7 @@ function ColumnProjectCard({project:p,done,total,pct,idx,projectsLen,reorderMode
   const tc = c || themes.dark;
   return(
     <>
-    {showDeleteConfirm&&<ConfirmDeleteModal title={`Excluir "${p.name}"?`} description={`Essa ação vai excluir a categoria e todas as ${total} tarefa(s). Não pode ser desfeita.`} onConfirm={()=>{setShowDeleteConfirm(false);onDeleteProject();}} onCancel={()=>setShowDeleteConfirm(false)} c={tc}/>}
+    {showDeleteConfirm&&<ConfirmDeleteModal title={`Excluir "${p.name}"?`} description={`Essa ação vai excluir o projeto e todas as ${total} tarefa(s). Não pode ser desfeita.`} onConfirm={()=>{setShowDeleteConfirm(false);onDeleteProject();}} onCancel={()=>setShowDeleteConfirm(false)} c={tc}/>}
     <div style={{background:tc.cardBg,borderRadius:14,border:`1px solid ${tc.cardBorder}`,overflow:"hidden",minWidth:180}}>
       <div style={{padding:"14px 12px",borderBottom:`1px solid ${tc.colDayDivider}`}}>
         <div style={{display:"flex",alignItems:"center",gap:8}}>
@@ -955,7 +955,7 @@ function ColumnProjectCard({project:p,done,total,pct,idx,projectsLen,reorderMode
           <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>{COLOR_OPTIONS.map(col=>(<button key={col} onClick={()=>onEditProject({color:col})} style={{width:22,height:22,borderRadius:6,cursor:"pointer",border:p.color===col?`2px solid ${tc.text}`:"2px solid transparent",background:col}}/>))}</div>
           <button onClick={()=>setShowDeleteConfirm(true)} style={{display:"flex",alignItems:"center",gap:6,padding:"7px 10px",borderRadius:8,border:`1px solid ${tc.deleteDangerBorder}`,background:tc.deleteDangerBg,color:"#EF4444",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:F}}>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-            Excluir categoria
+            Excluir projeto
           </button>
         </div>)}
         {reorderMode&&(<div style={{display:"flex",justifyContent:"center",gap:8,marginTop:8}}>
@@ -1004,6 +1004,12 @@ export default function App(){
   useEffect(()=>{if(!userName)return;try{localStorage.setItem(`planner-${userName}-viewMode`,viewMode);}catch{}},[viewMode,userName]);
   useEffect(()=>{if(!userName)return;try{localStorage.setItem(`planner-${userName}-layoutMode`,layoutMode);}catch{}},[layoutMode,userName]);
   useEffect(()=>{if(!userName)return;try{localStorage.setItem(`planner-${userName}-focosOpen`,String(focosOpen));}catch{}},[focosOpen,userName]);
+  useEffect(()=>{
+    const handleResize=()=>{if(window.innerWidth<768&&layoutMode==="columns"){setLayoutMode("list");}};
+    window.addEventListener("resize",handleResize);
+    handleResize();
+    return()=>window.removeEventListener("resize",handleResize);
+  },[layoutMode]);
   useEffect(()=>{(async()=>{try{const r=await window.storage.get(AUTH_KEY);if(r&&r.value==="true"){setAuthed(true);try{const u=await window.storage.get(USER_KEY);if(u&&u.value){setUserName(u.value);loadUserPrefs(u.value);}}catch{}}}catch{}})();},[]);
   const handleLogin=useCallback(user=>{setAuthed(true);setUserName(user);loadUserPrefs(user);window.storage.set(AUTH_KEY,"true").catch(()=>{});window.storage.set(USER_KEY,user).catch(()=>{});},[]);
   const handleLogout=useCallback(()=>{setAuthed(false);setUserName("");setWeeks([]);setLoading(true);window.storage.set(AUTH_KEY,"false").catch(()=>{});window.storage.set(USER_KEY,"").catch(()=>{});},[]);
@@ -1151,7 +1157,7 @@ export default function App(){
             <Logo theme={theme.mode} />
             {userName&&<p style={{fontSize:13,color:c.textSub,margin:"8px 0 0",fontWeight:500}}>Seja bem-vindo, <span style={{color:"#3B82F6",fontWeight:700}}>{userName}</span></p>}
             <p style={{fontSize:11,color:c.textMuted,margin:"4px 0 0"}}>Organize sua semana, acompanhe seus projetos e avance com velocidade!</p>
-            <p style={{fontSize:10,color:c.textDim,margin:"5px 0 0",fontStyle:"italic",lineHeight:1.5}}>💡 Dica: nomes curtos nas categorias e tarefas deixam tudo mais fácil de ler e acompanhar.</p>
+            <p style={{fontSize:10,color:c.textDim,margin:"5px 0 0",fontStyle:"italic",lineHeight:1.5}}>💡 Dica: nomes curtos nos projetos e tarefas deixam tudo mais fácil de ler e acompanhar.</p>
           </div>
           <div style={{display:"flex",gap:6}}>
             {userName===ADMIN_USER&&(<button onClick={()=>setShowAdmin(true)} title="Painel de Admin" style={{background:c.btnBg,border:`1px solid ${c.btnBorder}`,borderRadius:10,padding:"8px 10px",cursor:"pointer",lineHeight:1,display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.2s ease"}} onMouseEnter={e=>{e.currentTarget.style.borderColor="rgba(139,92,246,0.5)";e.currentTarget.style.background="rgba(139,92,246,0.08)";}} onMouseLeave={e=>{e.currentTarget.style.borderColor=c.btnBorder;e.currentTarget.style.background=c.btnBg;}}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={c.textSub} strokeWidth="2" strokeLinecap="round"><path d="M12 2a5 5 0 1 0 0 10A5 5 0 0 0 12 2z"/><path d="M12 14c-7 0-9 3-9 4v1h18v-1c0-1-2-4-9-4z"/><path d="M19 8l2 2-6 6"/></svg></button>)}
@@ -1184,7 +1190,7 @@ export default function App(){
         {/* View Toggle */}
         <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}>
           <div style={{display:"flex",background:c.viewToggleBg,borderRadius:10,border:`1px solid ${c.viewToggleBorder}`,overflow:"hidden",flex:1}}>
-            <button onClick={()=>{setViewMode("category");setReorderMode(false);}} style={{flex:1,padding:"9px 0",fontSize:12,fontWeight:600,fontFamily:F,border:"none",cursor:"pointer",background:viewMode==="category"?"rgba(59,130,246,0.15)":"transparent",color:viewMode==="category"?"#3B82F6":c.textMuted}}>Categorias</button>
+            <button onClick={()=>{setViewMode("category");setReorderMode(false);}} style={{flex:1,padding:"9px 0",fontSize:12,fontWeight:600,fontFamily:F,border:"none",cursor:"pointer",background:viewMode==="category"?"rgba(59,130,246,0.15)":"transparent",color:viewMode==="category"?"#3B82F6":c.textMuted}}>Projetos</button>
             <button onClick={()=>{setViewMode("weekday");setReorderMode(false);}} style={{flex:1,padding:"9px 0",fontSize:12,fontWeight:600,fontFamily:F,border:"none",cursor:"pointer",background:viewMode==="weekday"?"rgba(59,130,246,0.15)":"transparent",color:viewMode==="weekday"?"#3B82F6":c.textMuted}}>Dias da Semana</button>
           </div>
           {viewMode==="category"&&(<button onClick={()=>setReorderMode(!reorderMode)} style={{background:reorderMode?"rgba(59,130,246,0.15)":c.btnBg,border:`1px solid ${reorderMode?"rgba(59,130,246,0.3)":c.btnBorder}`,borderRadius:10,padding:"9px 10px",cursor:"pointer"}}>{layoutMode==="columns"?(<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={reorderMode?"#3B82F6":c.textMuted} strokeWidth="2" strokeLinecap="round"><polyline points="3 12 21 12"/><polyline points="7 8 3 12 7 16"/><polyline points="17 8 21 12 17 16"/></svg>):(<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={reorderMode?"#3B82F6":c.textMuted} strokeWidth="2" strokeLinecap="round"><polyline points="12 3 12 21"/><polyline points="8 7 12 3 16 7"/><polyline points="8 17 12 21 16 17"/></svg>)}</button>)}
