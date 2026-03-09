@@ -280,20 +280,21 @@ function TaskItem({task,color,onToggle,onUpdate,onDelete,projectName,onMoveWeek,
 
 /* ─── Add Task (com seletor de categoria opcional) ─── */
 function AddTaskInput({color,onAdd,c,projects,requireCategory,defaultDay}){
+  const todayKey=WEEK_DAYS_ORDER[new Date().getDay()];
   const [isOpen,setIsOpen]=useState(false);
   const [text,setText]=useState("");
-  const [day,setDay]=useState(defaultDay||"seg");
-  const [priority,setPriority]=useState("medium");
+  const [day,setDay]=useState(defaultDay||todayKey);
+  const [priority,setPriority]=useState("low");
   const [projectId,setProjectId]=useState(()=>projects&&projects.length>0?projects[0].id:"");
   const handleAdd=()=>{
     if(!text.trim())return;
     if(requireCategory&&!projectId)return;
     onAdd(text.trim(),day,priority,requireCategory?projectId:undefined);
-    setText("");setDay(defaultDay||"seg");setPriority("medium");
+    setText("");setDay(defaultDay||todayKey);setPriority("low");
     setProjectId(projects&&projects.length>0?projects[0].id:"");
     setIsOpen(false);
   };
-  const reset=()=>{setIsOpen(false);setText("");setDay(defaultDay||"seg");setPriority("medium");setProjectId(projects&&projects.length>0?projects[0].id:"");};
+  const reset=()=>{setIsOpen(false);setText("");setDay(defaultDay||todayKey);setPriority("low");setProjectId(projects&&projects.length>0?projects[0].id:"");};
   const tc = c || themes.dark;
   const selectedProject = requireCategory&&projects ? projects.find(p=>p.id===projectId) : null;
   const activeColor = selectedProject ? selectedProject.color : (color||"#3B82F6");
