@@ -459,24 +459,21 @@ function ResetPasswordScreen({ token, onSuccess, theme }) {
 
   return (
     <div style={{minHeight:"100vh",background:c.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:F,padding:"24px 16px"}}>
-      <div style={{width:360,padding:40,background:c.loginCardBg,border:`1px solid rgba(59,130,246,0.2)`,borderRadius:24,animation:"fadeIn 0.5s ease",boxShadow:theme.mode==="light"?"0 4px 24px rgba(0,0,0,0.08)":"none"}}>
-        <div style={{textAlign:"center",marginBottom:20}}>
-          <div style={{width:48,height:48,borderRadius:14,background:"rgba(59,130,246,0.12)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 12px"}}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-          </div>
-          <h2 style={{fontSize:20,fontWeight:800,color:c.text,margin:"0 0 4px",fontFamily:FS}}>Nova senha</h2>
-          <p style={{fontSize:12,color:c.textSub,margin:0}}>Para o usuário <span style={{color:"#3B82F6",fontWeight:600}}>{tokenData.username}</span></p>
-        </div>
+      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+      <div style={{width:360,padding:40,textAlign:"center",background:c.loginCardBg,border:`1px solid ${c.loginCardBorder}`,borderRadius:24,animation:"fadeIn 0.5s ease",boxShadow:theme.mode==="light"?"0 4px 24px rgba(0,0,0,0.08)":"none"}}>
+        <div style={{marginBottom:16}}><Logo size="large" theme={theme.mode} /></div>
+        <h2 style={{fontSize:18,fontWeight:800,color:c.text,margin:"0 0 4px",fontFamily:FS}}>Nova senha</h2>
+        <p style={{fontSize:12,color:c.textSub,margin:"0 0 20px"}}>Para o usuário <span style={{color:"#3B82F6",fontWeight:600}}>{tokenData.username}</span></p>
         <div style={{textAlign:"left",marginBottom:12}}>
           <span style={{fontSize:11,color:c.textMuted,fontWeight:600,textTransform:"uppercase",letterSpacing:0.5}}>Nova senha</span>
-          <input autoFocus type="password" value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>e.key==="Enter"&&document.getElementById("rp-confirm")?.focus()} placeholder="mínimo 4 caracteres" style={{width:"100%",boxSizing:"border-box",marginTop:6,padding:"11px 14px",fontSize:14,background:c.inputBg,border:`1.5px solid ${c.inputBorder}`,borderRadius:10,color:c.inputText,outline:"none",fontFamily:F}}/>
+          <input autoFocus type="password" value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>e.key==="Enter"&&document.getElementById("rp-confirm")?.focus()} placeholder="mínimo 4 caracteres" style={{width:"100%",boxSizing:"border-box",marginTop:6,padding:"12px 16px",fontSize:15,background:c.inputBg,border:`2px solid ${c.inputBorder}`,borderRadius:12,color:c.inputText,outline:"none",fontFamily:F}}/>
         </div>
         <div style={{textAlign:"left",marginBottom:6}}>
           <span style={{fontSize:11,color:c.textMuted,fontWeight:600,textTransform:"uppercase",letterSpacing:0.5}}>Confirmar nova senha</span>
-          <input id="rp-confirm" type="password" value={confirm} onChange={e=>setConfirm(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleReset()} placeholder="repita a nova senha" style={{width:"100%",boxSizing:"border-box",marginTop:6,padding:"11px 14px",fontSize:14,background:c.inputBg,border:`1.5px solid ${error&&password!==confirm?"#EF4444":c.inputBorder}`,borderRadius:10,color:c.inputText,outline:"none",fontFamily:F}}/>
+          <input id="rp-confirm" type="password" value={confirm} onChange={e=>setConfirm(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleReset()} placeholder="repita a nova senha" style={{width:"100%",boxSizing:"border-box",marginTop:6,padding:"12px 16px",fontSize:15,background:c.inputBg,border:`2px solid ${error&&password!==confirm?"#EF4444":c.inputBorder}`,borderRadius:12,color:c.inputText,outline:"none",fontFamily:F}}/>
         </div>
-        {error&&<p style={{color:"#EF4444",fontSize:12,margin:"8px 0 0",lineHeight:1.4}}>{error}</p>}
-        <button onClick={handleReset} disabled={loading} style={{width:"100%",marginTop:18,padding:"13px",background:"linear-gradient(135deg,#3B82F6,#8B5CF6)",border:"none",borderRadius:12,color:"#fff",fontSize:15,fontWeight:700,cursor:loading?"default":"pointer",fontFamily:F,opacity:loading?0.7:1}}>
+        {error&&<p style={{color:"#EF4444",fontSize:13,margin:"10px 0 0"}}>{error}</p>}
+        <button onClick={handleReset} disabled={loading} style={{width:"100%",marginTop:18,padding:"14px",background:"linear-gradient(135deg,#3B82F6,#8B5CF6)",border:"none",borderRadius:14,color:"#fff",fontSize:15,fontWeight:700,cursor:loading?"default":"pointer",fontFamily:F,opacity:loading?0.7:1}}>
           {loading?"Salvando...":"Redefinir senha"}
         </button>
       </div>
