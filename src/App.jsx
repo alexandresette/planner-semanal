@@ -801,7 +801,19 @@ function TaskViewModal({task,color,projectName,projectEmoji,onToggle,onUpdate,on
         {/* Body */}
         <div style={{padding:"18px 20px 20px",overflowY:"auto",flex:1}}>
 
-          {/* Prioridade + Dia (só em modo edição) */}
+          {/* Descrição */}
+          <div style={{marginBottom:16}}>
+            <span style={{fontSize:10,color:tc.textMuted,fontWeight:700,display:"block",marginBottom:8,textTransform:"uppercase",letterSpacing:0.6}}>Descrição</span>
+            {editing?(
+              <textarea value={editDesc} onChange={e=>setEditDesc(e.target.value)} placeholder="Adicione uma descrição..." rows={3} style={{width:"100%",boxSizing:"border-box",padding:"8px 12px",fontSize:13,borderRadius:10,background:tc.inputBg,border:`1.5px solid ${color}40`,color:tc.inputText,outline:"none",fontFamily:F,resize:"vertical",lineHeight:1.6}}/>
+            ):task.description?(
+              <p style={{margin:0,fontSize:13,color:tc.textSub,fontFamily:F,lineHeight:1.7,whiteSpace:"pre-wrap",wordBreak:"break-word"}}>{task.description}</p>
+            ):(
+              <p style={{margin:0,fontSize:13,color:tc.textMuted,fontFamily:F,fontStyle:"italic",opacity:0.5}}>Sem descrição.</p>
+            )}
+          </div>
+
+          {/* Dia + Prioridade (só em modo edição) */}
           {editing&&(
             <div style={{display:"flex",gap:16,marginBottom:14,flexWrap:"wrap"}}>
               <div style={{flex:1,minWidth:120}}>
@@ -814,18 +826,6 @@ function TaskViewModal({task,color,projectName,projectEmoji,onToggle,onUpdate,on
               </div>
             </div>
           )}
-
-          {/* Descrição */}
-          <div style={{marginBottom:16}}>
-            <span style={{fontSize:10,color:tc.textMuted,fontWeight:700,display:"block",marginBottom:8,textTransform:"uppercase",letterSpacing:0.6}}>Descrição</span>
-            {editing?(
-              <textarea value={editDesc} onChange={e=>setEditDesc(e.target.value)} placeholder="Adicione uma descrição..." rows={3} style={{width:"100%",boxSizing:"border-box",padding:"8px 12px",fontSize:13,borderRadius:10,background:tc.inputBg,border:`1.5px solid ${color}40`,color:tc.inputText,outline:"none",fontFamily:F,resize:"vertical",lineHeight:1.6}}/>
-            ):task.description?(
-              <p style={{margin:0,fontSize:13,color:tc.textSub,fontFamily:F,lineHeight:1.7,whiteSpace:"pre-wrap",wordBreak:"break-word"}}>{task.description}</p>
-            ):(
-              <p style={{margin:0,fontSize:13,color:tc.textMuted,fontFamily:F,fontStyle:"italic",opacity:0.5}}>Sem descrição.</p>
-            )}
-          </div>
 
           {/* Anexos (visualização) */}
           {!editing&&(task.attachments||[]).length>0&&(
