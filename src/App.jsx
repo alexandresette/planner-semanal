@@ -261,6 +261,7 @@ export default function App(){
   const [showConfirm,setShowConfirm]=useState(false);
   const [dragTask,setDragTask]=useState(null); // {projectId, taskId}
   const [dragOverDay,setDragOverDay]=useState(null);
+  const [layoutMode,setLayoutMode]=useState("list");
 
   useEffect(()=>{(async()=>{try{const r=await window.storage.get(AUTH_KEY);if(r&&r.value==="true"){setAuthed(true);try{const u=await window.storage.get(USER_KEY);if(u&&u.value)setUserName(u.value);}catch{}}}catch{}})();},[]);
   const handleLogin=useCallback(user=>{setAuthed(true);setUserName(user);window.storage.set(AUTH_KEY,"true").catch(()=>{});window.storage.set(USER_KEY,user).catch(()=>{});},[]);
@@ -345,9 +346,9 @@ export default function App(){
   return(
     <div style={{minHeight:"100vh",background:"#0B1120",fontFamily:F}}>
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
-      <style>{`@keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}.task-card{transition:all 0.25s cubic-bezier(0.4,0,0.2,1)}.task-card:hover{transform:translateY(-1px);box-shadow:0 4px 20px rgba(255,255,255,0.06);border-color:rgba(255,255,255,0.15)!important;background:rgba(255,255,255,0.07)!important}.project-card{transition:all 0.3s cubic-bezier(0.4,0,0.2,1)}.project-card:hover{box-shadow:0 6px 28px rgba(255,255,255,0.05);border-color:rgba(255,255,255,0.12)!important}.logout-btn{transition:all 0.25s ease}.logout-btn:hover{background:rgba(255,255,255,0.1)!important;border-color:rgba(239,68,68,0.35)!important;box-shadow:0 0 16px rgba(239,68,68,0.12)}`}</style>
+      <style>{`@keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}.task-card{transition:all 0.25s cubic-bezier(0.4,0,0.2,1)}.task-card:hover{transform:translateY(-1px);box-shadow:0 4px 20px rgba(255,255,255,0.06);border-color:rgba(255,255,255,0.15)!important;background:rgba(255,255,255,0.07)!important}.project-card{transition:all 0.3s cubic-bezier(0.4,0,0.2,1)}.project-card:hover{box-shadow:0 6px 28px rgba(255,255,255,0.05);border-color:rgba(255,255,255,0.12)!important}.logout-btn{transition:all 0.25s ease}.logout-btn:hover{background:rgba(255,255,255,0.1)!important;border-color:rgba(239,68,68,0.35)!important;box-shadow:0 0 16px rgba(239,68,68,0.12)}@media(max-width:767px){.layout-toggle{display:none!important}}`}</style>
 
-      <div style={{maxWidth:520,margin:"0 auto",padding:"24px 16px 40px"}}>
+      <div style={{maxWidth:layoutMode==="columns"?1200:520,margin:"0 auto",padding:"24px 16px 40px",transition:"max-width 0.3s ease"}}>
         {/* Header */}
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
           <div>
@@ -381,15 +382,19 @@ export default function App(){
             <button onClick={()=>{setViewMode("weekday");setReorderMode(false);}} style={{flex:1,padding:"9px 0",fontSize:12,fontWeight:600,fontFamily:F,border:"none",cursor:"pointer",background:viewMode==="weekday"?"rgba(59,130,246,0.15)":"transparent",color:viewMode==="weekday"?"#60A5FA":"#64748B"}}>Dias da Semana</button>
           </div>
           {viewMode==="category"&&(<button onClick={()=>setReorderMode(!reorderMode)} style={{background:reorderMode?"rgba(59,130,246,0.15)":"rgba(255,255,255,0.04)",border:`1px solid ${reorderMode?"rgba(59,130,246,0.3)":"rgba(255,255,255,0.07)"}`,borderRadius:10,padding:"9px 10px",cursor:"pointer"}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={reorderMode?"#60A5FA":"#64748B"} strokeWidth="2" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>)}
+          <button onClick={()=>setLayoutMode(layoutMode==="list"?"columns":"list")} title={layoutMode==="list"?"Visualização em colunas":"Visualização em lista"} className="layout-toggle" style={{background:layoutMode==="columns"?"rgba(59,130,246,0.15)":"rgba(255,255,255,0.04)",border:`1px solid ${layoutMode==="columns"?"rgba(59,130,246,0.3)":"rgba(255,255,255,0.07)"}`,borderRadius:10,padding:"9px 10px",cursor:"pointer"}}>
+            {layoutMode==="list"?(<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={layoutMode==="columns"?"#60A5FA":"#64748B"} strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="18" rx="1"/></svg>):(<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#60A5FA" strokeWidth="2" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>)}
+          </button>
         </div>
 
         {/* Priority Legend */}
         <div style={{display:"flex",gap:16,marginBottom:14,paddingLeft:4}}>{Object.entries(priorityConfig).map(([k,v])=>(<div key={k} style={{display:"flex",alignItems:"center",gap:5}}><div style={{width:7,height:7,borderRadius:"50%",background:v.dot}}/><span style={{fontSize:11,color:"#64748B",fontWeight:500}}>{v.label}</span></div>))}</div>
 
         {/* Content */}
+        {layoutMode==="list"?(
         <div style={{display:"flex",flexDirection:"column",gap:12}}>
           {viewMode==="category"?(<>
-            {projects.map((p,idx)=>(<ProjectCard key={p.id} project={p} onToggleTask={toggleTask} onUpdateTask={updateTask} onAddTask={addTask} onEditProject={u=>editProject(p.id,u)} isExpanded={expanded[p.id]??true} onToggleExpand={()=>toggleExpand(p.id)} reorderMode={reorderMode} onMoveUp={()=>moveProject(idx,-1)} onMoveDown={()=>moveProject(idx,1)} isFirst={idx===0} isLast={idx===projects.length-1} taskExtra={taskExtraFn}/>))}
+            {projects.map((p,idx)=>(<ProjectCard key={p.id} project={p} onToggleTask={toggleTask} onUpdateTask={updateTask} onAddTask={addTask} onEditProject={u=>editProject(p.id,u)} isExpanded={expanded[p.id]??true} onToggleExpand={()=>toggleExpand(p.id)} reorderMode={reorderMode} onMoveUp={()=>moveProject(idx,-1)} onMoveDown={()=>moveProject(idx,1)} isFirst={idx===0} isLast={idx===projects.length-1} taskExtra={null}/>))}
             <AddCategoryCard onAdd={addCategory}/>
           </>):(
             weekData.map(({day,tasks})=>(<div key={day.key} className="project-card"
@@ -399,6 +404,44 @@ export default function App(){
               style={{background:dragOverDay===day.key?"rgba(59,130,246,0.12)":"rgba(255,255,255,0.04)",borderRadius:16,border:`1px solid ${dragOverDay===day.key?"rgba(59,130,246,0.4)":"rgba(255,255,255,0.07)"}`,overflow:"hidden",transition:"all 0.2s ease"}}><div style={{display:"flex",alignItems:"center",gap:14,padding:"16px 20px"}}><div style={{width:42,height:42,borderRadius:12,display:"flex",alignItems:"center",justifyContent:"center",background:tasks.length>0?"rgba(59,130,246,0.12)":"rgba(255,255,255,0.04)",fontSize:13,fontWeight:700,color:tasks.length>0?"#60A5FA":"#475569",fontFamily:F}}>{day.label}</div><div style={{flex:1}}><span style={{fontSize:16,fontWeight:700,color:"#F1F5F9",fontFamily:F}}>{day.full}</span><span style={{fontSize:12,color:"#64748B",display:"block",fontFamily:F}}>{tasks.filter(t=>t.done).length}/{tasks.length} concluídas</span></div>{tasks.length>0&&<ProgressRing percent={Math.round((tasks.filter(t=>t.done).length/tasks.length)*100)} color="#3B82F6" size={42}/>}</div>{tasks.length>0&&(<div style={{padding:"0 14px 14px",display:"flex",flexDirection:"column",gap:6}}>{[...tasks].sort((a,b)=>{const o={high:0,medium:1,low:2};const p=o[a.priority]-o[b.priority];if(p!==0)return p;const pa=projects.find(x=>x.id===a._projectId);const pb=projects.find(x=>x.id===b._projectId);const pn=(pa?.name||"").localeCompare(pb?.name||"","pt-BR");if(pn!==0)return pn;return a.text.localeCompare(b.text,"pt-BR");}).map(t=>{const proj=projects.find(p=>p.id===t._projectId);return(<div key={t.id} draggable onDragStart={()=>setDragTask({projectId:t._projectId,taskId:t.id})} onDragEnd={()=>{setDragTask(null);setDragOverDay(null);}} style={{cursor:"grab",opacity:dragTask?.taskId===t.id?0.4:1,transition:"opacity 0.2s"}}><TaskItem task={t} color={proj?.color||"#64748B"} projectName={proj?.name} onToggle={()=>toggleTask(t._projectId,t.id)} onUpdate={u=>updateTask(t._projectId,t.id,u)} extraAction={taskExtraFn(t._projectId,t.id)}/></div>);})}</div>)}{tasks.length===0&&(<div style={{padding:"0 20px 16px",fontSize:13,color:dragOverDay===day.key?"#60A5FA":"#475569",fontFamily:F,transition:"color 0.2s"}}>{dragOverDay===day.key?"Soltar aqui":"Nenhuma tarefa"}</div>)}</div>))
           )}
         </div>
+        ):(
+        /* COLUMNS LAYOUT */
+        <div style={{display:"grid",gridTemplateColumns:viewMode==="category"?`repeat(${Math.min(projects.length,4)}, 1fr)`:`repeat(${WEEK_DAYS.length}, 1fr)`,gap:10,overflowX:"auto"}}>
+          {viewMode==="category"?(
+            projects.map(p=>{const done=p.tasks.filter(t=>t.done).length;const total=p.tasks.length;const pct=total>0?Math.round((done/total)*100):0;return(
+              <div key={p.id} style={{background:"rgba(255,255,255,0.04)",borderRadius:14,border:"1px solid rgba(255,255,255,0.07)",overflow:"hidden",minWidth:180}}>
+                <div style={{padding:"14px 12px",borderBottom:"1px solid rgba(255,255,255,0.05)",display:"flex",alignItems:"center",gap:8}}>
+                  <span style={{fontSize:20}}>{p.emoji}</span>
+                  <div style={{flex:1,minWidth:0}}><div style={{fontSize:13,fontWeight:700,color:"#F1F5F9",fontFamily:F,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.name}</div><span style={{fontSize:11,color:"#94A3B8",fontFamily:F}}>{done}/{total}</span></div>
+                  <ProgressRing percent={pct} color={pct===100?"#10B981":p.color} size={32}/>
+                </div>
+                <div style={{padding:"8px 8px 12px",display:"flex",flexDirection:"column",gap:5}}>
+                  {[...p.tasks].sort((a,b)=>{const d=WEEK_DAYS_ORDER.indexOf(a.day)-WEEK_DAYS_ORDER.indexOf(b.day);if(d!==0)return d;const o={high:0,medium:1,low:2};const pr=o[a.priority]-o[b.priority];if(pr!==0)return pr;return a.text.localeCompare(b.text,"pt-BR");}).map(task=>(<TaskItem key={task.id} task={task} color={p.color} onToggle={()=>toggleTask(p.id,task.id)} onUpdate={u=>updateTask(p.id,task.id,u)} extraAction={null}/>))}
+                  <AddTaskInput color={p.color} onAdd={(text,day,priority)=>addTask(p.id,text,day,priority)}/>
+                </div>
+              </div>
+            );})
+          ):(
+            weekData.map(({day,tasks})=>(
+              <div key={day.key}
+                onDragOver={e=>{e.preventDefault();setDragOverDay(day.key);}}
+                onDragLeave={()=>setDragOverDay(null)}
+                onDrop={e=>{e.preventDefault();setDragOverDay(null);if(dragTask){updateTask(dragTask.projectId,dragTask.taskId,{day:day.key});setDragTask(null);}}}
+                style={{background:dragOverDay===day.key?"rgba(59,130,246,0.12)":"rgba(255,255,255,0.04)",borderRadius:14,border:`1px solid ${dragOverDay===day.key?"rgba(59,130,246,0.4)":"rgba(255,255,255,0.07)"}`,overflow:"hidden",minWidth:150,transition:"all 0.2s ease"}}>
+                <div style={{padding:"12px 10px",borderBottom:"1px solid rgba(255,255,255,0.05)",textAlign:"center"}}>
+                  <div style={{fontSize:13,fontWeight:700,color:tasks.length>0?"#60A5FA":"#475569",fontFamily:F}}>{day.label}</div>
+                  <div style={{fontSize:10,color:"#64748B",fontFamily:F}}>{day.full}</div>
+                  {tasks.length>0&&<div style={{marginTop:6}}><ProgressRing percent={Math.round((tasks.filter(t=>t.done).length/tasks.length)*100)} color="#3B82F6" size={32}/></div>}
+                </div>
+                <div style={{padding:"8px 6px 12px",display:"flex",flexDirection:"column",gap:5,minHeight:60}}>
+                  {[...tasks].sort((a,b)=>{const o={high:0,medium:1,low:2};const p=o[a.priority]-o[b.priority];if(p!==0)return p;const pa=projects.find(x=>x.id===a._projectId);const pb=projects.find(x=>x.id===b._projectId);const pn=(pa?.name||"").localeCompare(pb?.name||"","pt-BR");if(pn!==0)return pn;return a.text.localeCompare(b.text,"pt-BR");}).map(t=>{const proj=projects.find(p=>p.id===t._projectId);return(<div key={t.id} draggable onDragStart={()=>setDragTask({projectId:t._projectId,taskId:t.id})} onDragEnd={()=>{setDragTask(null);setDragOverDay(null);}} style={{cursor:"grab",opacity:dragTask?.taskId===t.id?0.4:1,transition:"opacity 0.2s"}}><TaskItem task={t} color={proj?.color||"#64748B"} projectName={proj?.name} onToggle={()=>toggleTask(t._projectId,t.id)} onUpdate={u=>updateTask(t._projectId,t.id,u)} extraAction={null}/></div>);})}
+                  {tasks.length===0&&<div style={{fontSize:11,color:dragOverDay===day.key?"#60A5FA":"#475569",fontFamily:F,textAlign:"center",padding:"8px 0"}}>{dragOverDay===day.key?"Soltar aqui":"—"}</div>}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+        )}
 
         {/* Actions */}
         <div style={{display:"flex",gap:8,justifyContent:"center",marginTop:28,flexWrap:"wrap"}}>
