@@ -512,13 +512,15 @@ function ForgotPasswordScreen({ onBack, theme }) {
 
   if (sent) return (
     <div style={{minHeight:"100vh",background:c.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:F,padding:"24px 16px"}}>
-      <div style={{width:360,padding:40,background:c.loginCardBg,border:`1px solid rgba(16,185,129,0.2)`,borderRadius:24,textAlign:"center",animation:"fadeIn 0.5s ease",boxShadow:theme.mode==="light"?"0 4px 24px rgba(0,0,0,0.08)":"none"}}>
+      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+      <div style={{width:360,padding:40,background:c.loginCardBg,border:`1px solid ${c.loginCardBorder}`,borderRadius:24,textAlign:"center",animation:"fadeIn 0.5s ease",boxShadow:theme.mode==="light"?"0 4px 24px rgba(0,0,0,0.08)":"none"}}>
+        <div style={{marginBottom:16}}><Logo size="large" theme={theme.mode} /></div>
         <div style={{width:52,height:52,borderRadius:14,background:"rgba(16,185,129,0.12)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 14px"}}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2" strokeLinecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
         </div>
         <h2 style={{fontSize:18,fontWeight:800,color:c.text,margin:"0 0 8px",fontFamily:FS}}>E-mail enviado!</h2>
         <p style={{fontSize:13,color:c.textSub,margin:"0 0 20px",lineHeight:1.5}}>Verifique sua caixa de entrada em <strong style={{color:c.text}}>{email}</strong> e clique no link para redefinir sua senha.</p>
-        <button onClick={onBack} style={{width:"100%",padding:"12px",background:"linear-gradient(135deg,#3B82F6,#8B5CF6)",border:"none",borderRadius:12,color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:F}}>Voltar ao login</button>
+        <button onClick={onBack} style={{width:"100%",padding:"14px",background:"linear-gradient(135deg,#3B82F6,#8B5CF6)",border:"none",borderRadius:14,color:"#fff",fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:F}}>Voltar ao login</button>
       </div>
       <style>{`@keyframes fadeIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}`}</style>
     </div>
