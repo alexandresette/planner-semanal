@@ -470,7 +470,7 @@ export default function App(){
   const [history,setHistory]=useState([]);
   const [expanded,setExpanded]=useState({});
   const [loading,setLoading]=useState(true);
-  const [viewMode,setViewMode]=useState(()=>{try{return localStorage.getItem("planner-viewMode")||"category";}catch{return "category";}});
+  const [viewMode,setViewMode]=useState("category");
   const [reorderMode,setReorderMode]=useState(false);
   const [showHistory,setShowHistory]=useState(false);
   const [showConfirm,setShowConfirm]=useState(false);
@@ -478,14 +478,20 @@ export default function App(){
   const [editingTasks,setEditingTasks]=useState(new Set());
   const [openTaskId,setOpenTaskId]=useState(null);
   const [dragOverDay,setDragOverDay]=useState(null);
-  const [layoutMode,setLayoutMode]=useState(()=>{try{const s=localStorage.getItem("planner-layoutMode");if(s==="columns"&&window.innerWidth>=768)return "columns";return "list";}catch{return "list";}});
-  const [focosOpen,setFocosOpen]=useState(()=>{try{const s=localStorage.getItem("planner-focosOpen");return s===null?true:s==="true";}catch{return true;}});
+  const [layoutMode,setLayoutMode]=useState("list");
+  const [focosOpen,setFocosOpen]=useState(true);
 
-  useEffect(()=>{try{localStorage.setItem("planner-viewMode",viewMode);}catch{}},[viewMode]);
-  useEffect(()=>{try{localStorage.setItem("planner-layoutMode",layoutMode);}catch{}},[layoutMode]);
-  useEffect(()=>{try{localStorage.setItem("planner-focosOpen",String(focosOpen));}catch{}},[focosOpen]);
-  useEffect(()=>{(async()=>{try{const r=await window.storage.get(AUTH_KEY);if(r&&r.value==="true"){setAuthed(true);try{const u=await window.storage.get(USER_KEY);if(u&&u.value)setUserName(u.value);}catch{}}}catch{}})();},[]);
-  const handleLogin=useCallback(user=>{setAuthed(true);setUserName(user);window.storage.set(AUTH_KEY,"true").catch(()=>{});window.storage.set(USER_KEY,user).catch(()=>{});},[]);
+  // Preferências por usuário — carregadas e salvas com userName na chave
+  useEffect(()=>{if(!userName)return;try{localStorage.setItem(`planner-${userName}-viewMode`,viewMode);}catch{}},[viewMode,userName]);
+  useEffect(()=>{if(!userName)return;try{localStorage.setItem(`planner-${userName}-layoutMode`,layoutMode);}catch{}},[layoutMode,userName]);
+  useEffect(()=>{if(!userName)return;try{localStorage.setItem(`planner-${userName}-focosOpen`,String(focosOpen));}catch{}},[focosOpen,userName]);
+  useEffect(()=>{(async()=>{try{const r=await window.storage.get(AUTH_KEY);if(r&&r.value==="true"){setAuthed(true);try{const u=await window.storage.get(USER_KEY);if(u&&u.value){setUserName(u.value);loadUserPrefs(u.value);}}catch{}}}catch{}})();},[loadUserPrefs]);
+  const loadUserPrefs=useCallback(user=>{
+    try{const v=localStorage.getItem(`planner-${user}-viewMode`);if(v)setViewMode(v);}catch{}
+    try{const l=localStorage.getItem(`planner-${user}-layoutMode`);if(l==="columns"&&window.innerWidth>=768)setLayoutMode("columns");else if(l==="list")setLayoutMode("list");}catch{}
+    try{const f=localStorage.getItem(`planner-${user}-focosOpen`);if(f!==null)setFocosOpen(f==="true");}catch{}
+  },[]);
+  const handleLogin=useCallback(user=>{setAuthed(true);setUserName(user);loadUserPrefs(user);window.storage.set(AUTH_KEY,"true").catch(()=>{});window.storage.set(USER_KEY,user).catch(()=>{});},[loadUserPrefs]);
   const handleLogout=useCallback(()=>{setAuthed(false);setUserName("");setWeeks([]);setLoading(true);window.storage.set(AUTH_KEY,"false").catch(()=>{});window.storage.set(USER_KEY,"").catch(()=>{});},[]);
 
   useEffect(()=>{
