@@ -1,42 +1,81 @@
-// Storage adapter - uses localStorage for standalone deployment
+import { initializeApp } from 'firebase/app';
+import { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, getDocs } from 'firebase/firestore';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBm2_d4stfbDp7ZuLF7k3BmX6EPsPk3ZEE",
+  authDomain: "planner-semanal-7.firebaseapp.com",
+  projectId: "planner-semanal-7",
+  storageBucket: "planner-semanal-7.firebasestorage.app",
+  messagingSenderId: "361728306610",
+  appId: "1:361728306610:web:dc260ad776d63637b888ab"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
 const storage = {
   async get(key) {
     try {
-      const val = localStorage.getItem(key);
-      if (val === null) throw new Error("not found");
-      return { key, value: val };
-    } catch {
+      const docRef = doc(db, 'storage', key);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        return { key, value: docSnap.data().value };
+      }
+      throw new Error("not found");
+    } catch (e) {
+      try {
+        const val = localStorage.getItem(key);
+        if (val !== null) return { key, value: val };
+      } catch {}
       throw new Error("not found");
     }
   },
+
   async set(key, value) {
     try {
-      localStorage.setItem(key, value);
+      const docRef = doc(db, 'storage', key);
+      await setDoc(docRef, { value, updatedAt: new Date().toISOString() });
+      try { localStorage.setItem(key, value); } catch {}
       return { key, value };
-    } catch {
-      return null;
+    } catch (e) {
+      try { localStorage.setItem(key, value); } catch {}
+      return { key, value };
     }
   },
+
   async delete(key) {
     try {
-      localStorage.removeItem(key);
+      const docRef = doc(db, 'storage', key);
+      await deleteDoc(docRef);
+      try { localStorage.removeItem(key); } catch {}
       return { key, deleted: true };
     } catch {
-      return null;
+      try { localStorage.removeItem(key); } catch {}
+      return { key, deleted: true };
     }
   },
+
   async list(prefix) {
-    const keys = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i);
-      if (!prefix || k.startsWith(prefix)) keys.push(k);
+    try {
+      const colRef = collection(db, 'storage');
+      const snapshot = await getDocs(colRef);
+      const keys = [];
+      snapshot.forEach(d => {
+        if (!prefix || d.id.startsWith(prefix)) keys.push(d.id);
+      });
+      return { keys };
+    } catch {
+      const keys = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (!prefix || k.startsWith(prefix)) keys.push(k);
+      }
+      return { keys };
     }
-    return { keys };
   }
 };
 
-// Make it available globally like Claude's storage API
-if (typeof window !== 'undefined' && !window.storage) {
+if (typeof window !== 'undefined') {
   window.storage = storage;
 }
 
