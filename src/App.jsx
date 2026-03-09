@@ -949,13 +949,18 @@ function AttachmentSection({attachments,setAttachments,color,tc,compact=false}){
   const [showLinkInput,setShowLinkInput]=useState(false);
   const [linkVal,setLinkVal]=useState("");
   const btnRef=useRef(null);
+  const menuRef=useRef(null);
   const imgRef=useRef(null);
   const mediaRef=useRef(null);
   const docRef=useRef(null);
 
   useEffect(()=>{
     if(!showMenu)return;
-    const h=(e)=>{if(btnRef.current&&!btnRef.current.contains(e.target))setShowMenu(false);};
+    const h=(e)=>{
+      if(btnRef.current?.contains(e.target))return;
+      if(menuRef.current?.contains(e.target))return;
+      setShowMenu(false);
+    };
     setTimeout(()=>document.addEventListener("mousedown",h),0);
     return()=>document.removeEventListener("mousedown",h);
   },[showMenu]);
@@ -1012,7 +1017,7 @@ function AttachmentSection({attachments,setAttachments,color,tc,compact=false}){
       </button>
 
       {showMenu&&menuPos&&(
-        <div style={{position:"fixed",top:menuPos.top,left:menuPos.left,zIndex:9999,background:tc.modalBg,border:`1px solid ${tc.cardBorder}`,borderRadius:12,padding:6,boxShadow:"0 4px 24px rgba(0,0,0,0.45)",minWidth:190,animation:"fadeIn 0.15s ease"}}>
+        <div ref={menuRef} style={{position:"fixed",top:menuPos.top,left:menuPos.left,zIndex:9999,background:tc.modalBg,border:`1px solid ${tc.cardBorder}`,borderRadius:12,padding:6,boxShadow:"0 4px 24px rgba(0,0,0,0.45)",minWidth:190,animation:"fadeIn 0.15s ease"}}>
           <button onClick={()=>mediaRef.current?.click()} style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"9px 12px",background:"none",border:"none",cursor:"pointer",borderRadius:8,color:tc.text,fontSize:12,fontFamily:F,fontWeight:500,textAlign:"left"}} onMouseEnter={e=>e.currentTarget.style.background=tc.inputBg} onMouseLeave={e=>e.currentTarget.style.background="none"}>📸 Foto / Vídeo</button>
           <button onClick={()=>{setShowLinkInput(true);setShowMenu(false);}} style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"9px 12px",background:"none",border:"none",cursor:"pointer",borderRadius:8,color:tc.text,fontSize:12,fontFamily:F,fontWeight:500,textAlign:"left"}} onMouseEnter={e=>e.currentTarget.style.background=tc.inputBg} onMouseLeave={e=>e.currentTarget.style.background="none"}>🔗 Link</button>
           <button onClick={()=>docRef.current?.click()} style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"9px 12px",background:"none",border:"none",cursor:"pointer",borderRadius:8,color:tc.text,fontSize:12,fontFamily:F,fontWeight:500,textAlign:"left"}} onMouseEnter={e=>e.currentTarget.style.background=tc.inputBg} onMouseLeave={e=>e.currentTarget.style.background="none"}>📄 Documento / PDF</button>
