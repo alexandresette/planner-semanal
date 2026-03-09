@@ -226,6 +226,8 @@ function ConfirmDeleteModal({title,description,onConfirm,onCancel,c}){
 /* ─── Task Item ─── */
 function TaskItem({task,color,onToggle,onUpdate,onDelete,projectName,onMoveWeek,onEditingChange,openTaskId,onOpen,c,projects,showCategoryPicker}){
   const showOpts = openTaskId === task.id;
+  const [editText,setEditText]=useState(task.text);
+  const [isEditing,setIsEditing]=useState(false);
   useEffect(()=>{
     if(!showOpts)return;
     const handler=(e)=>{
@@ -238,8 +240,6 @@ function TaskItem({task,color,onToggle,onUpdate,onDelete,projectName,onMoveWeek,
     window.addEventListener("keydown",handler,true);
     return()=>window.removeEventListener("keydown",handler,true);
   },[showOpts,isEditing]);
-  const [editText,setEditText]=useState(task.text);
-  const [isEditing,setIsEditing]=useState(false);
   const dayInfo=WEEK_DAYS.find(d=>d.key===task.day);
   const saveText=()=>{if(editText.trim()&&editText.trim()!==task.text)onUpdate({text:editText.trim()});setIsEditing(false);};
   const toggleOpts=()=>{const next=!showOpts;if(onOpen)onOpen(next?task.id:null);if(onEditingChange)onEditingChange(next);};
