@@ -484,6 +484,20 @@ export default function App(){
   useEffect(()=>{(async()=>{try{const r=await window.storage.get(AUTH_KEY);if(r&&r.value==="true"){setAuthed(true);try{const u=await window.storage.get(USER_KEY);if(u&&u.value)setUserName(u.value);}catch{}}}catch{}})();},[]);
   const handleLogin=useCallback(user=>{setAuthed(true);setUserName(user);window.storage.set(AUTH_KEY,"true").catch(()=>{});window.storage.set(USER_KEY,user).catch(()=>{});},[]);
   const handleLogout=useCallback(()=>{setAuthed(false);setUserName("");setWeeks([]);setLoading(true);window.storage.set(AUTH_KEY,"false").catch(()=>{});window.storage.set(USER_KEY,"").catch(()=>{});},[]);
+  const [syncing,setSyncing]=useState(false);
+  const handleSync=useCallback(async()=>{
+    if(!userName||syncing)return;
+    setSyncing(true);
+    try{localStorage.removeItem(userDataKey(userName));localStorage.removeItem(userDataKey(userName)+"__meta");localStorage.removeItem(userHistoryKey(userName));localStorage.removeItem(userHistoryKey(userName)+"__meta");}catch{}
+    setLoading(true);setWeeks([]);
+    try{
+      const r=await window.storage.get(userDataKey(userName));
+      if(r&&r.value)setWeeks(JSON.parse(r.value));
+      else{const sun=getSunday(new Date());const sat=getSaturday(new Date());setWeeks([{id:weekId(sun),sun:sun.toISOString(),sat:sat.toISOString(),projects:getDefaultProjects(userName)}]);}
+    }catch{const sun=getSunday(new Date());const sat=getSaturday(new Date());setWeeks([{id:weekId(sun),sun:sun.toISOString(),sat:sat.toISOString(),projects:getDefaultProjects(userName)}]);}
+    try{const h=await window.storage.get(userHistoryKey(userName));if(h&&h.value)setHistory(JSON.parse(h.value));else setHistory([]);}catch{setHistory([]);}
+    setLoading(false);setSyncing(false);
+  },[userName,syncing]);
 
   useEffect(()=>{
     if(!authed||!userName)return;
@@ -614,7 +628,7 @@ export default function App(){
   return(
     <div style={{minHeight:"100vh",background:c.bg,fontFamily:F,transition:"background 0.3s ease"}}>
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
-      <style>{`@keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}.task-card{transition:all 0.25s cubic-bezier(0.4,0,0.2,1)}.task-card:hover{transform:translateY(-1px);box-shadow:0 4px 20px ${c.hoverShadow};border-color:${c.hoverBorder}!important}.project-card{transition:all 0.3s cubic-bezier(0.4,0,0.2,1)}.project-card:hover{box-shadow:0 6px 28px ${c.hoverShadow};border-color:${c.hoverBorder}!important}.logout-btn{transition:all 0.25s ease}.logout-btn:hover{background:rgba(239,68,68,0.08)!important;border-color:rgba(239,68,68,0.35)!important;box-shadow:0 0 16px rgba(239,68,68,0.12)}.theme-btn{transition:all 0.25s ease}.theme-btn:hover{background:rgba(59,130,246,0.08)!important;border-color:rgba(59,130,246,0.35)!important;box-shadow:0 0 16px rgba(59,130,246,0.15)}.theme-btn:hover svg{stroke:#3B82F6}@media(max-width:767px){.layout-toggle{display:none!important}}`}</style>
+      <style>{`@keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}.task-card{transition:all 0.25s cubic-bezier(0.4,0,0.2,1)}.task-card:hover{transform:translateY(-1px);box-shadow:0 4px 20px ${c.hoverShadow};border-color:${c.hoverBorder}!important}.project-card{transition:all 0.3s cubic-bezier(0.4,0,0.2,1)}.project-card:hover{box-shadow:0 6px 28px ${c.hoverShadow};border-color:${c.hoverBorder}!important}.logout-btn{transition:all 0.25s ease}.logout-btn:hover{background:rgba(239,68,68,0.08)!important;border-color:rgba(239,68,68,0.35)!important;box-shadow:0 0 16px rgba(239,68,68,0.12)}.theme-btn{transition:all 0.25s ease}.theme-btn:hover{background:rgba(59,130,246,0.08)!important;border-color:rgba(59,130,246,0.35)!important;box-shadow:0 0 16px rgba(59,130,246,0.15)}.theme-btn:hover svg{stroke:#3B82F6}@media(max-width:767px){.layout-toggle{display:none!important}}`}</style>
 
       <div style={{maxWidth:layoutMode==="columns"?1200:520,margin:"0 auto",padding:"24px 16px 40px",transition:"max-width 0.3s ease"}}>
         {/* Header */}
@@ -626,6 +640,7 @@ export default function App(){
             <p style={{fontSize:10,color:c.textDim,margin:"5px 0 0",fontStyle:"italic",lineHeight:1.5}}>💡 Dica: nomes curtos nas categorias e tarefas deixam tudo mais fácil de ler e acompanhar.</p>
           </div>
           <div style={{display:"flex",gap:6}}>
+            <button className="sync-btn" onClick={handleSync} disabled={syncing} title="Sincronizar com o servidor" style={{background:syncing?"rgba(59,130,246,0.1)":c.btnBg,border:`1px solid ${syncing?"rgba(59,130,246,0.35)":c.btnBorder}`,borderRadius:10,padding:"8px 10px",cursor:syncing?"default":"pointer",display:"flex",alignItems:"center",justifyContent:"center",opacity:syncing?0.7:1}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={syncing?"#3B82F6":c.textSub} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{animation:syncing?"spin 0.9s linear infinite":"none"}}><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></button>
             <button className="theme-btn" onClick={theme.toggle} style={{background:c.btnBg,border:`1px solid ${c.btnBorder}`,borderRadius:10,padding:"8px 10px",cursor:"pointer",lineHeight:1,display:"flex",alignItems:"center",justifyContent:"center"}} title={theme.mode==="dark"?"Modo claro":"Modo escuro"}>{theme.mode==="dark"?(<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={c.textSub} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>):(<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={c.textSub} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>)}</button>
             <button className="logout-btn" onClick={handleLogout} title="Sair" style={{background:c.btnBg,border:`1px solid ${c.btnBorder}`,borderRadius:10,padding:"8px 10px",cursor:"pointer"}}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={c.textSub} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
           </div>
