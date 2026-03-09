@@ -682,7 +682,7 @@ function ConfirmDeleteModal({title,description,onConfirm,onCancel,c}){
 }
 
 /* ─── Task View Modal (somente visualização) ─── */
-function TaskViewModal({task,color,projectName,onToggle,onClose,c}){
+function TaskViewModal({task,color,projectName,projectEmoji,onToggle,onClose,c}){
   const tc = c || themes.dark;
   const dayInfo=WEEK_DAYS.find(d=>d.key===task.day);
   const prio=priorityConfig[task.priority];
@@ -703,7 +703,7 @@ function TaskViewModal({task,color,projectName,onToggle,onClose,c}){
             <div style={{flex:1,minWidth:0}}>
               <h2 style={{margin:0,fontSize:17,fontWeight:800,color:task.done?tc.textMuted:tc.text,fontFamily:FS,lineHeight:1.4,textDecoration:task.done?"line-through":"none",wordBreak:"break-word"}}>{task.text}</h2>
               <div style={{display:"flex",alignItems:"center",gap:6,marginTop:8,flexWrap:"wrap"}}>
-                {projectName&&<span style={{fontSize:10,fontWeight:600,padding:"3px 8px",borderRadius:5,background:`${color}22`,color,fontFamily:F}}>{projectName}</span>}
+                {projectName&&<span style={{fontSize:10,fontWeight:600,padding:"3px 8px",borderRadius:5,background:`${color}22`,color,fontFamily:F,display:"flex",alignItems:"center",gap:4}}>{projectEmoji&&<span style={{fontSize:12}}>{projectEmoji}</span>}{projectName}</span>}
                 {dayInfo&&<span style={{fontSize:10,fontWeight:600,padding:"3px 8px",borderRadius:5,background:tc.tagBg,color:tc.tagColor,fontFamily:F}}>{dayInfo.full}</span>}
                 <span style={{fontSize:10,fontWeight:600,padding:"3px 8px",borderRadius:5,background:prio.bg,color:prio.dot,fontFamily:F,display:"flex",alignItems:"center",gap:4}}><div style={{width:6,height:6,borderRadius:"50%",background:prio.dot}}/>{prio.label}</span>
                 {task.done&&<span style={{fontSize:10,fontWeight:600,padding:"3px 8px",borderRadius:5,background:"rgba(16,185,129,0.12)",color:"#10B981",fontFamily:F}}>✓ Concluída</span>}
@@ -729,7 +729,7 @@ function TaskViewModal({task,color,projectName,onToggle,onClose,c}){
 }
 
 /* ─── Task Item ─── */
-function TaskItem({task,color,onToggle,onUpdate,onDelete,projectName,onMoveWeek,onEditingChange,openTaskId,onOpen,c,projects,showCategoryPicker}){
+function TaskItem({task,color,onToggle,onUpdate,onDelete,projectName,projectEmoji,onMoveWeek,onEditingChange,openTaskId,onOpen,c,projects,showCategoryPicker}){
   const [showViewModal,setShowViewModal]=useState(false);
   const showOpts = openTaskId === task.id;
   const [editText,setEditText]=useState(task.text);
@@ -753,7 +753,7 @@ function TaskItem({task,color,onToggle,onUpdate,onDelete,projectName,onMoveWeek,
   const tc = c || themes.dark;
   return(
     <>
-    {showViewModal&&<TaskViewModal task={task} color={color} projectName={projectName} onToggle={()=>{onToggle();}} onClose={()=>setShowViewModal(false)} c={tc}/>}
+    {showViewModal&&<TaskViewModal task={task} color={color} projectName={projectName} projectEmoji={projectEmoji} onToggle={()=>{onToggle();}} onClose={()=>setShowViewModal(false)} c={tc}/>}
     <div className="task-card" style={{borderRadius:12,overflow:"hidden",background:task.done?tc.taskBgDone:tc.taskBg,border:`1px solid ${task.done?tc.taskBorderDone:tc.taskBorder}`,opacity:task.done?0.55:1}}>
       <div onClick={()=>setShowViewModal(true)} style={{padding:"10px 12px",cursor:"pointer"}}>
         <div style={{display:"flex",alignItems:"flex-start",gap:10}}>
@@ -976,7 +976,7 @@ function ProjectCard({project,onToggleTask,onUpdateTask,onDeleteTask,onAddTask,o
           </div>
         </div>
       </div>)}
-      {isExpanded&&(<div style={{padding:"0 14px 14px",display:"flex",flexDirection:"column",gap:6}}>{[...project.tasks].sort((a,b)=>{const d=WEEK_DAYS_ORDER.indexOf(a.day)-WEEK_DAYS_ORDER.indexOf(b.day);if(d!==0)return d;const o={high:0,medium:1,low:2};const p=o[a.priority]-o[b.priority];if(p!==0)return p;return a.text.localeCompare(b.text,"pt-BR");}).map(task=>(<TaskItem key={task.id} task={task} color={project.color} onToggle={()=>onToggleTask(project.id,task.id)} onUpdate={u=>onUpdateTask(project.id,task.id,u)} onDelete={()=>onDeleteTask(project.id,task.id)} onMoveWeek={taskMoveWeek?taskMoveWeek(project.id,task.id):null} openTaskId={openTaskId} onOpen={onOpen} c={tc}/>))}<AddTaskInput color={project.color} onAdd={(text,day,priority)=>onAddTask(project.id,text,day,priority)} c={tc}/></div>)}
+      {isExpanded&&(<div style={{padding:"0 14px 14px",display:"flex",flexDirection:"column",gap:6}}>{[...project.tasks].sort((a,b)=>{const d=WEEK_DAYS_ORDER.indexOf(a.day)-WEEK_DAYS_ORDER.indexOf(b.day);if(d!==0)return d;const o={high:0,medium:1,low:2};const p=o[a.priority]-o[b.priority];if(p!==0)return p;return a.text.localeCompare(b.text,"pt-BR");}).map(task=>(<TaskItem key={task.id} task={task} color={project.color} projectName={project.name} projectEmoji={project.emoji} onToggle={()=>onToggleTask(project.id,task.id)} onUpdate={u=>onUpdateTask(project.id,task.id,u)} onDelete={()=>onDeleteTask(project.id,task.id)} onMoveWeek={taskMoveWeek?taskMoveWeek(project.id,task.id):null} openTaskId={openTaskId} onOpen={onOpen} c={tc}/>))}<AddTaskInput color={project.color} onAdd={(text,day,priority)=>onAddTask(project.id,text,day,priority)} c={tc}/></div>)}
     </div>
     </>
   );
@@ -1047,7 +1047,7 @@ function ColumnProjectCard({project:p,done,total,pct,idx,projectsLen,reorderMode
         </div>)}
       </div>
       <div style={{padding:"8px 8px 12px",display:"flex",flexDirection:"column",gap:5}}>
-        {[...p.tasks].sort((a,b)=>{const d=WEEK_DAYS_ORDER.indexOf(a.day)-WEEK_DAYS_ORDER.indexOf(b.day);if(d!==0)return d;const o={high:0,medium:1,low:2};const pr=o[a.priority]-o[b.priority];if(pr!==0)return pr;return a.text.localeCompare(b.text,"pt-BR");}).map(task=>(<TaskItem key={task.id} task={task} color={p.color} onToggle={()=>onToggleTask(p.id,task.id)} onUpdate={u=>onUpdateTask(p.id,task.id,u)} onDelete={()=>onDeleteTask(p.id,task.id)} onMoveWeek={taskMoveWeekFn(p.id,task.id)} openTaskId={openTaskId} onOpen={onOpen} c={tc}/>))}
+        {[...p.tasks].sort((a,b)=>{const d=WEEK_DAYS_ORDER.indexOf(a.day)-WEEK_DAYS_ORDER.indexOf(b.day);if(d!==0)return d;const o={high:0,medium:1,low:2};const pr=o[a.priority]-o[b.priority];if(pr!==0)return pr;return a.text.localeCompare(b.text,"pt-BR");}).map(task=>(<TaskItem key={task.id} task={task} color={p.color} projectName={p.name} projectEmoji={p.emoji} onToggle={()=>onToggleTask(p.id,task.id)} onUpdate={u=>onUpdateTask(p.id,task.id,u)} onDelete={()=>onDeleteTask(p.id,task.id)} onMoveWeek={taskMoveWeekFn(p.id,task.id)} openTaskId={openTaskId} onOpen={onOpen} c={tc}/>))}
         <AddTaskInput color={p.color} onAdd={(text,day,priority)=>onAddTask(p.id,text,day,priority)} c={tc}/>
       </div>
     </div>
