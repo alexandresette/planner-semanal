@@ -212,7 +212,7 @@ function ConfirmDeleteModal({title,description,onConfirm,onCancel,c}){
         <div style={{width:44,height:44,borderRadius:12,background:"rgba(239,68,68,0.12)",display:"flex",alignItems:"center",justifyContent:"center",marginBottom:14}}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
         </div>
-        <h3 style={{fontSize:16,fontWeight:800,color:tc.text,margin:"0 0 6px",fontFamily:FS}}>{title}</h3>
+        <h3 style={{fontSize:18,fontWeight:700,color:tc.text,margin:"0 0 6px",fontFamily:FS,letterSpacing:"-0.01em"}}>{title}</h3>
         <p style={{fontSize:13,color:tc.textSub,margin:"0 0 20px",lineHeight:1.5,fontFamily:F}}>{description}</p>
         <div style={{display:"flex",gap:8}}>
           <button onClick={onConfirm} style={{flex:1,padding:"10px",borderRadius:10,border:"none",cursor:"pointer",background:"#EF4444",color:"#fff",fontSize:13,fontWeight:700,fontFamily:F}}>Excluir</button>
