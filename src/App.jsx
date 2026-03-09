@@ -702,6 +702,8 @@ function TaskViewModal({task,color,projectName,projectEmoji,onToggle,onUpdate,on
   const [showVideoInput,setShowVideoInput]=useState(false);
   const fileInputRef=useRef(null);
   const docInputRef=useRef(null);
+  const attachBtnRef=useRef(null);
+  const [attachMenuPos,setAttachMenuPos]=useState(null);
 
   const startEdit=()=>{
     setEditText(task.text);setEditDesc(task.description||"");
@@ -716,10 +718,17 @@ function TaskViewModal({task,color,projectName,projectEmoji,onToggle,onUpdate,on
   };
 
   useEffect(()=>{
-    const h=(e)=>{if(e.key==="Escape"){e.stopPropagation();if(editing)cancelEdit();else onClose();}};
+    const h=(e)=>{if(e.key==="Escape"){e.stopPropagation();if(showAttachMenu){setShowAttachMenu(false);return;}if(editing)cancelEdit();else onClose();}};
     window.addEventListener("keydown",h,true);
     return()=>window.removeEventListener("keydown",h,true);
-  },[editing]);
+  },[editing,showAttachMenu]);
+
+  useEffect(()=>{
+    if(!showAttachMenu)return;
+    const h=(e)=>{if(attachBtnRef.current&&!attachBtnRef.current.contains(e.target))setShowAttachMenu(false);};
+    setTimeout(()=>document.addEventListener("mousedown",h),0);
+    return()=>document.removeEventListener("mousedown",h);
+  },[showAttachMenu]);
 
   // Upload de imagem/doc
   const handleFileUpload=(e,type)=>{
@@ -886,12 +895,16 @@ function TaskViewModal({task,color,projectName,projectEmoji,onToggle,onUpdate,on
 
               {/* Botão adicionar */}
               <div style={{position:"relative"}}>
-                <button onClick={()=>{setShowAttachMenu(v=>!v);setShowVideoInput(false);}} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 14px",borderRadius:10,border:`1px dashed ${color}50`,background:"transparent",color:color,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:F,transition:"all 0.2s"}} onMouseEnter={e=>{e.currentTarget.style.background=`${color}10`;}} onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}>
+                <button ref={attachBtnRef} onClick={(e)=>{
+                  const rect=e.currentTarget.getBoundingClientRect();
+                  setAttachMenuPos({top:rect.bottom+6,left:rect.left});
+                  setShowAttachMenu(v=>!v);setShowVideoInput(false);
+                }} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 14px",borderRadius:10,border:`1px dashed ${color}50`,background:"transparent",color:color,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:F,transition:"all 0.2s"}} onMouseEnter={e=>{e.currentTarget.style.background=`${color}10`;}} onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                   Adicionar anexo
                 </button>
-                {showAttachMenu&&(
-                  <div style={{position:"absolute",top:"110%",left:0,zIndex:100,background:tc.modalBg,border:`1px solid ${tc.cardBorder}`,borderRadius:12,padding:6,boxShadow:"0 4px 20px rgba(0,0,0,0.35)",minWidth:180,animation:"fadeIn 0.15s ease"}}>
+                {showAttachMenu&&attachMenuPos&&(
+                  <div style={{position:"fixed",top:attachMenuPos.top,left:attachMenuPos.left,zIndex:9999,background:tc.modalBg,border:`1px solid ${tc.cardBorder}`,borderRadius:12,padding:6,boxShadow:"0 4px 24px rgba(0,0,0,0.45)",minWidth:190,animation:"fadeIn 0.15s ease"}}>
                     <button onClick={()=>fileInputRef.current?.click()} style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"9px 12px",background:"none",border:"none",cursor:"pointer",borderRadius:8,color:tc.text,fontSize:12,fontFamily:F,fontWeight:500,textAlign:"left"}} onMouseEnter={e=>e.currentTarget.style.background=tc.inputBg} onMouseLeave={e=>e.currentTarget.style.background="none"}>🖼️ Foto / Imagem</button>
                     <button onClick={()=>{setShowVideoInput(true);setShowAttachMenu(false);}} style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"9px 12px",background:"none",border:"none",cursor:"pointer",borderRadius:8,color:tc.text,fontSize:12,fontFamily:F,fontWeight:500,textAlign:"left"}} onMouseEnter={e=>e.currentTarget.style.background=tc.inputBg} onMouseLeave={e=>e.currentTarget.style.background="none"}>🎬 Link de vídeo</button>
                     <button onClick={()=>docInputRef.current?.click()} style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"9px 12px",background:"none",border:"none",cursor:"pointer",borderRadius:8,color:tc.text,fontSize:12,fontFamily:F,fontWeight:500,textAlign:"left"}} onMouseEnter={e=>e.currentTarget.style.background=tc.inputBg} onMouseLeave={e=>e.currentTarget.style.background="none"}>📄 Documento / PDF</button>
