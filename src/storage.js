@@ -28,7 +28,7 @@ export async function firebaseSignOut() {
 }
 
 export async function callSendInviteEmail(email) {
-  const url = "https://southamerica-east1-planner-semanal-7.cloudfunctions.net/sendInviteEmail";
+  const url = "https://sendinviteemail-32r6mebf5q-rj.a.run.app";
   const response = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
