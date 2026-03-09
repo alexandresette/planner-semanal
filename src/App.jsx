@@ -1112,6 +1112,7 @@ function WeekTitleEditor({title,defaultTitle,color,c,onSave}){
   useEffect(()=>{if(!editing)setVal(title||defaultTitle);},[title,defaultTitle,editing]);
   const handleSave=()=>{const v=val.trim()||defaultTitle;onSave(v===defaultTitle?"":v);setEditing(false);};
   const handleReset=()=>{setVal(title||defaultTitle);setEditing(false);};
+  const handleClearTitle=(e)=>{e.stopPropagation();onSave("");};
   const displayTitle=title||defaultTitle;
   if(editing) return(
     <div style={{display:"flex",gap:6,alignItems:"center",justifyContent:"center",padding:"2px 0"}}
@@ -1125,15 +1126,21 @@ function WeekTitleEditor({title,defaultTitle,color,c,onSave}){
     </div>
   );
   return(
-    <div onClick={()=>{setVal(title||defaultTitle);setEditing(true);}} style={{textAlign:"center",cursor:"pointer",padding:"2px 0",borderRadius:8,transition:"all 0.15s ease"}}
-      title="Clique para editar o nome da semana"
-      onMouseEnter={e=>{e.currentTarget.style.opacity="0.8";}}
-      onMouseLeave={e=>{e.currentTarget.style.opacity="1";}}>
-      <div style={{display:"inline-flex",alignItems:"center",gap:6}}>
-        <span style={{fontSize:15,fontWeight:700,color:tc.text,fontFamily:F,letterSpacing:"0.01em"}}>{displayTitle}</span>
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" style={{opacity:0.6,flexShrink:0}}><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 1 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+    <div style={{display:"inline-flex",alignItems:"center",gap:6,padding:"2px 0"}}>
+      <div onClick={()=>{setVal(title||defaultTitle);setEditing(true);}} style={{textAlign:"center",cursor:"pointer",borderRadius:8,transition:"all 0.15s ease"}}
+        title="Clique para editar o nome da semana"
+        onMouseEnter={e=>{e.currentTarget.style.opacity="0.8";}}
+        onMouseLeave={e=>{e.currentTarget.style.opacity="1";}}>
+        <div style={{display:"inline-flex",alignItems:"center",gap:6}}>
+          <span style={{fontSize:15,fontWeight:700,color:tc.text,fontFamily:F,letterSpacing:"0.01em"}}>{displayTitle}</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" style={{opacity:0.6,flexShrink:0}}><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 1 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </div>
       </div>
-      {title&&<div style={{fontSize:9,color:color,fontFamily:F,opacity:0.55,marginTop:1,letterSpacing:"0.03em"}}></div>}
+      {title&&(
+        <button onClick={handleClearTitle} title="Resetar nome da semana" style={{background:"none",border:"none",cursor:"pointer",padding:"2px 4px",opacity:0.35,lineHeight:1,flexShrink:0}} onMouseEnter={e=>e.currentTarget.style.opacity="0.8"} onMouseLeave={e=>e.currentTarget.style.opacity="0.35"}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={tc.textSub} strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      )}
     </div>
   );
 }
@@ -1709,7 +1716,7 @@ export default function App(){
             c={c}
             onSave={t=>updateWeekTitle(activeWeekIdx,t)}
           />
-          {(()=>{const highTasks=projects.flatMap(p=>p.tasks.filter(t=>t.priority==="high").map(t=>({...t,_projectEmoji:p.emoji,_projectColor:p.color})));if(highTasks.length===0)return null;const focosColor=isCurrentWeek?c.weekTabColor0:c.weekTabColor1;const focosBg=isCurrentWeek?"rgba(59,130,246,0.12)":"rgba(139,92,246,0.12)";return(<div style={{marginTop:14,paddingTop:12,borderTop:`1px solid ${c.divider}`}}><div onClick={()=>setFocosOpen(o=>!o)} style={{display:"flex",alignItems:"center",gap:6,marginBottom:focosOpen?8:0,cursor:"pointer",userSelect:"none"}}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={focosColor} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg><div style={{display:"flex",flexDirection:"column",gap:1}}><span style={{fontSize:11,fontWeight:700,color:focosColor,fontFamily:F,textTransform:"uppercase",letterSpacing:"0.06em"}}>Focos da semana</span><span style={{fontSize:9,fontWeight:500,color:focosColor,fontFamily:F,opacity:0.6,letterSpacing:"0.02em"}}>Tarefas com alta prioridade</span></div><span style={{fontSize:10,fontWeight:600,color:focosColor,background:focosBg,borderRadius:5,padding:"1px 6px",fontFamily:F}}>{highTasks.filter(t=>!t.done).length}/{highTasks.length}</span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={focosColor} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{marginLeft:"auto",transition:"transform 0.2s ease",transform:focosOpen?"rotate(180deg)":"rotate(0deg)"}}><polyline points="6 9 12 15 18 9"/></svg></div>{focosOpen&&<div style={{display:"flex",flexDirection:"column",gap:5,animation:"fadeIn 0.2s ease"}}>{highTasks.map((t,i)=>(<div key={i} style={{display:"flex",alignItems:"center",gap:8,opacity:t.done?0.35:1,transition:"opacity 0.3s ease"}}><div style={{width:6,height:6,borderRadius:"50%",background:t.done?"transparent":t._projectColor,border:t.done?`1.5px solid ${t._projectColor}40`:"none",flexShrink:0}}/><span style={{fontSize:12,color:t.done?c.textMuted:c.textSub,fontFamily:F,lineHeight:1.4,flex:1,textDecoration:t.done?"line-through":"none"}}>{t.text}</span><span style={{fontSize:10,fontFamily:F,color:t.done?c.textMuted:t._projectColor,background:t.done?c.tagBg:`${t._projectColor}18`,padding:"1px 6px",borderRadius:4,whiteSpace:"nowrap"}}>{t._projectEmoji}</span></div>))}</div>}</div>);})()}
+          {(()=>{const highTasks=projects.flatMap(p=>p.tasks.filter(t=>t.priority==="high").map(t=>({...t,_projectEmoji:p.emoji,_projectColor:p.color})));if(highTasks.length===0)return null;const focosColor=isCurrentWeek?c.weekTabColor0:c.weekTabColor1;const focosBg=isCurrentWeek?"rgba(59,130,246,0.12)":"rgba(139,92,246,0.12)";return(<div style={{marginTop:14,paddingTop:12,borderTop:`1px solid ${c.divider}`}}><div onClick={()=>setFocosOpen(o=>!o)} style={{display:"flex",alignItems:"center",gap:6,marginBottom:focosOpen?8:0,cursor:"pointer",userSelect:"none"}}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={focosColor} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg><div style={{display:"flex",flexDirection:"column",gap:1}}><span style={{fontSize:11,fontWeight:700,color:focosColor,fontFamily:F,textTransform:"uppercase",letterSpacing:"0.06em"}}>Focos da semana</span><span style={{fontSize:9,fontWeight:500,color:focosColor,fontFamily:F,opacity:0.6,letterSpacing:"0.02em"}}>Tarefas com alta prioridade</span></div><span style={{fontSize:10,fontWeight:600,color:focosColor,background:focosBg,borderRadius:5,padding:"1px 6px",fontFamily:F}}>{highTasks.filter(t=>t.done).length}/{highTasks.length}</span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={focosColor} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{marginLeft:"auto",transition:"transform 0.2s ease",transform:focosOpen?"rotate(180deg)":"rotate(0deg)"}}><polyline points="6 9 12 15 18 9"/></svg></div>{focosOpen&&<div style={{display:"flex",flexDirection:"column",gap:5,animation:"fadeIn 0.2s ease"}}>{highTasks.map((t,i)=>(<div key={i} style={{display:"flex",alignItems:"center",gap:8,opacity:t.done?0.35:1,transition:"opacity 0.3s ease"}}><div style={{width:6,height:6,borderRadius:"50%",background:t.done?"transparent":t._projectColor,border:t.done?`1.5px solid ${t._projectColor}40`:"none",flexShrink:0}}/><span style={{fontSize:12,color:t.done?c.textMuted:c.textSub,fontFamily:F,lineHeight:1.4,flex:1,textDecoration:t.done?"line-through":"none"}}>{t.text}</span><span style={{fontSize:10,fontFamily:F,color:t.done?c.textMuted:t._projectColor,background:t.done?c.tagBg:`${t._projectColor}18`,padding:"1px 6px",borderRadius:4,whiteSpace:"nowrap"}}>{t._projectEmoji}</span></div>))}</div>}</div>);})()}
         </div>
 
         {/* Global Progress */}
