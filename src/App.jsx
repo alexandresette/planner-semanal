@@ -65,7 +65,7 @@ const DEFAULT_PROJECTS = [
     {id:"m1",text:"Acompanhar escala da semana (Site Visual)",done:false,priority:"high",day:"seg"},
     {id:"m2",text:"Criar app de cronômetro / programação para o culto",done:false,priority:"high",day:"sex"},
   ]},
-  { id:"gc", name:"Estudos GCs", emoji:"📖", color:"#10B981", deadline:"12/mar", tasks:[
+  { id:"gc", name:"Estudos GCs", emoji:"📖", color:"#10B981", tasks:[
     {id:"g1",text:"Revisar conteúdo para o GC e apresentação",done:false,priority:"high",day:"qui"},
     {id:"g2",text:"Dia de GC",done:false,priority:"high",day:"qui"},
   ]},
@@ -115,7 +115,7 @@ function LoginScreen({ onLogin }) {
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
       <div style={{width:340,padding:40,textAlign:"center",background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:24,animation:shake?"shake 0.5s ease":"fadeIn 0.6s ease"}}>
         <div style={{ marginBottom: 16 }}><Logo size="large" /></div>
-        <p style={{fontSize:13,color:"#94A3B8",margin:"0 0 24px",lineHeight:1.5}}>Organize sua semana, acompanhe seus projetos e vamos avançar!</p>
+        <p style={{fontSize:13,color:"#94A3B8",margin:"0 0 24px",lineHeight:1.5}}>Organize sua semana, acompanhe seus projetos e avance com velocidade!</p>
         <div style={{textAlign:"left",marginBottom:12}}>
           <span style={{fontSize:11,color:"#64748B",fontWeight:600,textTransform:"uppercase",letterSpacing:0.5}}>Usuário</span>
           <input type="text" value={user} onChange={e=>setUser(e.target.value)} onKeyDown={e=>e.key==="Enter"&&document.getElementById("pin-input")?.focus()} placeholder="seu usuário" autoFocus
@@ -329,15 +329,16 @@ export default function App(){
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
           <div>
             <Logo />
-            {userName&&<p style={{fontSize:13,color:"#94A3B8",margin:"8px 0 0",fontWeight:500}}>Olá, <span style={{color:"#60A5FA",fontWeight:700}}>{userName}</span></p>}
+            {userName&&<p style={{fontSize:13,color:"#94A3B8",margin:"8px 0 0",fontWeight:500}}>Seja bem-vindo, <span style={{color:"#60A5FA",fontWeight:700}}>{userName}</span></p>}
+            <p style={{fontSize:11,color:"#64748B",margin:"4px 0 0"}}>Organize sua semana, acompanhe seus projetos e avance com velocidade!</p>
           </div>
           <button className="logout-btn" onClick={handleLogout} title="Sair" style={{background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:10,padding:"8px 10px",cursor:"pointer"}}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
         </div>
 
         {/* Week Selector */}
-        <div style={{background:"linear-gradient(135deg,rgba(59,130,246,0.08),rgba(139,92,246,0.08))",border:"1px solid rgba(255,255,255,0.07)",borderRadius:16,padding:"16px 20px",marginBottom:16}}>
+        <div style={{background:isCurrentWeek?"linear-gradient(135deg,rgba(59,130,246,0.08),rgba(139,92,246,0.08))":"linear-gradient(135deg,rgba(88,28,196,0.15),rgba(55,15,120,0.15))",border:`1px solid ${isCurrentWeek?"rgba(255,255,255,0.07)":"rgba(88,28,196,0.25)"}`,borderRadius:16,padding:"16px 20px",marginBottom:16,transition:"all 0.3s ease"}}>
           <div style={{display:"flex",gap:6,marginBottom:12}}>
-            {weeks.map((w,i)=>(<button key={w.id} onClick={()=>setActiveWeekIdx(i)} style={{flex:1,padding:"8px 4px",borderRadius:10,border:"none",cursor:"pointer",fontFamily:F,fontSize:11,fontWeight:600,background:activeWeekIdx===i?"rgba(59,130,246,0.2)":"rgba(255,255,255,0.04)",color:activeWeekIdx===i?"#60A5FA":"#64748B",transition:"all 0.2s"}}>{i===0?"Atual":"Próxima"}</button>))}
+            {weeks.map((w,i)=>(<button key={w.id} onClick={()=>setActiveWeekIdx(i)} style={{flex:1,padding:"8px 4px",borderRadius:10,border:"none",cursor:"pointer",fontFamily:F,fontSize:11,fontWeight:600,background:activeWeekIdx===i?(i===0?"rgba(59,130,246,0.2)":"rgba(88,28,196,0.3)"):"rgba(255,255,255,0.04)",color:activeWeekIdx===i?(i===0?"#60A5FA":"#B388FF"):"#64748B",transition:"all 0.2s"}}>{i===0?"Atual":"Próxima"}</button>))}
           </div>
           <div style={{textAlign:"center"}}>
             <div style={{fontSize:18,fontWeight:700,color:"#F1F5F9",fontFamily:F,letterSpacing:"0.01em"}}>{fmtWeekLabel(currentSun,currentSat)}</div>
@@ -345,8 +346,8 @@ export default function App(){
         </div>
 
         {/* Global Progress */}
-        <div style={{background:"linear-gradient(135deg,rgba(59,130,246,0.12),rgba(139,92,246,0.12))",border:"1px solid rgba(255,255,255,0.07)",borderRadius:16,padding:"20px 24px",display:"flex",alignItems:"center",gap:20,marginBottom:16}}>
-          <ProgressRing percent={globalPercent} color={globalPercent===100?"#10B981":"#3B82F6"} size={64}/>
+        <div style={{background:isCurrentWeek?"linear-gradient(135deg,rgba(59,130,246,0.12),rgba(139,92,246,0.12))":"linear-gradient(135deg,rgba(88,28,196,0.18),rgba(55,15,120,0.18))",border:`1px solid ${isCurrentWeek?"rgba(255,255,255,0.07)":"rgba(88,28,196,0.2)"}`,borderRadius:16,padding:"20px 24px",display:"flex",alignItems:"center",gap:20,marginBottom:16,transition:"all 0.3s ease"}}>
+          <ProgressRing percent={globalPercent} color={globalPercent===100?"#10B981":(isCurrentWeek?"#3B82F6":"#7C3AED")} size={64}/>
           <div><div style={{fontSize:22,fontWeight:700,color:"#F1F5F9"}}>{doneTasks} de {totalTasks}</div><div style={{fontSize:13,color:"#94A3B8",marginTop:2}}>tarefas concluídas</div></div>
         </div>
 
