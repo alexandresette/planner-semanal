@@ -22,6 +22,7 @@ const storage = {
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
         const { value, updatedAt } = docSnap.data();
+        console.log('[storage] ✅ Firestore get OK:', key);
         // Sincroniza cache local com o valor mais recente do Firestore
         try {
           localStorage.setItem(key, value);
@@ -48,6 +49,7 @@ const storage = {
     try {
       const docRef = doc(db, 'storage', key);
       await setDoc(docRef, { value, updatedAt });
+      console.log('[storage] ✅ Firestore set OK:', key);
       // Só atualiza localStorage após confirmação do Firestore
       try {
         localStorage.setItem(key, value);
@@ -55,6 +57,7 @@ const storage = {
       } catch {}
       return { key, value };
     } catch (e) {
+      console.error('[storage] ❌ Firestore set FAILED:', key, e.code, e.message);
       // Offline: salva localmente com flag de sync pendente
       try {
         localStorage.setItem(key, value);
