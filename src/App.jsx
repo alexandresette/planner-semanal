@@ -395,6 +395,7 @@ function ProjectCard({project,onToggleTask,onUpdateTask,onDeleteTask,onAddTask,o
   const [emojiVal,setEmojiVal]=useState(project.emoji);
   const [showEdit,setShowEdit]=useState(false);
   const [showDeleteConfirm,setShowDeleteConfirm]=useState(false);
+  useEffect(()=>{if(!showEdit)return;const h=(e)=>{if(e.key==="Escape"){e.stopPropagation();setShowEdit(false);}};window.addEventListener("keydown",h,true);return()=>window.removeEventListener("keydown",h,true);},[showEdit]);
   const saveName=()=>{if(nameVal.trim()&&nameVal.trim()!==project.name)onEditProject({name:nameVal.trim()});};
   const saveEmoji=()=>{if(emojiVal.trim()&&emojiVal.trim()!==project.emoji)onEditProject({emoji:emojiVal.trim()});};
   const tc = c || themes.dark;
@@ -468,6 +469,7 @@ function ColumnProjectCard({project:p,done,total,pct,idx,projectsLen,reorderMode
   const [nameVal,setNameVal]=useState(p.name);
   const [emojiVal,setEmojiVal]=useState(p.emoji);
   const [showDeleteConfirm,setShowDeleteConfirm]=useState(false);
+  useEffect(()=>{if(!showEdit)return;const h=(e)=>{if(e.key==="Escape"){e.stopPropagation();setShowEdit(false);}};window.addEventListener("keydown",h,true);return()=>window.removeEventListener("keydown",h,true);},[showEdit]);
   const saveName=()=>{if(nameVal.trim()&&nameVal.trim()!==p.name)onEditProject({name:nameVal.trim()});};
   const saveEmoji=()=>{if(emojiVal.trim()&&emojiVal.trim()!==p.emoji)onEditProject({emoji:emojiVal.trim()});};
   const tc = c || themes.dark;
