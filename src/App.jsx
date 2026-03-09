@@ -150,7 +150,7 @@ const priorityConfig = {
   low:{label:"Baixa",dot:"#6B7280",bg:"rgba(107,114,128,0.12)"},
 };
 const F = "'DM Sans', sans-serif";
-const FS = "'Syne', sans-serif";
+const FS = "'Inter', sans-serif";
 
 const themes = {
   dark: {
@@ -251,7 +251,7 @@ function FirstAccessScreen({ invitedEmail, onSuccess, onBack, theme }) {
 
   return (
     <div style={{minHeight:"100vh",background:c.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:F,padding:"24px 16px"}}>
-      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Inter:wght@600;700;800&display=swap" rel="stylesheet"/>
       <div style={{width:"100%",maxWidth:400,padding:"32px 28px",boxSizing:"border-box",textAlign:"center",background:c.loginCardBg,border:`1px solid ${c.loginCardBorder}`,borderRadius:24,animation:"fadeIn 0.5s ease",boxShadow:theme.mode==="light"?"0 4px 24px rgba(0,0,0,0.08)":"none"}}>
         <div style={{marginBottom:20}}>
           <Logo size="large" theme={theme.mode} />
@@ -424,7 +424,7 @@ function ResetPasswordScreen({ token, onSuccess, theme }) {
 
   if (done) return (
     <div style={{minHeight:"100vh",background:c.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:F,padding:"24px 16px"}}>
-      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Inter:wght@600;700;800&display=swap" rel="stylesheet"/>
       <div style={{width:"100%",maxWidth:400,padding:"32px 28px",boxSizing:"border-box",textAlign:"center",background:c.loginCardBg,border:`1px solid rgba(16,185,129,0.2)`,borderRadius:24,animation:"fadeIn 0.5s ease",boxShadow:theme.mode==="light"?"0 4px 24px rgba(0,0,0,0.08)":"none"}}>
         <div style={{marginBottom:16}}><Logo size="large" theme={theme.mode} /></div>
         <div style={{width:52,height:52,borderRadius:14,background:"rgba(16,185,129,0.12)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 14px"}}>
@@ -459,7 +459,7 @@ function ResetPasswordScreen({ token, onSuccess, theme }) {
 
   return (
     <div style={{minHeight:"100vh",background:c.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:F,padding:"24px 16px"}}>
-      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Inter:wght@600;700;800&display=swap" rel="stylesheet"/>
       <div style={{width:"100%",maxWidth:400,padding:"32px 28px",boxSizing:"border-box",textAlign:"center",background:c.loginCardBg,border:`1px solid ${c.loginCardBorder}`,borderRadius:24,animation:"fadeIn 0.5s ease",boxShadow:theme.mode==="light"?"0 4px 24px rgba(0,0,0,0.08)":"none"}}>
         <div style={{marginBottom:16}}><Logo size="large" theme={theme.mode} /></div>
         <h2 style={{fontSize:18,fontWeight:800,color:c.text,margin:"0 0 4px",fontFamily:FS}}>Nova senha</h2>
@@ -512,7 +512,7 @@ function ForgotPasswordScreen({ onBack, theme }) {
 
   if (sent) return (
     <div style={{minHeight:"100vh",background:c.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:F,padding:"24px 16px"}}>
-      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Inter:wght@600;700;800&display=swap" rel="stylesheet"/>
       <div style={{width:"100%",maxWidth:400,padding:"32px 28px",boxSizing:"border-box",background:c.loginCardBg,border:`1px solid ${c.loginCardBorder}`,borderRadius:24,textAlign:"center",animation:"fadeIn 0.5s ease",boxShadow:theme.mode==="light"?"0 4px 24px rgba(0,0,0,0.08)":"none"}}>
         <div style={{marginBottom:16}}><Logo size="large" theme={theme.mode} /></div>
         <div style={{width:52,height:52,borderRadius:14,background:"rgba(16,185,129,0.12)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 14px"}}>
@@ -601,7 +601,7 @@ function LoginScreen({ onLogin, theme }) {
 
   return (
     <div style={{minHeight:"100vh",background:c.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:F,padding:"24px 16px",transition:"background 0.3s ease"}}>
-      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Inter:wght@600;700;800&display=swap" rel="stylesheet"/>
       <button className="theme-btn" onClick={theme.toggle} style={{position:"fixed",top:16,right:16,background:c.btnBg,border:`1px solid ${c.btnBorder}`,borderRadius:10,padding:"8px 10px",cursor:"pointer",lineHeight:1,zIndex:10,display:"flex",alignItems:"center",justifyContent:"center"}} title={theme.mode==="dark"?"Modo claro":"Modo escuro"}>{theme.mode==="dark"?(<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={c.textSub} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>):(<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={c.textSub} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>)}</button>
       <div style={{width:"100%",maxWidth:400,padding:"32px 24px",textAlign:"center",background:c.loginCardBg,border:`1px solid ${c.loginCardBorder}`,borderRadius:24,animation:shake?"shake 0.5s ease":"fadeIn 0.6s ease",boxShadow:theme.mode==="light"?"0 4px 24px rgba(0,0,0,0.08)":"none",boxSizing:"border-box",minWidth:0}}>
         <div style={{ marginBottom: 16 }}><Logo size="large" theme={theme.mode} /></div>
@@ -753,7 +753,7 @@ function TaskItem({task,color,onToggle,onUpdate,onDelete,projectName,projectEmoj
   const tc = c || themes.dark;
   return(
     <>
-    {showViewModal&&<TaskViewModal task={task} color={color} projectName={projectName} projectEmoji={projectEmoji} onToggle={()=>{onToggle();}} onClose={()=>setShowViewModal(false)} c={tc}/>}
+    {showViewModal&&<TaskViewModal task={task} color={color} projectName={projectName} projectEmoji={projectEmoji} onToggle={()=>{onToggle();setShowViewModal(false);}} onClose={()=>setShowViewModal(false)} c={tc}/>}
     <div className="task-card" style={{borderRadius:12,overflow:"hidden",background:task.done?tc.taskBgDone:tc.taskBg,border:`1px solid ${task.done?tc.taskBorderDone:tc.taskBorder}`,opacity:task.done?0.55:1}}>
       <div onClick={()=>setShowViewModal(true)} style={{padding:"10px 12px",cursor:"pointer"}}>
         <div style={{display:"flex",alignItems:"flex-start",gap:10}}>
@@ -1233,7 +1233,7 @@ export default function App(){
 
   return(
     <div style={{minHeight:"100vh",background:c.bg,fontFamily:F,transition:"background 0.3s ease"}}>
-      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Inter:wght@600;700;800&display=swap" rel="stylesheet"/>
       <style>{`@keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}.task-card{transition:all 0.25s cubic-bezier(0.4,0,0.2,1)}.task-card:hover{transform:translateY(-1px);box-shadow:0 4px 20px ${c.hoverShadow};border-color:${c.hoverBorder}!important}.project-card{transition:all 0.3s cubic-bezier(0.4,0,0.2,1)}.project-card:hover{box-shadow:0 6px 28px ${c.hoverShadow};border-color:${c.hoverBorder}!important}.logout-btn{transition:all 0.25s ease}.logout-btn:hover{background:rgba(239,68,68,0.08)!important;border-color:rgba(239,68,68,0.35)!important;box-shadow:0 0 16px rgba(239,68,68,0.12)}.theme-btn{transition:all 0.25s ease}.theme-btn:hover{background:rgba(59,130,246,0.08)!important;border-color:rgba(59,130,246,0.35)!important;box-shadow:0 0 16px rgba(59,130,246,0.15)}.theme-btn:hover svg{stroke:#3B82F6}@media(max-width:767px){.layout-toggle{display:none!important}}`}</style>
 
       <div style={{maxWidth:layoutMode==="columns"?1200:520,margin:"0 auto",padding:"24px 16px 40px",transition:"max-width 0.3s ease"}}>
