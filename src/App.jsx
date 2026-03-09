@@ -252,7 +252,7 @@ function FirstAccessScreen({ invitedEmail, onSuccess, onBack, theme }) {
   return (
     <div style={{minHeight:"100vh",background:c.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:F,padding:"24px 16px"}}>
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
-      <div style={{width:360,padding:40,textAlign:"center",background:c.loginCardBg,border:`1px solid ${c.loginCardBorder}`,borderRadius:24,animation:"fadeIn 0.5s ease",boxShadow:theme.mode==="light"?"0 4px 24px rgba(0,0,0,0.08)":"none"}}>
+      <div style={{width:"100%",maxWidth:400,padding:"32px 28px",boxSizing:"border-box",textAlign:"center",background:c.loginCardBg,border:`1px solid ${c.loginCardBorder}`,borderRadius:24,animation:"fadeIn 0.5s ease",boxShadow:theme.mode==="light"?"0 4px 24px rgba(0,0,0,0.08)":"none"}}>
         <div style={{marginBottom:20}}>
           <Logo size="large" theme={theme.mode} />
         </div>
@@ -425,7 +425,7 @@ function ResetPasswordScreen({ token, onSuccess, theme }) {
   if (done) return (
     <div style={{minHeight:"100vh",background:c.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:F,padding:"24px 16px"}}>
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
-      <div style={{width:360,padding:40,textAlign:"center",background:c.loginCardBg,border:`1px solid rgba(16,185,129,0.2)`,borderRadius:24,animation:"fadeIn 0.5s ease",boxShadow:theme.mode==="light"?"0 4px 24px rgba(0,0,0,0.08)":"none"}}>
+      <div style={{width:"100%",maxWidth:400,padding:"32px 28px",boxSizing:"border-box",textAlign:"center",background:c.loginCardBg,border:`1px solid rgba(16,185,129,0.2)`,borderRadius:24,animation:"fadeIn 0.5s ease",boxShadow:theme.mode==="light"?"0 4px 24px rgba(0,0,0,0.08)":"none"}}>
         <div style={{marginBottom:16}}><Logo size="large" theme={theme.mode} /></div>
         <div style={{width:52,height:52,borderRadius:14,background:"rgba(16,185,129,0.12)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 14px"}}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
@@ -440,7 +440,7 @@ function ResetPasswordScreen({ token, onSuccess, theme }) {
 
   if (tokenError) return (
     <div style={{minHeight:"100vh",background:c.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:F,padding:"24px 16px"}}>
-      <div style={{width:360,padding:40,background:c.loginCardBg,border:`1px solid rgba(239,68,68,0.25)`,borderRadius:24,textAlign:"center",boxShadow:theme.mode==="light"?"0 4px 24px rgba(0,0,0,0.08)":"none"}}>
+      <div style={{width:"100%",maxWidth:400,padding:"32px 28px",boxSizing:"border-box",background:c.loginCardBg,border:`1px solid rgba(239,68,68,0.25)`,borderRadius:24,textAlign:"center",boxShadow:theme.mode==="light"?"0 4px 24px rgba(0,0,0,0.08)":"none"}}>
         <div style={{width:48,height:48,borderRadius:14,background:"rgba(239,68,68,0.12)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 14px"}}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
         </div>
@@ -460,7 +460,7 @@ function ResetPasswordScreen({ token, onSuccess, theme }) {
   return (
     <div style={{minHeight:"100vh",background:c.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:F,padding:"24px 16px"}}>
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
-      <div style={{width:360,padding:40,textAlign:"center",background:c.loginCardBg,border:`1px solid ${c.loginCardBorder}`,borderRadius:24,animation:"fadeIn 0.5s ease",boxShadow:theme.mode==="light"?"0 4px 24px rgba(0,0,0,0.08)":"none"}}>
+      <div style={{width:"100%",maxWidth:400,padding:"32px 28px",boxSizing:"border-box",textAlign:"center",background:c.loginCardBg,border:`1px solid ${c.loginCardBorder}`,borderRadius:24,animation:"fadeIn 0.5s ease",boxShadow:theme.mode==="light"?"0 4px 24px rgba(0,0,0,0.08)":"none"}}>
         <div style={{marginBottom:16}}><Logo size="large" theme={theme.mode} /></div>
         <h2 style={{fontSize:18,fontWeight:800,color:c.text,margin:"0 0 4px",fontFamily:FS}}>Nova senha</h2>
         <p style={{fontSize:12,color:c.textSub,margin:"0 0 20px"}}>Para o usuário <span style={{color:"#3B82F6",fontWeight:600}}>{tokenData.username}</span></p>
@@ -513,7 +513,7 @@ function ForgotPasswordScreen({ onBack, theme }) {
   if (sent) return (
     <div style={{minHeight:"100vh",background:c.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:F,padding:"24px 16px"}}>
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
-      <div style={{width:360,padding:40,background:c.loginCardBg,border:`1px solid ${c.loginCardBorder}`,borderRadius:24,textAlign:"center",animation:"fadeIn 0.5s ease",boxShadow:theme.mode==="light"?"0 4px 24px rgba(0,0,0,0.08)":"none"}}>
+      <div style={{width:"100%",maxWidth:400,padding:"32px 28px",boxSizing:"border-box",background:c.loginCardBg,border:`1px solid ${c.loginCardBorder}`,borderRadius:24,textAlign:"center",animation:"fadeIn 0.5s ease",boxShadow:theme.mode==="light"?"0 4px 24px rgba(0,0,0,0.08)":"none"}}>
         <div style={{marginBottom:16}}><Logo size="large" theme={theme.mode} /></div>
         <div style={{width:52,height:52,borderRadius:14,background:"rgba(16,185,129,0.12)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 14px"}}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2" strokeLinecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
@@ -528,7 +528,7 @@ function ForgotPasswordScreen({ onBack, theme }) {
 
   return (
     <div style={{minHeight:"100vh",background:c.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:F,padding:"24px 16px"}}>
-      <div style={{width:360,padding:40,background:c.loginCardBg,border:`1px solid ${c.loginCardBorder}`,borderRadius:24,animation:"fadeIn 0.5s ease",boxShadow:theme.mode==="light"?"0 4px 24px rgba(0,0,0,0.08)":"none"}}>
+      <div style={{width:"100%",maxWidth:400,padding:"32px 28px",boxSizing:"border-box",background:c.loginCardBg,border:`1px solid ${c.loginCardBorder}`,borderRadius:24,animation:"fadeIn 0.5s ease",boxShadow:theme.mode==="light"?"0 4px 24px rgba(0,0,0,0.08)":"none"}}>
         <div style={{textAlign:"center",marginBottom:20}}>
           <div style={{width:48,height:48,borderRadius:14,background:"rgba(59,130,246,0.1)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 12px"}}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
@@ -603,7 +603,7 @@ function LoginScreen({ onLogin, theme }) {
     <div style={{minHeight:"100vh",background:c.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:F,padding:"24px 16px",transition:"background 0.3s ease"}}>
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
       <button className="theme-btn" onClick={theme.toggle} style={{position:"fixed",top:16,right:16,background:c.btnBg,border:`1px solid ${c.btnBorder}`,borderRadius:10,padding:"8px 10px",cursor:"pointer",lineHeight:1,zIndex:10,display:"flex",alignItems:"center",justifyContent:"center"}} title={theme.mode==="dark"?"Modo claro":"Modo escuro"}>{theme.mode==="dark"?(<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={c.textSub} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>):(<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={c.textSub} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>)}</button>
-      <div style={{width:"100%",maxWidth:400,padding:"32px 24px",textAlign:"center",background:c.loginCardBg,border:`1px solid ${c.loginCardBorder}`,borderRadius:24,animation:shake?"shake 0.5s ease":"fadeIn 0.6s ease",boxShadow:theme.mode==="light"?"0 4px 24px rgba(0,0,0,0.08)":"none",boxSizing:"border-box"}}>
+      <div style={{width:"100%",maxWidth:400,padding:"32px 24px",textAlign:"center",background:c.loginCardBg,border:`1px solid ${c.loginCardBorder}`,borderRadius:24,animation:shake?"shake 0.5s ease":"fadeIn 0.6s ease",boxShadow:theme.mode==="light"?"0 4px 24px rgba(0,0,0,0.08)":"none",boxSizing:"border-box",minWidth:0}}>
         <div style={{ marginBottom: 16 }}><Logo size="large" theme={theme.mode} /></div>
         <p style={{fontSize:13,color:c.textSub,margin:"0 0 20px",lineHeight:1.5}}>Organize sua semana, acompanhe seus projetos e avance com velocidade!</p>
 
@@ -647,10 +647,18 @@ function LoginScreen({ onLogin, theme }) {
 
 /* ─── Progress Ring ─── */
 function ProgressRing({percent,color,size=48,c}){
-  const r=(size-6)/2,circ=2*Math.PI*r,offset=circ-(percent/100)*circ;
+  const strokeW = size <= 32 ? 3 : 4;
+  const r=(size-strokeW*2)/2,circ=2*Math.PI*r,offset=circ-(percent/100)*circ;
   const trackColor = c ? c.progressRingBg : "rgba(255,255,255,0.08)";
   const textFill = c ? c.text : "#fff";
-  return(<svg width={size} height={size} style={{transform:"rotate(-90deg)",overflow:"visible"}}><circle cx={size/2} cy={size/2} r={r} fill="none" stroke={trackColor} strokeWidth="4"/><circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth="4" strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round" style={{transition:"stroke-dashoffset 0.6s cubic-bezier(0.4,0,0.2,1)"}}/><text x={size/2} y={size/2} textAnchor="middle" dominantBaseline="central" style={{transform:"rotate(90deg)",transformOrigin:`${size/2}px ${size/2}px`,fontSize:size<44?11:13,fill:textFill,fontWeight:700,fontFamily:"DM Sans, sans-serif"}}>{percent}%</text></svg>);
+  const fontSize = size <= 32 ? 9 : size < 44 ? 11 : 13;
+  return(
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{flexShrink:0,overflow:"visible"}}>
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={trackColor} strokeWidth={strokeW}/>
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={strokeW} strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round" style={{transform:"rotate(-90deg)",transformOrigin:"50% 50%",transition:"stroke-dashoffset 0.6s cubic-bezier(0.4,0,0.2,1)"}}/>
+      <text x={size/2} y={size/2} textAnchor="middle" dominantBaseline="central" style={{fontSize,fill:textFill,fontWeight:700,fontFamily:"DM Sans, sans-serif"}}>{percent}%</text>
+    </svg>
+  );
 }
 
 /* ─── Confirm Delete Modal ─── */
@@ -992,24 +1000,25 @@ export default function App(){
   const [openTaskId,setOpenTaskId]=useState(null);
   const [dragOverDay,setDragOverDay]=useState(null);
   const [layoutMode,setLayoutMode]=useState("list");
+  const [layoutUserSet,setLayoutUserSet]=useState(false);
   const [focosOpen,setFocosOpen]=useState(true);
   const [showAdmin,setShowAdmin]=useState(false);
 
   // Preferências por usuário — carregadas e salvas com userName na chave
   function loadUserPrefs(user){
     try{const v=localStorage.getItem(`planner-${user}-viewMode`);if(v)setViewMode(v);}catch{}
-    try{const l=localStorage.getItem(`planner-${user}-layoutMode`);if(l==="columns"&&window.innerWidth>=768)setLayoutMode("columns");else if(l==="list")setLayoutMode("list");}catch{}
+    try{const l=localStorage.getItem(`planner-${user}-layoutMode`);if(l==="columns"&&window.innerWidth>=768){setLayoutMode("columns");setLayoutUserSet(true);}else if(l==="list"){setLayoutMode("list");setLayoutUserSet(true);}}catch{}
     try{const f=localStorage.getItem(`planner-${user}-focosOpen`);if(f!==null)setFocosOpen(f==="true");}catch{}
   }
   useEffect(()=>{if(!userName)return;try{localStorage.setItem(`planner-${userName}-viewMode`,viewMode);}catch{}},[viewMode,userName]);
-  useEffect(()=>{if(!userName)return;try{localStorage.setItem(`planner-${userName}-layoutMode`,layoutMode);}catch{}},[layoutMode,userName]);
+  useEffect(()=>{if(!userName||!layoutUserSet)return;try{localStorage.setItem(`planner-${userName}-layoutMode`,layoutMode);}catch{}},[layoutMode,layoutUserSet,userName]);
   useEffect(()=>{if(!userName)return;try{localStorage.setItem(`planner-${userName}-focosOpen`,String(focosOpen));}catch{}},[focosOpen,userName]);
   useEffect(()=>{
-    const handleResize=()=>{if(window.innerWidth<768&&layoutMode==="columns"){setLayoutMode("list");}};
+    const handleResize=()=>{if(window.innerWidth<768){setLayoutMode("list");}};
     window.addEventListener("resize",handleResize);
     handleResize();
     return()=>window.removeEventListener("resize",handleResize);
-  },[layoutMode]);
+  },[]);
   useEffect(()=>{(async()=>{try{const r=await window.storage.get(AUTH_KEY);if(r&&r.value==="true"){setAuthed(true);try{const u=await window.storage.get(USER_KEY);if(u&&u.value){setUserName(u.value);loadUserPrefs(u.value);}}catch{}}}catch{}})();},[]);
   const handleLogin=useCallback(user=>{setAuthed(true);setUserName(user);loadUserPrefs(user);window.storage.set(AUTH_KEY,"true").catch(()=>{});window.storage.set(USER_KEY,user).catch(()=>{});},[]);
   const handleLogout=useCallback(()=>{setAuthed(false);setUserName("");setWeeks([]);setLoading(true);window.storage.set(AUTH_KEY,"false").catch(()=>{});window.storage.set(USER_KEY,"").catch(()=>{});},[]);
@@ -1194,7 +1203,7 @@ export default function App(){
             <button onClick={()=>{setViewMode("weekday");setReorderMode(false);}} style={{flex:1,padding:"9px 0",fontSize:12,fontWeight:600,fontFamily:F,border:"none",cursor:"pointer",background:viewMode==="weekday"?"rgba(59,130,246,0.15)":"transparent",color:viewMode==="weekday"?"#3B82F6":c.textMuted}}>Dias da Semana</button>
           </div>
           {viewMode==="category"&&(<button onClick={()=>setReorderMode(!reorderMode)} style={{background:reorderMode?"rgba(59,130,246,0.15)":c.btnBg,border:`1px solid ${reorderMode?"rgba(59,130,246,0.3)":c.btnBorder}`,borderRadius:10,padding:"9px 10px",cursor:"pointer"}}>{layoutMode==="columns"?(<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={reorderMode?"#3B82F6":c.textMuted} strokeWidth="2" strokeLinecap="round"><polyline points="3 12 21 12"/><polyline points="7 8 3 12 7 16"/><polyline points="17 8 21 12 17 16"/></svg>):(<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={reorderMode?"#3B82F6":c.textMuted} strokeWidth="2" strokeLinecap="round"><polyline points="12 3 12 21"/><polyline points="8 7 12 3 16 7"/><polyline points="8 17 12 21 16 17"/></svg>)}</button>)}
-          <button onClick={()=>setLayoutMode(layoutMode==="list"?"columns":"list")} title={layoutMode==="list"?"Visualização em colunas":"Visualização em lista"} className="layout-toggle" style={{background:layoutMode==="columns"?"rgba(59,130,246,0.15)":c.btnBg,border:`1px solid ${layoutMode==="columns"?"rgba(59,130,246,0.3)":c.btnBorder}`,borderRadius:10,padding:"9px 10px",cursor:"pointer"}}>
+          <button onClick={()=>{const next=layoutMode==="list"?"columns":"list";setLayoutMode(next);setLayoutUserSet(true);}} title={layoutMode==="list"?"Visualização em colunas":"Visualização em lista"} className="layout-toggle" style={{background:layoutMode==="columns"?"rgba(59,130,246,0.15)":c.btnBg,border:`1px solid ${layoutMode==="columns"?"rgba(59,130,246,0.3)":c.btnBorder}`,borderRadius:10,padding:"9px 10px",cursor:"pointer"}}>
             {layoutMode==="list"?(<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={c.textMuted} strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="18" rx="1"/></svg>):(<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>)}
           </button>
         </div>
