@@ -251,32 +251,32 @@ function FirstAccessScreen({ invitedEmail, onSuccess, onBack, theme }) {
 
   return (
     <div style={{minHeight:"100vh",background:c.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:F,padding:"24px 16px"}}>
-      <div style={{width:360,padding:40,background:c.loginCardBg,border:`1px solid rgba(16,185,129,0.2)`,borderRadius:24,animation:"fadeIn 0.5s ease",boxShadow:theme.mode==="light"?"0 4px 24px rgba(0,0,0,0.08)":"none"}}>
-        <div style={{marginBottom:20,textAlign:"center"}}>
-          <div style={{width:48,height:48,borderRadius:14,background:"rgba(16,185,129,0.12)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 12px"}}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2" strokeLinecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-          </div>
-          <h2 style={{fontSize:20,fontWeight:800,color:c.text,margin:"0 0 4px",fontFamily:FS}}>Primeiro acesso</h2>
-          <p style={{fontSize:12,color:c.textSub,margin:0,lineHeight:1.5}}>Crie seu perfil para <span style={{color:"#10B981",fontWeight:600}}>{invitedEmail}</span></p>
+      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+      <div style={{width:360,padding:40,textAlign:"center",background:c.loginCardBg,border:`1px solid ${c.loginCardBorder}`,borderRadius:24,animation:"fadeIn 0.5s ease",boxShadow:theme.mode==="light"?"0 4px 24px rgba(0,0,0,0.08)":"none"}}>
+        <div style={{marginBottom:20}}>
+          <Logo size="large" theme={theme.mode} />
         </div>
+        <h2 style={{fontSize:18,fontWeight:800,color:c.text,margin:"0 0 4px",fontFamily:FS}}>Primeiro acesso</h2>
+        <p style={{fontSize:12,color:c.textSub,margin:"0 0 20px",lineHeight:1.5}}>Crie seu perfil para <span style={{color:"#3B82F6",fontWeight:600}}>{invitedEmail}</span></p>
         <div style={{textAlign:"left",marginBottom:12}}>
           <span style={{fontSize:11,color:c.textMuted,fontWeight:600,textTransform:"uppercase",letterSpacing:0.5}}>Nome de usuário</span>
-          <input autoFocus value={username} onChange={e=>setUsername(e.target.value.replace(/\s/g,""))} onKeyDown={e=>e.key==="Enter"&&document.getElementById("fa-pass")?.focus()} placeholder="ex: joao" style={{width:"100%",boxSizing:"border-box",marginTop:6,padding:"11px 14px",fontSize:14,background:c.inputBg,border:`1.5px solid ${error&&!username?"#EF4444":c.inputBorder}`,borderRadius:10,color:c.inputText,outline:"none",fontFamily:F}}/>
+          <input autoFocus value={username} onChange={e=>setUsername(e.target.value.replace(/\s/g,""))} onKeyDown={e=>e.key==="Enter"&&document.getElementById("fa-pass")?.focus()} placeholder="ex: joao" style={{width:"100%",boxSizing:"border-box",marginTop:6,padding:"12px 16px",fontSize:15,background:c.inputBg,border:`2px solid ${error&&!username?"#EF4444":c.inputBorder}`,borderRadius:12,color:c.inputText,outline:"none",fontFamily:F}}/>
         </div>
         <div style={{textAlign:"left",marginBottom:12}}>
           <span style={{fontSize:11,color:c.textMuted,fontWeight:600,textTransform:"uppercase",letterSpacing:0.5}}>Senha</span>
-          <input id="fa-pass" type="password" value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>e.key==="Enter"&&document.getElementById("fa-confirm")?.focus()} placeholder="mínimo 4 caracteres" style={{width:"100%",boxSizing:"border-box",marginTop:6,padding:"11px 14px",fontSize:14,background:c.inputBg,border:`1.5px solid ${c.inputBorder}`,borderRadius:10,color:c.inputText,outline:"none",fontFamily:F}}/>
+          <input id="fa-pass" type="password" value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>e.key==="Enter"&&document.getElementById("fa-confirm")?.focus()} placeholder="mínimo 4 caracteres" style={{width:"100%",boxSizing:"border-box",marginTop:6,padding:"12px 16px",fontSize:15,background:c.inputBg,border:`2px solid ${c.inputBorder}`,borderRadius:12,color:c.inputText,outline:"none",fontFamily:F}}/>
         </div>
         <div style={{textAlign:"left",marginBottom:6}}>
           <span style={{fontSize:11,color:c.textMuted,fontWeight:600,textTransform:"uppercase",letterSpacing:0.5}}>Confirmar senha</span>
-          <input id="fa-confirm" type="password" value={confirm} onChange={e=>setConfirm(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleRegister()} placeholder="repita a senha" style={{width:"100%",boxSizing:"border-box",marginTop:6,padding:"11px 14px",fontSize:14,background:c.inputBg,border:`1.5px solid ${error&&password!==confirm?"#EF4444":c.inputBorder}`,borderRadius:10,color:c.inputText,outline:"none",fontFamily:F}}/>
+          <input id="fa-confirm" type="password" value={confirm} onChange={e=>setConfirm(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleRegister()} placeholder="repita a senha" style={{width:"100%",boxSizing:"border-box",marginTop:6,padding:"12px 16px",fontSize:15,background:c.inputBg,border:`2px solid ${error&&password!==confirm?"#EF4444":c.inputBorder}`,borderRadius:12,color:c.inputText,outline:"none",fontFamily:F}}/>
         </div>
-        {error&&<p style={{color:"#EF4444",fontSize:12,margin:"8px 0 0",lineHeight:1.4}}>{error}</p>}
-        <button onClick={handleRegister} disabled={loading} style={{width:"100%",marginTop:18,padding:"13px",background:"linear-gradient(135deg,#10B981,#3B82F6)",border:"none",borderRadius:12,color:"#fff",fontSize:15,fontWeight:700,cursor:loading?"default":"pointer",fontFamily:F,opacity:loading?0.7:1}}>
+        {error&&<p style={{color:"#EF4444",fontSize:13,margin:"10px 0 0"}}>{error}</p>}
+        <button onClick={handleRegister} disabled={loading} style={{width:"100%",marginTop:18,padding:"14px",background:"linear-gradient(135deg,#3B82F6,#8B5CF6)",border:"none",borderRadius:14,color:"#fff",fontSize:15,fontWeight:700,cursor:loading?"default":"pointer",fontFamily:F,opacity:loading?0.7:1}}>
           {loading?"Criando conta...":"Criar minha conta"}
         </button>
-        <button onClick={onBack} style={{width:"100%",marginTop:8,padding:"11px",background:"transparent",border:`1px solid ${c.cardBorder}`,borderRadius:12,color:c.textSub,fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:F}}>← Voltar ao login</button>
+        <button onClick={onBack} style={{width:"100%",marginTop:8,padding:"12px",background:"transparent",border:`1px solid ${c.cardBorder}`,borderRadius:14,color:c.textSub,fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:F}}>← Voltar ao login</button>
       </div>
+      <style>{`@keyframes fadeIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}`}</style>
     </div>
   );
 }
@@ -386,6 +386,7 @@ function ResetPasswordScreen({ token, onSuccess, theme }) {
   const [loading, setLoading] = useState(false);
   const [tokenData, setTokenData] = useState(null);
   const [tokenError, setTokenError] = useState("");
+  const [done, setDone] = useState(false);
   const c = theme.t;
 
   useEffect(() => {
@@ -416,10 +417,26 @@ function ResetPasswordScreen({ token, onSuccess, theme }) {
       }
       // Invalidar token
       await window.storage.delete(`${RESET_TOKEN_PREFIX}${token}`).catch(() => {});
-      onSuccess();
+      setDone(true);
     } catch { setError("Erro ao redefinir senha. Tente novamente."); }
     setLoading(false);
   };
+
+  if (done) return (
+    <div style={{minHeight:"100vh",background:c.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:F,padding:"24px 16px"}}>
+      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+      <div style={{width:360,padding:40,textAlign:"center",background:c.loginCardBg,border:`1px solid rgba(16,185,129,0.2)`,borderRadius:24,animation:"fadeIn 0.5s ease",boxShadow:theme.mode==="light"?"0 4px 24px rgba(0,0,0,0.08)":"none"}}>
+        <div style={{marginBottom:16}}><Logo size="large" theme={theme.mode} /></div>
+        <div style={{width:52,height:52,borderRadius:14,background:"rgba(16,185,129,0.12)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 14px"}}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <h2 style={{fontSize:20,fontWeight:800,color:c.text,margin:"0 0 8px",fontFamily:FS}}>Senha redefinida!</h2>
+        <p style={{fontSize:13,color:c.textSub,margin:"0 0 24px",lineHeight:1.5}}>Sua senha foi atualizada com sucesso. Faça login com a nova senha.</p>
+        <button onClick={onSuccess} style={{width:"100%",padding:"14px",background:"linear-gradient(135deg,#3B82F6,#8B5CF6)",border:"none",borderRadius:14,color:"#fff",fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:F}}>Fazer login</button>
+      </div>
+      <style>{`@keyframes fadeIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}`}</style>
+    </div>
+  );
 
   if (tokenError) return (
     <div style={{minHeight:"100vh",background:c.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:F,padding:"24px 16px"}}>
@@ -580,7 +597,7 @@ function LoginScreen({ onLogin, theme }) {
   if (showForgot) return <ForgotPasswordScreen onBack={() => setShowForgot(false)} theme={theme} />;
 
   if (firstAccessEmail) {
-    return <FirstAccessScreen invitedEmail={firstAccessEmail} onSuccess={username => onLogin(username)} onBack={() => { setFirstAccessEmail(null); setGoogleLoading(false); }} theme={theme} />;
+    return <FirstAccessScreen invitedEmail={firstAccessEmail} onSuccess={username => { try { window.history.replaceState({}, "", window.location.pathname); } catch {} onLogin(username); }} onBack={() => { try { window.history.replaceState({}, "", window.location.pathname); } catch {} setFirstAccessEmail(null); setGoogleLoading(false); }} theme={theme} />;
   }
 
   return (
