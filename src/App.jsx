@@ -286,7 +286,28 @@ export default function App(){
   const addTask=useCallback((pid,text,day,priority)=>updateProjects(ps=>ps.map(p=>{if(p.id!==pid)return p;return{...p,tasks:[...p.tasks,{id:`${p.id}_${Date.now()}`,text,done:false,priority:priority||"medium",day:day||"seg"}]};})),[updateProjects]);
   const editProject=useCallback((pid,u)=>updateProjects(ps=>ps.map(p=>p.id===pid?{...p,...u}:p)),[updateProjects]);
   const addCategory=useCallback(({name,color,emoji})=>updateProjects(ps=>[...ps,{id:`cat_${Date.now()}`,name,emoji,color,tasks:[]}]),[updateProjects]);
-  const moveProject=useCallback((index,dir)=>updateProjects(ps=>{const a=[...ps];const t=index+dir;if(t<0||t>=a.length)return ps;[a[index],a[t]]=[a[t],a[index]];return a;}),[updateProjects]);
+  const moveProject=useCallback((index,dir)=>{
+    setWeeks(prev=>{
+      const arr=JSON.parse(JSON.stringify(prev));
+      // Get new order from active week
+      const ps=[...arr[activeWeekIdx].projects];
+      const t=index+dir;
+      if(t<0||t>=ps.length)return prev;
+      [ps[index],ps[t]]=[ps[t],ps[index]];
+      arr[activeWeekIdx].projects=ps;
+      // Sync order to all other weeks
+      const orderIds=ps.map(p=>p.id);
+      for(let i=0;i<arr.length;i++){
+        if(i===activeWeekIdx)continue;
+        const sorted=[];
+        const map=new Map(arr[i].projects.map(p=>[p.id,p]));
+        orderIds.forEach(id=>{if(map.has(id)){sorted.push(map.get(id));map.delete(id);}});
+        map.forEach(p=>sorted.push(p));
+        arr[i].projects=sorted;
+      }
+      return arr;
+    });
+  },[activeWeekIdx]);
   const toggleExpand=useCallback(id=>setExpanded(prev=>({...prev,[id]:!prev[id]})),[]);
 
   const moveTaskToWeek=useCallback((fromIdx,toIdx,pid,tid)=>{
