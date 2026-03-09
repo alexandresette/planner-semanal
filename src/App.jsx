@@ -1118,7 +1118,7 @@ export default function App(){
 
   // Detecta ?reset=TOKEN na URL para tela de redefinição de senha
   const resetToken = (() => { try { return new URLSearchParams(window.location.search).get("reset"); } catch { return null; } })();
-  if (resetToken) return <ResetPasswordScreen token={resetToken} onSuccess={() => { window.history.replaceState({}, "", window.location.pathname); }} theme={theme} />;
+  if (resetToken) return <ResetPasswordScreen token={resetToken} onSuccess={() => { window.location.replace(window.location.pathname); }} theme={theme} />;
 
   if(!authed) return <LoginScreen onLogin={handleLogin} theme={theme}/>;
   if(loading||weeks.length===0) return(<div style={{minHeight:"100vh",background:c.bg,display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{color:c.textMuted,fontSize:16,fontFamily:F}}>Carregando...</div></div>);
