@@ -412,14 +412,17 @@ export default function App(){
         </div>
         ):(
         /* COLUMNS LAYOUT */
-        <div style={{display:"grid",gridTemplateColumns:viewMode==="category"?`repeat(${Math.min(projects.length,4)}, 1fr)`:`repeat(${WEEK_DAYS.length}, 1fr)`,gap:10,overflowX:"auto"}}>
-          {viewMode==="category"?(
-            projects.map((p,idx)=>{const done=p.tasks.filter(t=>t.done).length;const total=p.tasks.length;const pct=total>0?Math.round((done/total)*100):0;return(
+        <div style={{display:"grid",gridTemplateColumns:viewMode==="category"?`repeat(${Math.min(projects.length+1,5)}, 1fr)`:`repeat(${WEEK_DAYS.length}, 1fr)`,gap:10,overflowX:"auto"}}>
+          {viewMode==="category"?(<>
+            {projects.map((p,idx)=>{const done=p.tasks.filter(t=>t.done).length;const total=p.tasks.length;const pct=total>0?Math.round((done/total)*100):0;return(
               <div key={p.id} style={{background:"rgba(255,255,255,0.04)",borderRadius:14,border:"1px solid rgba(255,255,255,0.07)",overflow:"hidden",minWidth:180}}>
                 <div style={{padding:"14px 12px",borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
                   <div style={{display:"flex",alignItems:"center",gap:8}}>
                     <span style={{fontSize:20}}>{p.emoji}</span>
                     <div style={{flex:1,minWidth:0}}><div style={{fontSize:13,fontWeight:700,color:"#F1F5F9",fontFamily:F,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.name}</div><span style={{fontSize:11,color:"#94A3B8",fontFamily:F}}>{done}/{total}</span></div>
+                    <div onClick={()=>editProject(p.id,{})} style={{cursor:"pointer",padding:4,opacity:0.4,transition:"opacity 0.2s"}} onMouseEnter={e=>e.currentTarget.style.opacity="1"} onMouseLeave={e=>e.currentTarget.style.opacity="0.4"}>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    </div>
                     <ProgressRing percent={pct} color={pct===100?"#10B981":p.color} size={32}/>
                   </div>
                   {reorderMode&&(<div style={{display:"flex",justifyContent:"center",gap:8,marginTop:8}}>
@@ -432,7 +435,9 @@ export default function App(){
                   <AddTaskInput color={p.color} onAdd={(text,day,priority)=>addTask(p.id,text,day,priority)}/>
                 </div>
               </div>
-            );})
+            );})}
+            <AddCategoryCard onAdd={addCategory}/>
+          </>)
           ):(
             weekData.map(({day,tasks})=>(
               <div key={day.key}
