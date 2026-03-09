@@ -4,7 +4,7 @@ import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/
 import { getFunctions, httpsCallable } from 'firebase/functions';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBm2_d4stfbDp7ZuLF7k3BmX6EPsPk3ZEE",
+  apiKey: "AIzaSyBm2_d4stfbDp7ZulF7k3BmX6EPsPk3ZEE",
   authDomain: "planner-semanal-7.firebaseapp.com",
   projectId: "planner-semanal-7",
   storageBucket: "planner-semanal-7.firebasestorage.app",
