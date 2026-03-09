@@ -387,7 +387,7 @@ export default function App(){
             <button onClick={()=>{setViewMode("category");setReorderMode(false);}} style={{flex:1,padding:"9px 0",fontSize:12,fontWeight:600,fontFamily:F,border:"none",cursor:"pointer",background:viewMode==="category"?"rgba(59,130,246,0.15)":"transparent",color:viewMode==="category"?"#60A5FA":"#64748B"}}>Categorias</button>
             <button onClick={()=>{setViewMode("weekday");setReorderMode(false);}} style={{flex:1,padding:"9px 0",fontSize:12,fontWeight:600,fontFamily:F,border:"none",cursor:"pointer",background:viewMode==="weekday"?"rgba(59,130,246,0.15)":"transparent",color:viewMode==="weekday"?"#60A5FA":"#64748B"}}>Dias da Semana</button>
           </div>
-          {viewMode==="category"&&(<button onClick={()=>setReorderMode(!reorderMode)} style={{background:reorderMode?"rgba(59,130,246,0.15)":"rgba(255,255,255,0.04)",border:`1px solid ${reorderMode?"rgba(59,130,246,0.3)":"rgba(255,255,255,0.07)"}`,borderRadius:10,padding:"9px 10px",cursor:"pointer"}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={reorderMode?"#60A5FA":"#64748B"} strokeWidth="2" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>)}
+          {viewMode==="category"&&(<button onClick={()=>setReorderMode(!reorderMode)} style={{background:reorderMode?"rgba(59,130,246,0.15)":"rgba(255,255,255,0.04)",border:`1px solid ${reorderMode?"rgba(59,130,246,0.3)":"rgba(255,255,255,0.07)"}`,borderRadius:10,padding:"9px 10px",cursor:"pointer"}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={reorderMode?"#60A5FA":"#64748B"} strokeWidth="2" strokeLinecap="round"><polyline points="12 3 12 21"/><polyline points="8 7 12 3 16 7"/><polyline points="8 17 12 21 16 17"/></svg></button>)}
           <button onClick={()=>setLayoutMode(layoutMode==="list"?"columns":"list")} title={layoutMode==="list"?"Visualização em colunas":"Visualização em lista"} className="layout-toggle" style={{background:layoutMode==="columns"?"rgba(59,130,246,0.15)":"rgba(255,255,255,0.04)",border:`1px solid ${layoutMode==="columns"?"rgba(59,130,246,0.3)":"rgba(255,255,255,0.07)"}`,borderRadius:10,padding:"9px 10px",cursor:"pointer"}}>
             {layoutMode==="list"?(<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={layoutMode==="columns"?"#60A5FA":"#64748B"} strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="18" rx="1"/></svg>):(<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#60A5FA" strokeWidth="2" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>)}
           </button>
@@ -414,12 +414,18 @@ export default function App(){
         /* COLUMNS LAYOUT */
         <div style={{display:"grid",gridTemplateColumns:viewMode==="category"?`repeat(${Math.min(projects.length,4)}, 1fr)`:`repeat(${WEEK_DAYS.length}, 1fr)`,gap:10,overflowX:"auto"}}>
           {viewMode==="category"?(
-            projects.map(p=>{const done=p.tasks.filter(t=>t.done).length;const total=p.tasks.length;const pct=total>0?Math.round((done/total)*100):0;return(
+            projects.map((p,idx)=>{const done=p.tasks.filter(t=>t.done).length;const total=p.tasks.length;const pct=total>0?Math.round((done/total)*100):0;return(
               <div key={p.id} style={{background:"rgba(255,255,255,0.04)",borderRadius:14,border:"1px solid rgba(255,255,255,0.07)",overflow:"hidden",minWidth:180}}>
-                <div style={{padding:"14px 12px",borderBottom:"1px solid rgba(255,255,255,0.05)",display:"flex",alignItems:"center",gap:8}}>
-                  <span style={{fontSize:20}}>{p.emoji}</span>
-                  <div style={{flex:1,minWidth:0}}><div style={{fontSize:13,fontWeight:700,color:"#F1F5F9",fontFamily:F,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.name}</div><span style={{fontSize:11,color:"#94A3B8",fontFamily:F}}>{done}/{total}</span></div>
-                  <ProgressRing percent={pct} color={pct===100?"#10B981":p.color} size={32}/>
+                <div style={{padding:"14px 12px",borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8}}>
+                    <span style={{fontSize:20}}>{p.emoji}</span>
+                    <div style={{flex:1,minWidth:0}}><div style={{fontSize:13,fontWeight:700,color:"#F1F5F9",fontFamily:F,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.name}</div><span style={{fontSize:11,color:"#94A3B8",fontFamily:F}}>{done}/{total}</span></div>
+                    <ProgressRing percent={pct} color={pct===100?"#10B981":p.color} size={32}/>
+                  </div>
+                  {reorderMode&&(<div style={{display:"flex",justifyContent:"center",gap:8,marginTop:8}}>
+                    <button onClick={()=>moveProject(idx,-1)} disabled={idx===0} style={{background:"none",border:"1px solid rgba(255,255,255,0.1)",borderRadius:6,cursor:idx===0?"default":"pointer",opacity:idx===0?0.2:0.7,padding:"3px 8px",display:"flex",alignItems:"center",gap:4,color:"#94A3B8",fontSize:10,fontFamily:F}}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.5" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>←</button>
+                    <button onClick={()=>moveProject(idx,1)} disabled={idx===projects.length-1} style={{background:"none",border:"1px solid rgba(255,255,255,0.1)",borderRadius:6,cursor:idx===projects.length-1?"default":"pointer",opacity:idx===projects.length-1?0.2:0.7,padding:"3px 8px",display:"flex",alignItems:"center",gap:4,color:"#94A3B8",fontSize:10,fontFamily:F}}>→<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+                  </div>)}
                 </div>
                 <div style={{padding:"8px 8px 12px",display:"flex",flexDirection:"column",gap:5}}>
                   {[...p.tasks].sort((a,b)=>{const d=WEEK_DAYS_ORDER.indexOf(a.day)-WEEK_DAYS_ORDER.indexOf(b.day);if(d!==0)return d;const o={high:0,medium:1,low:2};const pr=o[a.priority]-o[b.priority];if(pr!==0)return pr;return a.text.localeCompare(b.text,"pt-BR");}).map(task=>(<TaskItem key={task.id} task={task} color={p.color} onToggle={()=>toggleTask(p.id,task.id)} onUpdate={u=>updateTask(p.id,task.id,u)} extraAction={null}/>))}
