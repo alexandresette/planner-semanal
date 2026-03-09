@@ -224,7 +224,7 @@ function ConfirmDeleteModal({title,description,onConfirm,onCancel,c}){
 }
 
 /* ─── Task Item ─── */
-function TaskItem({task,color,onToggle,onUpdate,projectName,onMoveWeek,onEditingChange,c,projects,showCategoryPicker}){
+function TaskItem({task,color,onToggle,onUpdate,onDelete,projectName,onMoveWeek,onEditingChange,c,projects,showCategoryPicker}){
   const [showOpts,setShowOpts]=useState(false);
   const [editText,setEditText]=useState(task.text);
   const [isEditing,setIsEditing]=useState(false);
@@ -270,7 +270,8 @@ function TaskItem({task,color,onToggle,onUpdate,projectName,onMoveWeek,onEditing
           )}
           <div style={{marginBottom:8}}><span style={{fontSize:10,color:tc.textMuted,fontWeight:600,display:"block",marginBottom:5,textTransform:"uppercase",letterSpacing:0.5}}>Dia</span><div style={{display:"flex",gap:3,flexWrap:"wrap"}}>{WEEK_DAYS.map(d=>(<button key={d.key} onClick={()=>onUpdate({day:d.key})} style={{padding:"4px 7px",fontSize:10,fontWeight:600,borderRadius:6,border:"none",cursor:"pointer",fontFamily:F,background:task.day===d.key?color:tc.inputBg,color:task.day===d.key?"#fff":tc.textSub,transition:"all 0.15s ease"}}>{d.label}</button>))}</div></div>
           <div style={{marginBottom:onMoveWeek?10:0}}><span style={{fontSize:10,color:tc.textMuted,fontWeight:600,display:"block",marginBottom:5,textTransform:"uppercase",letterSpacing:0.5}}>Prioridade</span><div style={{display:"flex",gap:4}}>{Object.entries(priorityConfig).map(([k,v])=>(<button key={k} onClick={()=>onUpdate({priority:k})} style={{padding:"4px 10px",fontSize:10,fontWeight:600,borderRadius:6,border:"none",cursor:"pointer",fontFamily:F,background:task.priority===k?v.dot:v.bg,color:task.priority===k?"#fff":v.dot,transition:"all 0.15s ease"}}>{v.label}</button>))}</div></div>
-          {onMoveWeek&&(<div><span style={{fontSize:10,color:tc.textMuted,fontWeight:600,display:"block",marginBottom:5,textTransform:"uppercase",letterSpacing:0.5}}>Semana</span>{onMoveWeek}</div>)}
+          {onMoveWeek&&(<div style={{marginBottom:10}}><span style={{fontSize:10,color:tc.textMuted,fontWeight:600,display:"block",marginBottom:5,textTransform:"uppercase",letterSpacing:0.5}}>Semana</span>{onMoveWeek}</div>)}
+          {onDelete&&(<div style={{paddingTop:6,borderTop:`1px solid ${tc.divider}`}}><button onClick={onDelete} style={{display:"flex",alignItems:"center",gap:6,width:"100%",padding:"7px 10px",borderRadius:8,border:`1px solid ${tc.deleteDangerBorder}`,background:tc.deleteDangerBg,color:"#EF4444",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:F}}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Excluir tarefa</button></div>)}
         </div>
       )}
     </div>
@@ -338,7 +339,7 @@ function AddTaskInput({color,onAdd,c,projects,requireCategory,defaultDay}){
 }
 
 /* ─── Project Card ─── */
-function ProjectCard({project,onToggleTask,onUpdateTask,onAddTask,onEditProject,onDeleteProject,isExpanded,onToggleExpand,reorderMode,onMoveUp,onMoveDown,isFirst,isLast,taskMoveWeek,c}){
+function ProjectCard({project,onToggleTask,onUpdateTask,onDeleteTask,onAddTask,onEditProject,onDeleteProject,isExpanded,onToggleExpand,reorderMode,onMoveUp,onMoveDown,isFirst,isLast,taskMoveWeek,c}){
   const done=project.tasks.filter(t=>t.done).length,total=project.tasks.length;
   const percent=total>0?Math.round((done/total)*100):0,allDone=done===total&&total>0;
   const [nameVal,setNameVal]=useState(project.name);
@@ -379,7 +380,7 @@ function ProjectCard({project,onToggleTask,onUpdateTask,onAddTask,onEditProject,
           </div>
         </div>
       </div>)}
-      {isExpanded&&(<div style={{padding:"0 14px 14px",display:"flex",flexDirection:"column",gap:6}}>{[...project.tasks].sort((a,b)=>{const d=WEEK_DAYS_ORDER.indexOf(a.day)-WEEK_DAYS_ORDER.indexOf(b.day);if(d!==0)return d;const o={high:0,medium:1,low:2};const p=o[a.priority]-o[b.priority];if(p!==0)return p;return a.text.localeCompare(b.text,"pt-BR");}).map(task=>(<TaskItem key={task.id} task={task} color={project.color} onToggle={()=>onToggleTask(project.id,task.id)} onUpdate={u=>onUpdateTask(project.id,task.id,u)} onMoveWeek={taskMoveWeek?taskMoveWeek(project.id,task.id):null} c={tc}/>))}<AddTaskInput color={project.color} onAdd={(text,day,priority)=>onAddTask(project.id,text,day,priority)} c={tc}/></div>)}
+      {isExpanded&&(<div style={{padding:"0 14px 14px",display:"flex",flexDirection:"column",gap:6}}>{[...project.tasks].sort((a,b)=>{const d=WEEK_DAYS_ORDER.indexOf(a.day)-WEEK_DAYS_ORDER.indexOf(b.day);if(d!==0)return d;const o={high:0,medium:1,low:2};const p=o[a.priority]-o[b.priority];if(p!==0)return p;return a.text.localeCompare(b.text,"pt-BR");}).map(task=>(<TaskItem key={task.id} task={task} color={project.color} onToggle={()=>onToggleTask(project.id,task.id)} onUpdate={u=>onUpdateTask(project.id,task.id,u)} onDelete={()=>onDeleteTask(project.id,task.id)} onMoveWeek={taskMoveWeek?taskMoveWeek(project.id,task.id):null} c={tc}/>))}<AddTaskInput color={project.color} onAdd={(text,day,priority)=>onAddTask(project.id,text,day,priority)} c={tc}/></div>)}
     </div>
     </>
   );
@@ -413,7 +414,7 @@ function HistoryCard({record,onDelete,c}){
 }
 
 /* ─── Column Project Card ─── */
-function ColumnProjectCard({project:p,done,total,pct,idx,projectsLen,reorderMode,onMoveProject,onEditProject,onDeleteProject,onToggleTask,onUpdateTask,onAddTask,taskMoveWeekFn,c}){
+function ColumnProjectCard({project:p,done,total,pct,idx,projectsLen,reorderMode,onMoveProject,onEditProject,onDeleteProject,onToggleTask,onUpdateTask,onDeleteTask,onAddTask,taskMoveWeekFn,c}){
   const [showEdit,setShowEdit]=useState(false);
   const [nameVal,setNameVal]=useState(p.name);
   const [emojiVal,setEmojiVal]=useState(p.emoji);
@@ -449,7 +450,7 @@ function ColumnProjectCard({project:p,done,total,pct,idx,projectsLen,reorderMode
         </div>)}
       </div>
       <div style={{padding:"8px 8px 12px",display:"flex",flexDirection:"column",gap:5}}>
-        {[...p.tasks].sort((a,b)=>{const d=WEEK_DAYS_ORDER.indexOf(a.day)-WEEK_DAYS_ORDER.indexOf(b.day);if(d!==0)return d;const o={high:0,medium:1,low:2};const pr=o[a.priority]-o[b.priority];if(pr!==0)return pr;return a.text.localeCompare(b.text,"pt-BR");}).map(task=>(<TaskItem key={task.id} task={task} color={p.color} onToggle={()=>onToggleTask(p.id,task.id)} onUpdate={u=>onUpdateTask(p.id,task.id,u)} onMoveWeek={taskMoveWeekFn(p.id,task.id)} c={tc}/>))}
+        {[...p.tasks].sort((a,b)=>{const d=WEEK_DAYS_ORDER.indexOf(a.day)-WEEK_DAYS_ORDER.indexOf(b.day);if(d!==0)return d;const o={high:0,medium:1,low:2};const pr=o[a.priority]-o[b.priority];if(pr!==0)return pr;return a.text.localeCompare(b.text,"pt-BR");}).map(task=>(<TaskItem key={task.id} task={task} color={p.color} onToggle={()=>onToggleTask(p.id,task.id)} onUpdate={u=>onUpdateTask(p.id,task.id,u)} onDelete={()=>onDeleteTask(p.id,task.id)} onMoveWeek={taskMoveWeekFn(p.id,task.id)} c={tc}/>))}
         <AddTaskInput color={p.color} onAdd={(text,day,priority)=>onAddTask(p.id,text,day,priority)} c={tc}/>
       </div>
     </div>
@@ -540,6 +541,7 @@ export default function App(){
   },[updateProjects]);
 
   const addTask=useCallback((pid,text,day,priority)=>updateProjects(ps=>ps.map(p=>{if(p.id!==pid)return p;return{...p,tasks:[...p.tasks,{id:`${p.id}_${Date.now()}`,text,done:false,priority:priority||"medium",day:day||"seg"}]};})),[updateProjects]);
+  const deleteTask=useCallback((pid,tid)=>updateProjects(ps=>ps.map(p=>p.id===pid?{...p,tasks:p.tasks.filter(t=>t.id!==tid)}:p)),[updateProjects]);
 
   // addTaskToProject: usado na view dias da semana (pid vem do seletor de categoria)
   const addTaskToProject=useCallback((text,day,priority,pid)=>{
@@ -667,7 +669,7 @@ export default function App(){
         {layoutMode==="list"?(
         <div style={{display:"flex",flexDirection:"column",gap:12}}>
           {viewMode==="category"?(<>
-            {projects.map((p,idx)=>(<ProjectCard key={p.id} project={p} onToggleTask={toggleTask} onUpdateTask={updateTask} onAddTask={addTask} onEditProject={u=>editProject(p.id,u)} onDeleteProject={()=>deleteProject(p.id)} isExpanded={expanded[p.id]??true} onToggleExpand={()=>toggleExpand(p.id)} reorderMode={reorderMode} onMoveUp={()=>moveProject(idx,-1)} onMoveDown={()=>moveProject(idx,1)} isFirst={idx===0} isLast={idx===projects.length-1} taskMoveWeek={taskMoveWeekFn} c={c}/>))}
+            {projects.map((p,idx)=>(<ProjectCard key={p.id} project={p} onToggleTask={toggleTask} onUpdateTask={updateTask} onAddTask={addTask} onDeleteTask={deleteTask} onEditProject={u=>editProject(p.id,u)} onDeleteProject={()=>deleteProject(p.id)} isExpanded={expanded[p.id]??true} onToggleExpand={()=>toggleExpand(p.id)} reorderMode={reorderMode} onMoveUp={()=>moveProject(idx,-1)} onMoveDown={()=>moveProject(idx,1)} isFirst={idx===0} isLast={idx===projects.length-1} taskMoveWeek={taskMoveWeekFn} c={c}/>))}
             <AddCategoryCard onAdd={addCategory} c={c}/>
           </>):(
             <>
@@ -682,7 +684,7 @@ export default function App(){
                 {tasks.length>0&&<ProgressRing percent={Math.round((tasks.filter(t=>t.done).length/tasks.length)*100)} color="#3B82F6" size={42} c={c}/>}
               </div>
               {tasks.length>0&&(<div style={{padding:"0 14px 6px",display:"flex",flexDirection:"column",gap:6}}>
-                {[...tasks].sort((a,b)=>{const o={high:0,medium:1,low:2};const p=o[a.priority]-o[b.priority];if(p!==0)return p;const pa=projects.find(x=>x.id===a._projectId);const pb=projects.find(x=>x.id===b._projectId);const pn=(pa?.name||"").localeCompare(pb?.name||"","pt-BR");if(pn!==0)return pn;return a.text.localeCompare(b.text,"pt-BR");}).map(t=>{const proj=projects.find(p=>p.id===t._projectId);return(<div key={t.id} draggable={!editingTasks.has(t.id)} onDragStart={()=>{if(!editingTasks.has(t.id))setDragTask({projectId:t._projectId,taskId:t.id});}} onDragEnd={()=>{setDragTask(null);setDragOverDay(null);}} style={{cursor:editingTasks.has(t.id)?"default":"grab",opacity:dragTask?.taskId===t.id?0.4:1,transition:"opacity 0.2s"}}><TaskItem task={t} color={proj?.color||"#64748B"} projectName={proj?.name} onToggle={()=>toggleTask(t._projectId,t.id)} onUpdate={u=>updateTask(t._projectId,t.id,u)} onMoveWeek={taskMoveWeekFn(t._projectId,t.id)} onEditingChange={v=>{setEditingTasks(prev=>{const n=new Set(prev);if(v)n.add(t.id);else n.delete(t.id);return n;})}} c={c} projects={projects} showCategoryPicker={true}/></div>);})}
+                {[...tasks].sort((a,b)=>{const o={high:0,medium:1,low:2};const p=o[a.priority]-o[b.priority];if(p!==0)return p;const pa=projects.find(x=>x.id===a._projectId);const pb=projects.find(x=>x.id===b._projectId);const pn=(pa?.name||"").localeCompare(pb?.name||"","pt-BR");if(pn!==0)return pn;return a.text.localeCompare(b.text,"pt-BR");}).map(t=>{const proj=projects.find(p=>p.id===t._projectId);return(<div key={t.id} draggable={!editingTasks.has(t.id)} onDragStart={()=>{if(!editingTasks.has(t.id))setDragTask({projectId:t._projectId,taskId:t.id});}} onDragEnd={()=>{setDragTask(null);setDragOverDay(null);}} style={{cursor:editingTasks.has(t.id)?"default":"grab",opacity:dragTask?.taskId===t.id?0.4:1,transition:"opacity 0.2s"}}><TaskItem task={t} color={proj?.color||"#64748B"} projectName={proj?.name} onToggle={()=>toggleTask(t._projectId,t.id)} onUpdate={u=>updateTask(t._projectId,t.id,u)} onDelete={()=>deleteTask(t._projectId,t.id)} onMoveWeek={taskMoveWeekFn(t._projectId,t.id)} onEditingChange={v=>{setEditingTasks(prev=>{const n=new Set(prev);if(v)n.add(t.id);else n.delete(t.id);return n;})}} c={c} projects={projects} showCategoryPicker={true}/></div>);})}
               </div>)}
               <div style={{padding:"6px 14px 14px"}}>
                 <AddTaskInput color="#3B82F6" onAdd={addTaskToProject} c={c} projects={projects} requireCategory={true} defaultDay={day.key}/>
@@ -696,7 +698,7 @@ export default function App(){
         <div style={{display:"grid",gridTemplateColumns:viewMode==="category"?`repeat(${Math.min(projects.length+1,5)}, 1fr)`:`repeat(${WEEK_DAYS.length}, 1fr)`,gap:10,overflowX:"auto"}}>
           {viewMode==="category"?(<>
             {projects.map((p,idx)=>{const done=p.tasks.filter(t=>t.done).length;const total=p.tasks.length;const pct=total>0?Math.round((done/total)*100):0;return(
-              <ColumnProjectCard key={p.id} project={p} done={done} total={total} pct={pct} idx={idx} projectsLen={projects.length} reorderMode={reorderMode} onMoveProject={moveProject} onEditProject={u=>editProject(p.id,u)} onDeleteProject={()=>deleteProject(p.id)} onToggleTask={toggleTask} onUpdateTask={updateTask} onAddTask={addTask} taskMoveWeekFn={taskMoveWeekFn} c={c}/>
+              <ColumnProjectCard key={p.id} project={p} done={done} total={total} pct={pct} idx={idx} projectsLen={projects.length} reorderMode={reorderMode} onMoveProject={moveProject} onEditProject={u=>editProject(p.id,u)} onDeleteProject={()=>deleteProject(p.id)} onToggleTask={toggleTask} onUpdateTask={updateTask} onDeleteTask={deleteTask} onAddTask={addTask} taskMoveWeekFn={taskMoveWeekFn} c={c}/>
             );})}
             <AddCategoryCard onAdd={addCategory} c={c}/>
           </>):(
@@ -712,7 +714,7 @@ export default function App(){
                   {tasks.length>0&&<div style={{marginTop:6}}><ProgressRing percent={Math.round((tasks.filter(t=>t.done).length/tasks.length)*100)} color="#3B82F6" size={32} c={c}/></div>}
                 </div>
                 <div style={{padding:"8px 6px 6px",display:"flex",flexDirection:"column",gap:5,minHeight:60}}>
-                  {[...tasks].sort((a,b)=>{const o={high:0,medium:1,low:2};const p=o[a.priority]-o[b.priority];if(p!==0)return p;const pa=projects.find(x=>x.id===a._projectId);const pb=projects.find(x=>x.id===b._projectId);const pn=(pa?.name||"").localeCompare(pb?.name||"","pt-BR");if(pn!==0)return pn;return a.text.localeCompare(b.text,"pt-BR");}).map(t=>{const proj=projects.find(pp=>pp.id===t._projectId);return(<div key={t.id} draggable={!editingTasks.has(t.id)} onDragStart={()=>{if(!editingTasks.has(t.id))setDragTask({projectId:t._projectId,taskId:t.id});}} onDragEnd={()=>{setDragTask(null);setDragOverDay(null);}} style={{cursor:editingTasks.has(t.id)?"default":"grab",opacity:dragTask?.taskId===t.id?0.4:1,transition:"opacity 0.2s"}}><TaskItem task={t} color={proj?.color||"#64748B"} projectName={proj?.name} onToggle={()=>toggleTask(t._projectId,t.id)} onUpdate={u=>updateTask(t._projectId,t.id,u)} onMoveWeek={taskMoveWeekFn(t._projectId,t.id)} onEditingChange={v=>{setEditingTasks(prev=>{const n=new Set(prev);if(v)n.add(t.id);else n.delete(t.id);return n;})}} c={c} projects={projects} showCategoryPicker={true}/></div>);})}
+                  {[...tasks].sort((a,b)=>{const o={high:0,medium:1,low:2};const p=o[a.priority]-o[b.priority];if(p!==0)return p;const pa=projects.find(x=>x.id===a._projectId);const pb=projects.find(x=>x.id===b._projectId);const pn=(pa?.name||"").localeCompare(pb?.name||"","pt-BR");if(pn!==0)return pn;return a.text.localeCompare(b.text,"pt-BR");}).map(t=>{const proj=projects.find(pp=>pp.id===t._projectId);return(<div key={t.id} draggable={!editingTasks.has(t.id)} onDragStart={()=>{if(!editingTasks.has(t.id))setDragTask({projectId:t._projectId,taskId:t.id});}} onDragEnd={()=>{setDragTask(null);setDragOverDay(null);}} style={{cursor:editingTasks.has(t.id)?"default":"grab",opacity:dragTask?.taskId===t.id?0.4:1,transition:"opacity 0.2s"}}><TaskItem task={t} color={proj?.color||"#64748B"} projectName={proj?.name} onToggle={()=>toggleTask(t._projectId,t.id)} onUpdate={u=>updateTask(t._projectId,t.id,u)} onDelete={()=>deleteTask(t._projectId,t.id)} onMoveWeek={taskMoveWeekFn(t._projectId,t.id)} onEditingChange={v=>{setEditingTasks(prev=>{const n=new Set(prev);if(v)n.add(t.id);else n.delete(t.id);return n;})}} c={c} projects={projects} showCategoryPicker={true}/></div>);})}
                   {tasks.length===0&&<div style={{fontSize:11,color:dragOverDay===day.key?"#3B82F6":c.textMuted,fontFamily:F,textAlign:"center",padding:"8px 0"}}>{dragOverDay===day.key?"Soltar aqui":"—"}</div>}
                 </div>
                 <div style={{padding:"0 6px 8px"}}>
