@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { signInWithGoogle, firebaseSignOut, auth, callSendInviteEmail } from "./storage.js";
+import { signInWithGoogle, firebaseSignOut, auth, callSendInviteEmail, callSendResetEmail } from "./storage.js";
 
 const LOGO_DARK = `${import.meta.env.BASE_URL}logo.svg`;
 const LOGO_LIGHT = `${import.meta.env.BASE_URL}logo-light.svg`;
@@ -376,13 +376,175 @@ function AdminPanel({ onClose, theme }) {
   );
 }
 
-/* ─── Login ─── */
+const RESET_TOKEN_PREFIX = "reset-token-";
+
+/* ─── Reset Password Screen ─── */
+function ResetPasswordScreen({ token, onSuccess, theme }) {
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [tokenData, setTokenData] = useState(null);
+  const [tokenError, setTokenError] = useState("");
+  const c = theme.t;
+
+  useEffect(() => {
+    async function verifyToken() {
+      try {
+        const r = await window.storage.get(`${RESET_TOKEN_PREFIX}${token}`).catch(() => null);
+        if (!r || !r.value) { setTokenError("Link inválido ou expirado."); return; }
+        const data = JSON.parse(r.value);
+        if (Date.now() > data.expiresAt) { setTokenError("Este link expirou. Solicite um novo reset de senha."); return; }
+        setTokenData(data);
+      } catch { setTokenError("Erro ao validar link. Tente novamente."); }
+    }
+    verifyToken();
+  }, [token]);
+
+  const handleReset = async () => {
+    if (password.length < 4) { setError("A senha precisa ter pelo menos 4 caracteres."); return; }
+    if (password !== confirm) { setError("As senhas não coincidem."); return; }
+    setLoading(true); setError("");
+    try {
+      const u = tokenData.username;
+      const hash = await hashStr(`${u}:${password}`);
+      // Atualizar senha: pode ser usuário dinâmico
+      const r = await window.storage.get(`${USER_CREDS_PREFIX}${u}`).catch(() => null);
+      if (r && r.value) {
+        const d = JSON.parse(r.value);
+        await window.storage.set(`${USER_CREDS_PREFIX}${u}`, JSON.stringify({ ...d, hash }));
+      }
+      // Invalidar token
+      await window.storage.delete(`${RESET_TOKEN_PREFIX}${token}`).catch(() => {});
+      onSuccess();
+    } catch { setError("Erro ao redefinir senha. Tente novamente."); }
+    setLoading(false);
+  };
+
+  if (tokenError) return (
+    <div style={{minHeight:"100vh",background:c.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:F,padding:"24px 16px"}}>
+      <div style={{width:360,padding:40,background:c.loginCardBg,border:`1px solid rgba(239,68,68,0.25)`,borderRadius:24,textAlign:"center",boxShadow:theme.mode==="light"?"0 4px 24px rgba(0,0,0,0.08)":"none"}}>
+        <div style={{width:48,height:48,borderRadius:14,background:"rgba(239,68,68,0.12)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 14px"}}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <h2 style={{fontSize:18,fontWeight:800,color:c.text,margin:"0 0 8px",fontFamily:FS}}>Link inválido</h2>
+        <p style={{fontSize:13,color:c.textSub,margin:"0 0 20px",lineHeight:1.5}}>{tokenError}</p>
+        <button onClick={onSuccess} style={{width:"100%",padding:"12px",background:"linear-gradient(135deg,#3B82F6,#8B5CF6)",border:"none",borderRadius:12,color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:F}}>Voltar ao login</button>
+      </div>
+    </div>
+  );
+
+  if (!tokenData) return (
+    <div style={{minHeight:"100vh",background:c.bg,display:"flex",alignItems:"center",justifyContent:"center"}}>
+      <p style={{color:c.textSub,fontFamily:F}}>Verificando link...</p>
+    </div>
+  );
+
+  return (
+    <div style={{minHeight:"100vh",background:c.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:F,padding:"24px 16px"}}>
+      <div style={{width:360,padding:40,background:c.loginCardBg,border:`1px solid rgba(59,130,246,0.2)`,borderRadius:24,animation:"fadeIn 0.5s ease",boxShadow:theme.mode==="light"?"0 4px 24px rgba(0,0,0,0.08)":"none"}}>
+        <div style={{textAlign:"center",marginBottom:20}}>
+          <div style={{width:48,height:48,borderRadius:14,background:"rgba(59,130,246,0.12)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 12px"}}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </div>
+          <h2 style={{fontSize:20,fontWeight:800,color:c.text,margin:"0 0 4px",fontFamily:FS}}>Nova senha</h2>
+          <p style={{fontSize:12,color:c.textSub,margin:0}}>Para o usuário <span style={{color:"#3B82F6",fontWeight:600}}>{tokenData.username}</span></p>
+        </div>
+        <div style={{textAlign:"left",marginBottom:12}}>
+          <span style={{fontSize:11,color:c.textMuted,fontWeight:600,textTransform:"uppercase",letterSpacing:0.5}}>Nova senha</span>
+          <input autoFocus type="password" value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>e.key==="Enter"&&document.getElementById("rp-confirm")?.focus()} placeholder="mínimo 4 caracteres" style={{width:"100%",boxSizing:"border-box",marginTop:6,padding:"11px 14px",fontSize:14,background:c.inputBg,border:`1.5px solid ${c.inputBorder}`,borderRadius:10,color:c.inputText,outline:"none",fontFamily:F}}/>
+        </div>
+        <div style={{textAlign:"left",marginBottom:6}}>
+          <span style={{fontSize:11,color:c.textMuted,fontWeight:600,textTransform:"uppercase",letterSpacing:0.5}}>Confirmar nova senha</span>
+          <input id="rp-confirm" type="password" value={confirm} onChange={e=>setConfirm(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleReset()} placeholder="repita a nova senha" style={{width:"100%",boxSizing:"border-box",marginTop:6,padding:"11px 14px",fontSize:14,background:c.inputBg,border:`1.5px solid ${error&&password!==confirm?"#EF4444":c.inputBorder}`,borderRadius:10,color:c.inputText,outline:"none",fontFamily:F}}/>
+        </div>
+        {error&&<p style={{color:"#EF4444",fontSize:12,margin:"8px 0 0",lineHeight:1.4}}>{error}</p>}
+        <button onClick={handleReset} disabled={loading} style={{width:"100%",marginTop:18,padding:"13px",background:"linear-gradient(135deg,#3B82F6,#8B5CF6)",border:"none",borderRadius:12,color:"#fff",fontSize:15,fontWeight:700,cursor:loading?"default":"pointer",fontFamily:F,opacity:loading?0.7:1}}>
+          {loading?"Salvando...":"Redefinir senha"}
+        </button>
+      </div>
+      <style>{`@keyframes fadeIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}`}</style>
+    </div>
+  );
+}
+
+/* ─── Forgot Password Screen ─── */
+function ForgotPasswordScreen({ onBack, theme }) {
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState("");
+  const c = theme.t;
+
+  const handleSend = async () => {
+    const em = email.trim().toLowerCase();
+    if (!em || !em.includes("@")) { setError("Digite um e-mail válido."); return; }
+    setLoading(true); setError("");
+    try {
+      // Verificar se email tem conta criada
+      const username = await getUsernameByEmail(em);
+      if (!username) { setError("Nenhuma conta encontrada com este e-mail."); setLoading(false); return; }
+      // Gerar token único
+      const token = Array.from(crypto.getRandomValues(new Uint8Array(24))).map(b=>b.toString(16).padStart(2,"0")).join("");
+      const expiresAt = Date.now() + 60 * 60 * 1000; // 1 hora
+      await window.storage.set(`${RESET_TOKEN_PREFIX}${token}`, JSON.stringify({ username, email: em, expiresAt }));
+      const appBase = "https://alexandresette.github.io/planner-semanal/";
+      const resetUrl = `${appBase}?reset=${token}`;
+      await callSendResetEmail(em, resetUrl);
+      setSent(true);
+    } catch (e) { setError(e.message || "Erro ao enviar. Tente novamente."); }
+    setLoading(false);
+  };
+
+  if (sent) return (
+    <div style={{minHeight:"100vh",background:c.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:F,padding:"24px 16px"}}>
+      <div style={{width:360,padding:40,background:c.loginCardBg,border:`1px solid rgba(16,185,129,0.2)`,borderRadius:24,textAlign:"center",animation:"fadeIn 0.5s ease",boxShadow:theme.mode==="light"?"0 4px 24px rgba(0,0,0,0.08)":"none"}}>
+        <div style={{width:52,height:52,borderRadius:14,background:"rgba(16,185,129,0.12)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 14px"}}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2" strokeLinecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        </div>
+        <h2 style={{fontSize:18,fontWeight:800,color:c.text,margin:"0 0 8px",fontFamily:FS}}>E-mail enviado!</h2>
+        <p style={{fontSize:13,color:c.textSub,margin:"0 0 20px",lineHeight:1.5}}>Verifique sua caixa de entrada em <strong style={{color:c.text}}>{email}</strong> e clique no link para redefinir sua senha.</p>
+        <button onClick={onBack} style={{width:"100%",padding:"12px",background:"linear-gradient(135deg,#3B82F6,#8B5CF6)",border:"none",borderRadius:12,color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:F}}>Voltar ao login</button>
+      </div>
+      <style>{`@keyframes fadeIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}`}</style>
+    </div>
+  );
+
+  return (
+    <div style={{minHeight:"100vh",background:c.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:F,padding:"24px 16px"}}>
+      <div style={{width:360,padding:40,background:c.loginCardBg,border:`1px solid ${c.loginCardBorder}`,borderRadius:24,animation:"fadeIn 0.5s ease",boxShadow:theme.mode==="light"?"0 4px 24px rgba(0,0,0,0.08)":"none"}}>
+        <div style={{textAlign:"center",marginBottom:20}}>
+          <div style={{width:48,height:48,borderRadius:14,background:"rgba(59,130,246,0.1)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 12px"}}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          </div>
+          <h2 style={{fontSize:20,fontWeight:800,color:c.text,margin:"0 0 4px",fontFamily:FS}}>Esqueceu a senha?</h2>
+          <p style={{fontSize:12,color:c.textSub,margin:0,lineHeight:1.5}}>Digite seu e-mail e enviaremos um link de redefinição.</p>
+        </div>
+        <div style={{textAlign:"left",marginBottom:6}}>
+          <span style={{fontSize:11,color:c.textMuted,fontWeight:600,textTransform:"uppercase",letterSpacing:0.5}}>E-mail</span>
+          <input autoFocus type="email" value={email} onChange={e=>setEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleSend()} placeholder="seu@email.com" style={{width:"100%",boxSizing:"border-box",marginTop:6,padding:"11px 14px",fontSize:14,background:c.inputBg,border:`1.5px solid ${error?"#EF4444":c.inputBorder}`,borderRadius:10,color:c.inputText,outline:"none",fontFamily:F}}/>
+        </div>
+        {error&&<p style={{color:"#EF4444",fontSize:12,margin:"8px 0 0",lineHeight:1.4}}>{error}</p>}
+        <button onClick={handleSend} disabled={loading} style={{width:"100%",marginTop:18,padding:"13px",background:"linear-gradient(135deg,#3B82F6,#8B5CF6)",border:"none",borderRadius:12,color:"#fff",fontSize:15,fontWeight:700,cursor:loading?"default":"pointer",fontFamily:F,opacity:loading?0.7:1}}>
+          {loading?"Enviando...":"Enviar link de reset"}
+        </button>
+        <button onClick={onBack} style={{width:"100%",marginTop:8,padding:"11px",background:"transparent",border:`1px solid ${c.cardBorder}`,borderRadius:12,color:c.textSub,fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:F}}>← Voltar ao login</button>
+      </div>
+      <style>{`@keyframes fadeIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}`}</style>
+    </div>
+  );
+}
+
+
 function LoginScreen({ onLogin, theme }) {
   const [user,setUser]=useState(""); const [pin,setPin]=useState("");
   const [error,setError]=useState(false); const [shake,setShake]=useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [googleError, setGoogleError] = useState("");
-  const [firstAccessEmail, setFirstAccessEmail] = useState(null); // email do primeiro acesso
+  const [showForgot, setShowForgot] = useState(false);
+  const [firstAccessEmail, setFirstAccessEmail] = useState(() => {
+    try { const p = new URLSearchParams(window.location.search); const inv = p.get("invite"); if (inv) return decodeURIComponent(inv); } catch {} return null;
+  });
   const c=theme.t;
 
   const handleSubmit = async () => {
@@ -415,6 +577,8 @@ function LoginScreen({ onLogin, theme }) {
     setGoogleLoading(false);
   };
 
+  if (showForgot) return <ForgotPasswordScreen onBack={() => setShowForgot(false)} theme={theme} />;
+
   if (firstAccessEmail) {
     return <FirstAccessScreen invitedEmail={firstAccessEmail} onSuccess={username => onLogin(username)} onBack={() => { setFirstAccessEmail(null); setGoogleLoading(false); }} theme={theme} />;
   }
@@ -433,7 +597,10 @@ function LoginScreen({ onLogin, theme }) {
             style={{width:"100%",boxSizing:"border-box",marginTop:6,padding:"12px 16px",fontSize:15,background:c.inputBg,border:`2px solid ${error?"#EF4444":c.inputBorder}`,borderRadius:12,color:c.inputText,outline:"none",fontFamily:F,transition:"border-color 0.2s ease"}}/>
         </div>
         <div style={{textAlign:"left",marginBottom:6}}>
-          <span style={{fontSize:11,color:c.textMuted,fontWeight:600,textTransform:"uppercase",letterSpacing:0.5}}>Senha / PIN</span>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+            <span style={{fontSize:11,color:c.textMuted,fontWeight:600,textTransform:"uppercase",letterSpacing:0.5}}>Senha / PIN</span>
+            <button onClick={()=>setShowForgot(true)} style={{background:"none",border:"none",padding:0,cursor:"pointer",fontSize:11,color:"#3B82F6",fontFamily:F,fontWeight:500}}>Esqueci a senha</button>
+          </div>
           <input id="pin-input" type="password" value={pin} onChange={e=>setPin(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleSubmit()} placeholder="sua senha"
             style={{width:"100%",boxSizing:"border-box",marginTop:6,padding:"12px 16px",fontSize:15,background:c.inputBg,border:`2px solid ${error?"#EF4444":c.inputBorder}`,borderRadius:12,color:c.inputText,outline:"none",fontFamily:F,transition:"border-color 0.2s ease"}}/>
         </div>
@@ -931,6 +1098,10 @@ export default function App(){
   const canComplete=projects.some(p=>p.tasks.some(t=>t.done));
   const confirmComplete=useCallback(()=>{if(!userName)return;const curTitle=weeks[activeWeekIdx]?.title||fmtWeekLabel(currentSun,currentSat);const rec={week:curTitle,date:new Date().toISOString(),projects:projects.map(p=>{const d=p.tasks.filter(t=>t.done);return d.length>0?{name:p.name,emoji:p.emoji,color:p.color,tasks:d.map(t=>({text:t.text,day:t.day,priority:t.priority}))}:null;}).filter(Boolean)};rec.total=rec.projects.reduce((s,p)=>s+p.tasks.length,0);const newH=[rec,...history].slice(0,52);setHistory(newH);window.storage.set(userHistoryKey(userName),JSON.stringify(newH)).catch(()=>{});setWeeks(prev=>{const arr=[...prev];arr[activeWeekIdx]={...arr[activeWeekIdx],projects:arr[activeWeekIdx].projects.map(p=>({...p,tasks:p.tasks.filter(t=>!t.done)}))};if(arr[1]&&!arr[1].title){const nSun=new Date(arr[1].sun);const nSat=new Date(arr[1].sat);arr[1]={...arr[1],title:fmtWeekLabel(nSun,nSat)};}return arr;});setShowConfirm(false);},[projects,userName,history,currentSun,currentSat,activeWeekIdx,weeks]);
   const deleteHistoryEntry=useCallback(i=>{const n=history.filter((_,j)=>j!==i);setHistory(n);window.storage.set(userHistoryKey(userName),JSON.stringify(n)).catch(()=>{});},[history,userName]);
+
+  // Detecta ?reset=TOKEN na URL para tela de redefinição de senha
+  const resetToken = (() => { try { return new URLSearchParams(window.location.search).get("reset"); } catch { return null; } })();
+  if (resetToken) return <ResetPasswordScreen token={resetToken} onSuccess={() => { window.history.replaceState({}, "", window.location.pathname); }} theme={theme} />;
 
   if(!authed) return <LoginScreen onLogin={handleLogin} theme={theme}/>;
   if(loading||weeks.length===0) return(<div style={{minHeight:"100vh",background:c.bg,display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{color:c.textMuted,fontSize:16,fontFamily:F}}>Carregando...</div></div>);
