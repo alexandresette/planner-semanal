@@ -29,7 +29,7 @@ export async function firebaseSignOut() {
 
 
 export async function callSendResetEmail(email, resetUrl) {
-  const url = "https://sendresetemail-32r6mebf5q-rj.a.run.app";
+  const url = "https://southamerica-east1-planner-semanal-7.cloudfunctions.net/sendResetEmail";
   const response = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
