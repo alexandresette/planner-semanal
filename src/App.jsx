@@ -287,19 +287,18 @@ function FirstAccessScreen({ invitedEmail, onSuccess, onBack, theme }) {
 /* ─── Admin Panel Modal ─── */
 function AdminPanel({ onClose, theme }) {
   const [invites, setInvites] = useState([]);
-  const [registeredUsers, setRegisteredUsers] = useState([]); // usuários com conta criada
+  const [registeredUsers, setRegisteredUsers] = useState([]);
   const [newEmail, setNewEmail] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deletingUser, setDeletingUser] = useState(null);
   const [msg, setMsg] = useState("");
   const c = theme.t;
 
   useEffect(() => {
     async function loadAll() {
-      // Carregar convites
       const list = await loadInvites();
       setInvites(list);
-      // Carregar usuários registrados (Firestore: user-creds-*)
       try {
         const keys = await window.storage.list(USER_CREDS_PREFIX);
         const users = await Promise.all((keys.keys||[]).map(async k => {
@@ -307,13 +306,18 @@ function AdminPanel({ onClose, theme }) {
             const r = await window.storage.get(k);
             if (!r || !r.value) return null;
             const d = JSON.parse(r.value);
-            // Buscar lastSeen
             let lastSeen = null;
             try { const ls = await window.storage.get(`last-seen-${d.username}`); if (ls && ls.value) lastSeen = parseInt(ls.value); } catch {}
-            return { ...d, lastSeen };
+            return { ...d, lastSeen, _key: k };
           } catch { return null; }
         }));
-        setRegisteredUsers(users.filter(Boolean));
+        // Deduplicar por e-mail — manter o que tem lastSeen mais recente
+        const seen = {};
+        for (const u of users.filter(Boolean)) {
+          const key = (u.email||u.username||"").toLowerCase();
+          if (!seen[key] || (u.lastSeen||0) > (seen[key].lastSeen||0)) seen[key] = u;
+        }
+        setRegisteredUsers(Object.values(seen));
       } catch {}
       setLoading(false);
     }
@@ -342,6 +346,40 @@ function AdminPanel({ onClose, theme }) {
     const updated = invites.filter(i => i.email !== email);
     await saveInvites(updated);
     setInvites(updated);
+  };
+
+  const deleteUser = async (u) => {
+    if (!window.confirm(`Excluir o usuário "${u.username}"? Ele precisará de um novo convite para acessar.`)) return;
+    setDeletingUser(u.username);
+    try {
+      // Remover todos os registros user-creds com esse username ou email
+      const keys = await window.storage.list(USER_CREDS_PREFIX);
+      for (const k of (keys.keys||[])) {
+        try {
+          const r = await window.storage.get(k);
+          if (r && r.value) {
+            const d = JSON.parse(r.value);
+            if (d.username === u.username || (u.email && d.email && d.email.toLowerCase() === u.email.toLowerCase())) {
+              await window.storage.delete(k);
+            }
+          }
+        } catch {}
+      }
+      // Remover last-seen
+      try { await window.storage.delete(`last-seen-${u.username}`); } catch {}
+      // Remover da lista de convites (para permitir reenvio limpo)
+      if (u.email) {
+        const updatedInvites = invites.filter(i => i.email.toLowerCase() !== u.email.toLowerCase());
+        await saveInvites(updatedInvites);
+        setInvites(updatedInvites);
+      }
+      setRegisteredUsers(prev => prev.filter(r => r.username !== u.username));
+      setMsg(`✅ Usuário "${u.username}" excluído. Agora você pode reenviar o convite.`);
+      setTimeout(() => setMsg(""), 6000);
+    } catch (e) {
+      setMsg(`❌ Erro ao excluir: ${e.message}`);
+    }
+    setDeletingUser(null);
   };
 
   // Separar: quais convites ainda estão pendentes (email não tem conta criada)
@@ -424,6 +462,12 @@ function AdminPanel({ onClose, theme }) {
                         {seen && <span style={{fontSize:10,color:seen.color,fontFamily:F,fontWeight:seen.label==="Ativo agora"?700:400}}>{seen.label==="Ativo agora"?"● Ativo agora":`Visto: ${seen.label}`}</span>}
                         {!seen && <span style={{fontSize:10,color:c.textMuted,fontFamily:F,opacity:0.5}}>Nunca acessou</span>}
                       </div>
+                      <button onClick={()=>deleteUser(u)} disabled={deletingUser===u.username} title="Excluir usuário" style={{background:"none",border:"none",cursor:"pointer",padding:4,opacity:0.3,flexShrink:0,transition:"opacity 0.15s"}} onMouseEnter={e=>e.currentTarget.style.opacity="0.9"} onMouseLeave={e=>e.currentTarget.style.opacity="0.3"}>
+                        {deletingUser===u.username
+                          ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={c.textMuted} strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/></svg>
+                          : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                        }
+                      </button>
                     </div>
                   );
                 })}
