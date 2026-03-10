@@ -283,6 +283,7 @@ function FirstAccessScreen({ invitedEmail, onSuccess, onBack, theme }) {
 /* ─── Admin Panel Modal ─── */
 function AdminPanel({ onClose, theme }) {
   const [invites, setInvites] = useState([]);
+  const [registeredUsers, setRegisteredUsers] = useState([]); // usuários com conta criada
   const [newEmail, setNewEmail] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -290,7 +291,29 @@ function AdminPanel({ onClose, theme }) {
   const c = theme.t;
 
   useEffect(() => {
-    loadInvites().then(list => { setInvites(list); setLoading(false); });
+    async function loadAll() {
+      // Carregar convites
+      const list = await loadInvites();
+      setInvites(list);
+      // Carregar usuários registrados (Firestore: user-creds-*)
+      try {
+        const keys = await window.storage.list(USER_CREDS_PREFIX);
+        const users = await Promise.all((keys.keys||[]).map(async k => {
+          try {
+            const r = await window.storage.get(k);
+            if (!r || !r.value) return null;
+            const d = JSON.parse(r.value);
+            // Buscar lastSeen
+            let lastSeen = null;
+            try { const ls = await window.storage.get(`last-seen-${d.username}`); if (ls && ls.value) lastSeen = parseInt(ls.value); } catch {}
+            return { ...d, lastSeen };
+          } catch { return null; }
+        }));
+        setRegisteredUsers(users.filter(Boolean));
+      } catch {}
+      setLoading(false);
+    }
+    loadAll();
   }, []);
 
   const addInvite = async () => {
@@ -301,12 +324,10 @@ function AdminPanel({ onClose, theme }) {
     const updated = [...invites, { email, createdAt: new Date().toISOString() }];
     await saveInvites(updated);
     setInvites(updated); setNewEmail("");
-    // Disparar e-mail de convite via Cloud Function
     try {
       await callSendInviteEmail(email);
       setMsg(`✅ Convite enviado para ${email}!`);
     } catch (e) {
-      console.error("Erro ao enviar e-mail:", e);
       setMsg(`⚠️ Salvo, mas falha ao enviar e-mail: ${e.message}`);
     }
     setSaving(false);
@@ -319,10 +340,34 @@ function AdminPanel({ onClose, theme }) {
     setInvites(updated);
   };
 
+  // Separar: quais convites ainda estão pendentes (email não tem conta criada)
+  const registeredEmails = new Set(registeredUsers.map(u => (u.email||"").toLowerCase()));
+  const pendingInvites = invites.filter(i => !registeredEmails.has(i.email.toLowerCase()));
+
+  const fmtLastSeen = (ts) => {
+    if (!ts) return null;
+    const diff = Date.now() - ts;
+    if (diff < 5 * 60 * 1000) return { label: "Ativo agora", color: "#10B981", dot: "#10B981" };
+    if (diff < 60 * 60 * 1000) return { label: `${Math.floor(diff/60000)}min atrás`, color: "#F59E0B", dot: "#F59E0B" };
+    if (diff < 24 * 60 * 60 * 1000) return { label: `hoje ${new Date(ts).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}`, color: c.textSub, dot: "#6366F1" };
+    if (diff < 7 * 24 * 60 * 60 * 1000) return { label: new Date(ts).toLocaleDateString("pt-BR",{weekday:"short",hour:"2-digit",minute:"2-digit"}), color: c.textSub, dot: "#6B7280" };
+    return { label: new Date(ts).toLocaleDateString("pt-BR",{day:"2-digit",month:"short",year:"numeric"}), color: c.textMuted, dot: "#6B7280" };
+  };
+
+  const SectionHeader = ({ children, count }) => (
+    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
+      <span style={{fontSize:12,fontWeight:700,color:c.textMuted,fontFamily:F,textTransform:"uppercase",letterSpacing:"0.06em"}}>{children}</span>
+      {count!=null && <span style={{fontSize:10,fontWeight:700,color:c.textMuted,background:c.taskBg,border:`1px solid ${c.cardBorder}`,borderRadius:20,padding:"1px 7px"}}>{count}</span>}
+      <div style={{flex:1,height:1,background:c.cardBorder}}/>
+    </div>
+  );
+
   return (
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",backdropFilter:"blur(6px)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:3000,padding:16,animation:"fadeIn 0.2s ease"}} onClick={onClose}>
       <div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:480,maxHeight:"85vh",overflowY:"auto",background:c.modalBg,border:"1px solid rgba(139,92,246,0.25)",borderRadius:22,padding:28,boxShadow:"0 8px 50px rgba(0,0,0,0.5)"}}>
-        <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:20}}>
+
+        {/* Header */}
+        <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:24}}>
           <div style={{width:42,height:42,borderRadius:12,background:"rgba(139,92,246,0.12)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="2" strokeLinecap="round"><path d="M12 2a5 5 0 1 0 0 10A5 5 0 0 0 12 2z"/><path d="M12 14c-7 0-9 3-9 4v1h18v-1c0-1-2-4-9-4z"/><path d="M19 8l2 2-6 6"/></svg>
           </div>
@@ -335,8 +380,8 @@ function AdminPanel({ onClose, theme }) {
           </button>
         </div>
 
-        {/* Invite section */}
-        <div style={{background:"rgba(139,92,246,0.06)",borderRadius:14,padding:16,marginBottom:20,border:"1px solid rgba(139,92,246,0.12)"}}>
+        {/* Convidar */}
+        <div style={{background:"rgba(139,92,246,0.06)",borderRadius:14,padding:16,marginBottom:24,border:"1px solid rgba(139,92,246,0.12)"}}>
           <h3 style={{fontSize:13,fontWeight:700,color:c.text,margin:"0 0 4px",fontFamily:F}}>📨 Convidar novo usuário</h3>
           <p style={{fontSize:11,color:c.textMuted,margin:"0 0 12px",lineHeight:1.4}}>O usuário convidado poderá entrar com Google ou criar uma conta própria.</p>
           <div style={{display:"flex",gap:8}}>
@@ -348,28 +393,66 @@ function AdminPanel({ onClose, theme }) {
           {msg&&<p style={{fontSize:12,margin:"8px 0 0",color:msg.startsWith("✅")?"#10B981":"#EF4444"}}>{msg}</p>}
         </div>
 
-        {/* Invite list */}
-        <div>
-          <h3 style={{fontSize:13,fontWeight:700,color:c.text,margin:"0 0 10px",fontFamily:F}}>Usuários convidados ({invites.length})</h3>
-          {loading ? <p style={{fontSize:12,color:c.textMuted,fontFamily:F}}>Carregando...</p> : (
-            invites.length === 0 ? <p style={{fontSize:12,color:c.textMuted,fontFamily:F,textAlign:"center",padding:"16px 0",opacity:0.6}}>Nenhum convite enviado ainda.</p> : (
+        {loading ? (
+          <p style={{fontSize:12,color:c.textMuted,fontFamily:F,textAlign:"center",padding:"20px 0"}}>Carregando...</p>
+        ) : (<>
+
+          {/* Usuários registrados */}
+          {registeredUsers.length > 0 && (
+            <div style={{marginBottom:20}}>
+              <SectionHeader count={registeredUsers.length}>Usuários ativos</SectionHeader>
               <div style={{display:"flex",flexDirection:"column",gap:6}}>
-                {invites.map((inv,i)=>(<div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",borderRadius:10,background:c.taskBg,border:`1px solid ${c.cardBorder}`}}>
-                  <div style={{width:32,height:32,borderRadius:8,background:"rgba(59,130,246,0.1)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-                  </div>
-                  <div style={{flex:1,minWidth:0}}>
-                    <span style={{fontSize:13,color:c.text,fontFamily:F,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",display:"block"}}>{inv.email}</span>
-                    <span style={{fontSize:10,color:c.textMuted,fontFamily:F}}>{new Date(inv.createdAt).toLocaleDateString("pt-BR")}</span>
-                  </div>
-                  <button onClick={()=>removeInvite(inv.email)} style={{background:"none",border:"none",cursor:"pointer",padding:4,opacity:0.4,flexShrink:0}} onMouseEnter={e=>e.currentTarget.style.opacity="0.9"} onMouseLeave={e=>e.currentTarget.style.opacity="0.4"}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                  </button>
-                </div>))}
+                {registeredUsers.map((u,i) => {
+                  const seen = fmtLastSeen(u.lastSeen);
+                  return (
+                    <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",borderRadius:10,background:c.taskBg,border:`1px solid ${c.cardBorder}`}}>
+                      <div style={{width:34,height:34,borderRadius:9,background:"linear-gradient(135deg,rgba(99,102,241,0.2),rgba(139,92,246,0.15))",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                        <span style={{fontSize:14,fontWeight:700,color:"#8B5CF6",fontFamily:FS}}>{(u.username||"?").charAt(0).toUpperCase()}</span>
+                      </div>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{display:"flex",alignItems:"center",gap:6}}>
+                          <span style={{fontSize:13,color:c.text,fontFamily:F,fontWeight:600}}>{u.username}</span>
+                          {seen && <div style={{width:6,height:6,borderRadius:"50%",background:seen.dot,flexShrink:0}}/>}
+                        </div>
+                        <div style={{display:"flex",alignItems:"center",gap:6,marginTop:1}}>
+                          <span style={{fontSize:10,color:c.textMuted,fontFamily:F,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{u.email||"—"}</span>
+                        </div>
+                        {seen && <span style={{fontSize:10,color:seen.color,fontFamily:F,fontWeight:seen.label==="Ativo agora"?700:400}}>{seen.label==="Ativo agora"?"● Ativo agora":`Visto: ${seen.label}`}</span>}
+                        {!seen && <span style={{fontSize:10,color:c.textMuted,fontFamily:F,opacity:0.5}}>Nunca acessou</span>}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            )
+            </div>
           )}
-        </div>
+
+          {/* Convites pendentes */}
+          <div>
+            <SectionHeader count={pendingInvites.length}>Convites pendentes</SectionHeader>
+            {pendingInvites.length === 0 ? (
+              <p style={{fontSize:12,color:c.textMuted,fontFamily:F,textAlign:"center",padding:"14px 0",opacity:0.6}}>Nenhum convite pendente.</p>
+            ) : (
+              <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                {pendingInvites.map((inv,i) => (
+                  <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",borderRadius:10,background:c.taskBg,border:`1px solid ${c.cardBorder}`}}>
+                    <div style={{width:34,height:34,borderRadius:9,background:"rgba(251,191,36,0.1)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                    </div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <span style={{fontSize:13,color:c.text,fontFamily:F,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",display:"block"}}>{inv.email}</span>
+                      <span style={{fontSize:10,color:c.textMuted,fontFamily:F}}>Enviado em {new Date(inv.createdAt).toLocaleDateString("pt-BR")}</span>
+                    </div>
+                    <button onClick={()=>removeInvite(inv.email)} title="Remover convite" style={{background:"none",border:"none",cursor:"pointer",padding:4,opacity:0.35,flexShrink:0}} onMouseEnter={e=>e.currentTarget.style.opacity="0.85"} onMouseLeave={e=>e.currentTarget.style.opacity="0.35"}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+        </>)}
       </div>
     </div>
   );
@@ -2102,6 +2185,7 @@ export default function App(){
     setAuthed(true);setUserName(user);loadUserPrefs(user);
     window.storage.set(AUTH_KEY,"true").catch(()=>{});
     window.storage.set(USER_KEY,user).catch(()=>{});
+    window.storage.set(`last-seen-${user}`,String(Date.now())).catch(()=>{});
     // Load profile from Firestore
     try{
       const r=await window.storage.get(userProfileKey(user));
