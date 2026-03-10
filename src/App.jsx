@@ -253,7 +253,6 @@ function Logo({ size = "normal", theme = "dark" }) {
 /* ─── First Access Screen (cadastro de novo usuário convidado) ─── */
 function FirstAccessScreen({ invitedEmail, onSuccess, onBack, theme }) {
   const [displayName, setDisplayName] = useState("");
-  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState("");
@@ -261,20 +260,22 @@ function FirstAccessScreen({ invitedEmail, onSuccess, onBack, theme }) {
   const c = theme.t;
 
   const handleRegister = async () => {
-    const u = username.trim().toLowerCase().replace(/\s+/g, "");
     const dname = displayName.trim();
-    if (!dname || dname.length < 2) { setError("Digite seu nome de exibição."); return; }
-    if (!u || u.length < 3) { setError("O login precisa ter pelo menos 3 caracteres (sem espaços)."); return; }
-    if (CREDENTIALS[u]) { setError("Este login não está disponível."); return; }
+    if (!dname || dname.length < 2) { setError("Digite seu nome."); return; }
     if (password.length < 4) { setError("A senha precisa ter pelo menos 4 caracteres."); return; }
     if (password !== confirm) { setError("As senhas não coincidem."); return; }
     setLoading(true); setError("");
     try {
-      const r = await window.storage.get(`${USER_CREDS_PREFIX}${u}`).catch(() => null);
-      if (r && r.value) { setError("Este login já está em uso."); setLoading(false); return; }
+      // Gerar username interno a partir do e-mail (parte antes do @, sem caracteres especiais)
+      const base = invitedEmail.split("@")[0].toLowerCase().replace(/[^a-z0-9]/g,"");
+      // Garantir unicidade
+      let u = base;
+      let suffix = 1;
+      while (CREDENTIALS[u] || (await window.storage.get(`${USER_CREDS_PREFIX}${u}`).catch(()=>null))?.value) {
+        u = `${base}${suffix++}`;
+      }
       const hash = await hashStr(`${u}:${password}`);
       await saveDynamicCred(u, hash, invitedEmail);
-      // Salvar displayName no perfil
       await window.storage.set(`planner-${u}-profile`, JSON.stringify({ displayName: dname, photoURL: "" })).catch(() => {});
       onSuccess(u);
     } catch (e) {
@@ -294,13 +295,8 @@ function FirstAccessScreen({ invitedEmail, onSuccess, onBack, theme }) {
         </div>
         <div style={{textAlign:"left",marginBottom:12}}>
           <span style={{fontSize:11,color:c.textMuted,fontWeight:600,textTransform:"uppercase",letterSpacing:0.5}}>Seu nome</span>
-          <input autoFocus value={displayName} onChange={e=>setDisplayName(e.target.value)} onKeyDown={e=>e.key==="Enter"&&document.getElementById("fa-login")?.focus()} placeholder="ex: João Silva" style={{width:"100%",boxSizing:"border-box",marginTop:6,padding:"12px 16px",fontSize:15,background:c.inputBg,border:`2px solid ${error&&!displayName?"#EF4444":c.inputBorder}`,borderRadius:12,color:c.inputText,outline:"none",fontFamily:F}}/>
+          <input autoFocus value={displayName} onChange={e=>setDisplayName(e.target.value)} onKeyDown={e=>e.key==="Enter"&&document.getElementById("fa-pass")?.focus()} placeholder="ex: João Silva" style={{width:"100%",boxSizing:"border-box",marginTop:6,padding:"12px 16px",fontSize:15,background:c.inputBg,border:`2px solid ${error&&!displayName?"#EF4444":c.inputBorder}`,borderRadius:12,color:c.inputText,outline:"none",fontFamily:F}}/>
           <p style={{fontSize:10,color:c.textMuted,margin:"4px 0 0"}}>Aparece no app como "Olá, João"</p>
-        </div>
-        <div style={{textAlign:"left",marginBottom:12}}>
-          <span style={{fontSize:11,color:c.textMuted,fontWeight:600,textTransform:"uppercase",letterSpacing:0.5}}>Login</span>
-          <input id="fa-login" value={username} onChange={e=>setUsername(e.target.value.replace(/\s/g,""))} onKeyDown={e=>e.key==="Enter"&&document.getElementById("fa-pass")?.focus()} placeholder="ex: joaosilva" style={{width:"100%",boxSizing:"border-box",marginTop:6,padding:"12px 16px",fontSize:15,background:c.inputBg,border:`2px solid ${error&&!username?"#EF4444":c.inputBorder}`,borderRadius:12,color:c.inputText,outline:"none",fontFamily:F}}/>
-          <p style={{fontSize:10,color:c.textMuted,margin:"4px 0 0"}}>Usado para entrar — sem espaços</p>
         </div>
         <div style={{textAlign:"left",marginBottom:12}}>
           <span style={{fontSize:11,color:c.textMuted,fontWeight:600,textTransform:"uppercase",letterSpacing:0.5}}>Senha</span>
@@ -740,7 +736,7 @@ function ForgotPasswordScreen({ onBack, theme }) {
 
 
 function LoginScreen({ onLogin, theme }) {
-  const [user,setUser]=useState(""); const [pin,setPin]=useState("");
+  const [email,setEmail]=useState(""); const [pin,setPin]=useState("");
   const [error,setError]=useState(false); const [shake,setShake]=useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [googleError, setGoogleError] = useState("");
@@ -751,13 +747,10 @@ function LoginScreen({ onLogin, theme }) {
   const c=theme.t;
 
   const handleSubmit = async () => {
-    if(!user.trim()||!pin){setError(true);setShake(true);setTimeout(()=>setShake(false),500);setTimeout(()=>setError(false),2000);return;}
-    // Se digitou e-mail, resolver para username primeiro
-    let resolvedUser = user.trim().toLowerCase();
-    if (resolvedUser.includes("@")) {
-      const found = await getUsernameByEmail(resolvedUser);
-      if (found) resolvedUser = found;
-    }
+    if(!email.trim()||!pin){setError(true);setShake(true);setTimeout(()=>setShake(false),500);setTimeout(()=>setError(false),2000);return;}
+    const em = email.trim().toLowerCase();
+    // Resolver username a partir do e-mail
+    let resolvedUser = em.includes("@") ? (await getUsernameByEmail(em) || em) : em;
     if(await verifyCredentials(resolvedUser,pin)){onLogin(resolvedUser,"");}
     else{setError(true);setShake(true);setTimeout(()=>setShake(false),500);setTimeout(()=>setError(false),2000);}
   };
@@ -766,17 +759,13 @@ function LoginScreen({ onLogin, theme }) {
     setGoogleLoading(true); setGoogleError("");
     try {
       const firebaseUser = await signInWithGoogle();
-      const email = firebaseUser.email.toLowerCase();
+      const em = firebaseUser.email.toLowerCase();
       const googlePhoto = firebaseUser.photoURL || "";
-      // 1. Verificar mapeamento fixo (ex: xande)
-      if (GMAIL_MAP[email]) { onLogin(GMAIL_MAP[email], googlePhoto); return; }
-      // 2. Checar se email já tem conta criada no Firestore
-      const username = await getUsernameByEmail(email);
+      if (GMAIL_MAP[em]) { onLogin(GMAIL_MAP[em], googlePhoto); return; }
+      const username = await getUsernameByEmail(em);
       if (username) { onLogin(username, googlePhoto); return; }
-      // 3. Checar se email foi convidado
-      const invited = await isEmailInvited(email);
-      if (invited) { setFirstAccessEmail(email); return; }
-      // 4. Email não autorizado
+      const invited = await isEmailInvited(em);
+      if (invited) { setFirstAccessEmail(em); return; }
       await firebaseSignOut();
       setGoogleError("Este e-mail não está autorizado. Solicite um convite ao administrador.");
     } catch (e) {
@@ -802,29 +791,27 @@ function LoginScreen({ onLogin, theme }) {
         <p style={{fontSize:13,color:c.textSub,margin:"0 0 20px",lineHeight:1.5}}>Organize sua semana, acompanhe seus projetos e avance com velocidade!</p>
 
         <div style={{textAlign:"left",marginBottom:12}}>
-          <span style={{fontSize:11,color:c.textMuted,fontWeight:600,textTransform:"uppercase",letterSpacing:0.5}}>Usuário ou e-mail</span>
-          <input type="text" value={user} onChange={e=>setUser(e.target.value)} onKeyDown={e=>e.key==="Enter"&&document.getElementById("pin-input")?.focus()} placeholder="seu usuário ou e-mail" autoFocus
+          <span style={{fontSize:11,color:c.textMuted,fontWeight:600,textTransform:"uppercase",letterSpacing:0.5}}>E-mail</span>
+          <input type="email" value={email} onChange={e=>setEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&document.getElementById("pin-input")?.focus()} placeholder="seu@email.com" autoFocus
             style={{width:"100%",boxSizing:"border-box",marginTop:6,padding:"12px 16px",fontSize:15,background:c.inputBg,border:`2px solid ${error?"#EF4444":c.inputBorder}`,borderRadius:12,color:c.inputText,outline:"none",fontFamily:F,transition:"border-color 0.2s ease"}}/>
         </div>
         <div style={{textAlign:"left",marginBottom:6}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
-            <span style={{fontSize:11,color:c.textMuted,fontWeight:600,textTransform:"uppercase",letterSpacing:0.5}}>Senha / PIN</span>
+            <span style={{fontSize:11,color:c.textMuted,fontWeight:600,textTransform:"uppercase",letterSpacing:0.5}}>Senha</span>
             <button onClick={()=>setShowForgot(true)} style={{background:"none",border:"none",padding:0,cursor:"pointer",fontSize:11,color:"#3B82F6",fontFamily:F,fontWeight:500}}>Esqueci a senha</button>
           </div>
           <input id="pin-input" type="password" value={pin} onChange={e=>setPin(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleSubmit()} placeholder="sua senha"
             style={{width:"100%",boxSizing:"border-box",marginTop:6,padding:"12px 16px",fontSize:15,background:c.inputBg,border:`2px solid ${error?"#EF4444":c.inputBorder}`,borderRadius:12,color:c.inputText,outline:"none",fontFamily:F,transition:"border-color 0.2s ease"}}/>
         </div>
-        {error&&<p style={{color:"#EF4444",fontSize:13,margin:"10px 0 0"}}>Usuário ou senha incorreto</p>}
+        {error&&<p style={{color:"#EF4444",fontSize:13,margin:"10px 0 0"}}>E-mail ou senha incorretos</p>}
         <button onClick={handleSubmit} style={{width:"100%",marginTop:18,padding:"14px",background:"linear-gradient(135deg,#3B82F6,#8B5CF6)",border:"none",borderRadius:14,color:"#fff",fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:F}}>Entrar</button>
 
-        {/* Divider */}
         <div style={{display:"flex",alignItems:"center",gap:12,margin:"18px 0"}}>
           <div style={{flex:1,height:1,background:c.divider}}/>
           <span style={{fontSize:11,color:c.textMuted,fontWeight:500}}>ou entre com</span>
           <div style={{flex:1,height:1,background:c.divider}}/>
         </div>
 
-        {/* Google Sign-In */}
         <button onClick={handleGoogle} disabled={googleLoading} style={{width:"100%",padding:"13px 16px",borderRadius:12,border:`1.5px solid ${c.inputBorder}`,background:c.inputBg,color:c.text,fontSize:14,fontWeight:600,cursor:googleLoading?"default":"pointer",fontFamily:F,display:"flex",alignItems:"center",justifyContent:"center",gap:10,opacity:googleLoading?0.7:1,transition:"all 0.2s ease"}} onMouseEnter={e=>{if(!googleLoading){e.currentTarget.style.borderColor="#4285F4";e.currentTarget.style.background="rgba(66,133,244,0.06)"}}} onMouseLeave={e=>{e.currentTarget.style.borderColor=c.inputBorder;e.currentTarget.style.background=c.inputBg}}>
           {googleLoading ? (<><div style={{width:18,height:18,borderRadius:"50%",border:"2px solid rgba(66,133,244,0.3)",borderTopColor:"#4285F4",animation:"spin 0.8s linear infinite"}}/> Entrando...</>) : (<><svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>Entrar com Google</>)}
         </button>
