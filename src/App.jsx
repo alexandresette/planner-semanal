@@ -56,10 +56,14 @@ async function isEmailRegistered(email) {
   } catch { return false; }
 }
 async function getUsernameByEmail(email) {
+  const em = email.toLowerCase().trim();
+  // Primeiro: checar GMAIL_MAP (usuários hardcoded)
+  if (GMAIL_MAP[em]) return GMAIL_MAP[em];
+  // Depois: buscar no Firestore (usuários dinâmicos)
   try {
     const keys = await window.storage.list(USER_CREDS_PREFIX);
     for (const k of (keys.keys || [])) {
-      const r = await window.storage.get(k); if (r && r.value) { const d = JSON.parse(r.value); if (d.email && d.email.toLowerCase() === email.toLowerCase()) return d.username; }
+      const r = await window.storage.get(k); if (r && r.value) { const d = JSON.parse(r.value); if (d.email && d.email.toLowerCase() === em) return d.username; }
     }
     return null;
   } catch { return null; }
@@ -489,7 +493,7 @@ function ResetPasswordScreen({ token, onSuccess, theme }) {
     if (password !== confirm) { setError("As senhas não coincidem."); return; }
     setLoading(true); setError("");
     try {
-      const u = tokenData.username;
+      const u = tokenData.username.toLowerCase().trim();
       const hash = await hashStr(`${u}:${password}`);
       // Buscar registro existente (pode não existir para usuários hardcoded)
       const r = await window.storage.get(`${USER_CREDS_PREFIX}${u}`).catch(() => null);
