@@ -9,7 +9,6 @@ const USER_KEY = "gestor-user";
 
 const CREDENTIALS = {
   "xande": "df0a720d14ebe80f38b75efe20f84c740e176e3eca65183ddaf75999510c08e3",
-  "dea": "054676b7727c43a1b5bf80588455e074b7cb8343a3b4c26c5389c668fb6a79b6",
 };
 
 // Mapeamento fixo de Gmail → usuário (hardcoded, não exposto na UI)
