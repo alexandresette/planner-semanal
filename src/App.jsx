@@ -1611,6 +1611,324 @@ function WhatsNewModal({onClose,c,onMarkSeen}){
   );
 }
 
+/* ─── Report Generator ─── */
+function ReportModal({weeks,onClose,c,theme,userProfile,userName}){
+  const tc=c||themes.dark;
+  const isDark=theme.mode==="dark";
+  const [viewType,setViewType]=useState("projects"); // projects | days
+  const [weekSel,setWeekSel]=useState("current"); // current | next | both
+  const [includeAttachments,setIncludeAttachments]=useState(false);
+  const [generating,setGenerating]=useState(false);
+
+  useEffect(()=>{
+    const h=(e)=>{if(e.key==="Escape"){e.stopPropagation();onClose();}};
+    window.addEventListener("keydown",h,true);
+    return()=>window.removeEventListener("keydown",h,true);
+  },[]);
+
+  const fmtDate=(isoSun,isoSat)=>{
+    if(!isoSun)return"";
+    const sun=new Date(isoSun),sat=new Date(isoSat||isoSun);
+    const pad=n=>String(n).padStart(2,"0");
+    const MONTHS=["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+    return `${pad(sun.getDate())} ${MONTHS[sun.getMonth()]} – ${pad(sat.getDate())} ${MONTHS[sat.getMonth()]} ${sat.getFullYear()}`;
+  };
+
+  const prio={"high":{label:"Alta",color:"#EF4444"},"medium":{label:"Média",color:"#F59E0B"},"low":{label:"Baixa",color:"#6B7280"}};
+
+  const buildHTML=()=>{
+    const weeksToRender=weekSel==="both"?weeks:(weekSel==="current"?[weeks[0]]:[weeks[1]]).filter(Boolean);
+    const logoUrl=isDark?`${window.location.origin}${import.meta.env.BASE_URL||"/"}logo.svg`:`${window.location.origin}${import.meta.env.BASE_URL||"/"}logo-light.svg`;
+    const bg=isDark?"#0B1120":"#F8FAFC";
+    const cardBg=isDark?"rgba(255,255,255,0.04)":"#fff";
+    const border=isDark?"rgba(255,255,255,0.07)":"#E2E8F0";
+    const textMain=isDark?"#F1F5F9":"#0F172A";
+    const textSub=isDark?"#94A3B8":"#475569";
+    const textMuted=isDark?"#64748B":"#94A3B8";
+    const taskDoneBg=isDark?"rgba(255,255,255,0.02)":"#F8FAFC";
+    const now=new Date();
+    const displayName=userProfile?.displayName||userName||"";
+
+    const renderAttachment=(att)=>{
+      if(!includeAttachments)return"";
+      if(att.type==="image")return`<div style="margin-top:8px;border-radius:8px;overflow:hidden;border:1px solid ${border}"><img src="${att.data}" style="width:100%;max-height:200px;object-fit:cover;display:block;" /></div>`;
+      if(att.type==="video_file")return`<div style="margin-top:8px;padding:8px 12px;border-radius:8px;background:${cardBg};border:1px solid ${border};display:flex;align-items:center;gap:8px;font-size:11px;color:${textSub};">🎬 ${att.name}</div>`;
+      if(att.type==="link"){
+        const embed=getVideoEmbed(att.data);
+        if(embed)return`<div style="margin-top:8px;border-radius:8px;overflow:hidden;border:1px solid ${border}"><iframe src="${embed}" style="width:100%;height:160px;border:none;display:block;" allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture" allowfullscreen></iframe></div>`;
+        return`<div style="margin-top:8px;padding:8px 12px;border-radius:8px;background:${cardBg};border:1px solid ${border};font-size:11px;"><a href="${att.data}" style="color:#3B82F6;text-decoration:none;">🔗 ${att.data}</a></div>`;
+      }
+      if(att.type==="document"){
+        if(att.data.startsWith("data:application/pdf"))return`<div style="margin-top:8px;border-radius:8px;overflow:hidden;border:1px solid ${border}"><iframe src="${att.data}" style="width:100%;height:180px;border:none;display:block;"></iframe></div>`;
+        return`<div style="margin-top:8px;padding:8px 12px;border-radius:8px;background:${cardBg};border:1px solid ${border};font-size:11px;color:${textSub};">📄 ${att.name}</div>`;
+      }
+      return"";
+    };
+
+    const renderTask=(task,projectColor)=>{
+      const p=prio[task.priority]||prio.low;
+      const dayInfo=WEEK_DAYS.find(d=>d.key===task.day);
+      const atts=(task.attachments||[]).map(renderAttachment).join("");
+      return`
+        <div style="padding:10px 14px;border-radius:10px;background:${task.done?taskDoneBg:cardBg};border:1px solid ${task.done?"rgba(255,255,255,0.03)":border};margin-bottom:6px;opacity:${task.done?0.55:1};">
+          <div style="display:flex;align-items:flex-start;gap:10px;">
+            <div style="width:18px;height:18px;border-radius:5px;flex-shrink:0;margin-top:2px;${task.done?`background:${projectColor};`:`border:2px solid ${projectColor};background:transparent;`}display:flex;align-items:center;justify-content:center;">
+              ${task.done?`<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`:""}
+            </div>
+            <div style="flex:1;min-width:0;">
+              <span style="font-size:13px;color:${task.done?textMuted:textMain};text-decoration:${task.done?"line-through":"none"};font-family:'DM Sans',sans-serif;line-height:1.4;display:block;">${task.text}</span>
+              ${task.description?`<span style="font-size:11px;color:${textMuted};display:block;margin-top:2px;font-family:'DM Sans',sans-serif;">${task.description}</span>`:""}
+              <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:5px;align-items:center;">
+                ${dayInfo?`<span style="font-size:9px;font-weight:600;padding:2px 6px;border-radius:4px;background:rgba(255,255,255,0.06);color:${textSub};font-family:'DM Sans',sans-serif;">${dayInfo.full}</span>`:""}
+                <div style="width:7px;height:7px;border-radius:50%;background:${p.color};flex-shrink:0;"></div>
+                <span style="font-size:9px;color:${p.color};font-weight:600;font-family:'DM Sans',sans-serif;">${p.label}</span>
+              </div>
+            </div>
+          </div>
+          ${atts}
+        </div>`;
+    };
+
+    const renderWeekByProjects=(week)=>{
+      if(!week)return"";
+      const title=week.title||(weeks.indexOf(week)===0?"Semana Atual":"Próxima Semana");
+      const dateRange=fmtDate(week.sun,week.sat);
+      const projects=week.projects||[];
+      const projectsHTML=projects.filter(p=>p.tasks.length>0).map(p=>{
+        const done=p.tasks.filter(t=>t.done).length;
+        return`
+          <div style="border-radius:14px;border:1px solid ${border};background:${cardBg};margin-bottom:14px;overflow:hidden;">
+            <div style="padding:14px 16px 10px;border-bottom:1px solid ${border};background:${p.color}10;">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:18px;">${p.emoji}</span>
+                <div style="flex:1;">
+                  <span style="font-size:14px;font-weight:700;color:${p.color};font-family:'Inter',sans-serif;">${p.name}</span>
+                  <span style="font-size:10px;color:${textMuted};font-family:'DM Sans',sans-serif;margin-left:8px;">${done}/${p.tasks.length} concluídas</span>
+                </div>
+              </div>
+            </div>
+            <div style="padding:12px 14px;">
+              ${p.tasks.map(t=>renderTask(t,p.color)).join("")}
+            </div>
+          </div>`;
+      }).join("");
+      return`<div style="margin-bottom:28px;">
+        <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:12px;">
+          <h2 style="margin:0;font-size:18px;font-weight:800;color:${textMain};font-family:'Inter',sans-serif;">${title}</h2>
+          <span style="font-size:11px;color:${textMuted};font-family:'DM Sans',sans-serif;">${dateRange}</span>
+        </div>
+        ${projectsHTML||`<p style="color:${textMuted};font-size:13px;font-family:'DM Sans',sans-serif;">Nenhuma tarefa.</p>`}
+      </div>`;
+    };
+
+    const renderWeekByDays=(week)=>{
+      if(!week)return"";
+      const title=week.title||(weeks.indexOf(week)===0?"Semana Atual":"Próxima Semana");
+      const dateRange=fmtDate(week.sun,week.sat);
+      const allTasks=[];
+      (week.projects||[]).forEach(p=>p.tasks.forEach(t=>allTasks.push({...t,_pColor:p.color,_pEmoji:p.emoji,_pName:p.name})));
+      const daysHTML=WEEK_DAYS.map(d=>{
+        const tasks=allTasks.filter(t=>t.day===d.key);
+        if(tasks.length===0)return"";
+        return`
+          <div style="margin-bottom:16px;">
+            <h3 style="margin:0 0 8px;font-size:13px;font-weight:700;color:${textSub};font-family:'Inter',sans-serif;text-transform:uppercase;letter-spacing:0.06em;">${d.full}</h3>
+            ${tasks.map(t=>{
+              const pColor=t._pColor;
+              const p=prio[t.priority]||prio.low;
+              const atts=(t.attachments||[]).map(renderAttachment).join("");
+              return`
+                <div style="padding:10px 14px;border-radius:10px;background:${t.done?taskDoneBg:cardBg};border:1px solid ${t.done?"rgba(255,255,255,0.03)":border};margin-bottom:6px;opacity:${t.done?0.55:1};">
+                  <div style="display:flex;align-items:flex-start;gap:10px;">
+                    <div style="width:18px;height:18px;border-radius:5px;flex-shrink:0;margin-top:2px;${t.done?`background:${pColor};`:`border:2px solid ${pColor};background:transparent;`}display:flex;align-items:center;justify-content:center;">
+                      ${t.done?`<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`:""}
+                    </div>
+                    <div style="flex:1;">
+                      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:2px;">
+                        <span style="font-size:10px;font-weight:600;padding:1px 6px;border-radius:4px;background:${pColor}22;color:${pColor};font-family:'DM Sans',sans-serif;">${t._pEmoji} ${t._pName}</span>
+                        <div style="width:6px;height:6px;border-radius:50%;background:${p.color};"></div>
+                        <span style="font-size:9px;color:${p.color};font-weight:600;font-family:'DM Sans',sans-serif;">${p.label}</span>
+                      </div>
+                      <span style="font-size:13px;color:${t.done?textMuted:textMain};text-decoration:${t.done?"line-through":"none"};font-family:'DM Sans',sans-serif;line-height:1.4;display:block;">${t.text}</span>
+                      ${t.description?`<span style="font-size:11px;color:${textMuted};display:block;margin-top:2px;font-family:'DM Sans',sans-serif;">${t.description}</span>`:""}
+                    </div>
+                  </div>
+                  ${atts}
+                </div>`;
+            }).join("")}
+          </div>`;
+      }).join("");
+      return`<div style="margin-bottom:28px;">
+        <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:12px;">
+          <h2 style="margin:0;font-size:18px;font-weight:800;color:${textMain};font-family:'Inter',sans-serif;">${title}</h2>
+          <span style="font-size:11px;color:${textMuted};font-family:'DM Sans',sans-serif;">${dateRange}</span>
+        </div>
+        ${daysHTML||`<p style="color:${textMuted};font-size:13px;font-family:'DM Sans',sans-serif;">Nenhuma tarefa.</p>`}
+      </div>`;
+    };
+
+    const bodyContent=weeksToRender.map(w=>viewType==="projects"?renderWeekByProjects(w):renderWeekByDays(w)).join(`<hr style="border:none;border-top:1px solid ${border};margin:0 0 28px;"/>`);
+
+    // Contadores globais
+    const allTasks=weeksToRender.flatMap(w=>(w?.projects||[]).flatMap(p=>p.tasks));
+    const totalT=allTasks.length,doneT=allTasks.filter(t=>t.done).length;
+    const pct=totalT?Math.round(doneT/totalT*100):0;
+
+    return`<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Inter:wght@600;700;800&display=swap" rel="stylesheet"/>
+<title>Relatório — Planner Semanal</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:${bg};color:${textMain};font-family:'DM Sans',sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  @media print{
+    body{background:${bg}!important;}
+    .no-print{display:none!important;}
+    @page{margin:20mm 16mm;}
+  }
+</style>
+</head>
+<body>
+<div style="max-width:720px;margin:0 auto;padding:32px 24px 48px;">
+
+  <!-- Cabeçalho -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;padding-bottom:20px;border-bottom:1px solid ${border};">
+    <div style="display:flex;align-items:center;gap:14px;">
+      <img src="${logoUrl}" alt="Planner Semanal" style="height:36px;" onerror="this.style.display='none'"/>
+    </div>
+    <div style="text-align:right;">
+      <p style="font-size:12px;color:${textMuted};font-family:'DM Sans',sans-serif;">Gerado em ${String(now.getDate()).padStart(2,"0")}/${String(now.getMonth()+1).padStart(2,"0")}/${now.getFullYear()}${displayName?" · "+displayName:""}</p>
+      <p style="font-size:11px;color:${textMuted};font-family:'DM Sans',sans-serif;margin-top:2px;">${viewType==="projects"?"View: Projetos":"View: Dias da Semana"}</p>
+    </div>
+  </div>
+
+  <!-- Progresso global -->
+  <div style="display:flex;align-items:center;gap:20px;padding:16px 20px;border-radius:14px;background:${isDark?"rgba(59,130,246,0.08)":"rgba(59,130,246,0.05)"};border:1px solid rgba(59,130,246,0.15);margin-bottom:28px;">
+    <div style="position:relative;width:52px;height:52px;flex-shrink:0;">
+      <svg width="52" height="52" viewBox="0 0 52 52">
+        <circle cx="26" cy="26" r="22" fill="none" stroke="${isDark?"rgba(255,255,255,0.06)":"rgba(0,0,0,0.06)"}" stroke-width="4"/>
+        <circle cx="26" cy="26" r="22" fill="none" stroke="${pct===100?"#10B981":"#3B82F6"}" stroke-width="4" stroke-linecap="round" stroke-dasharray="${2*Math.PI*22}" stroke-dashoffset="${2*Math.PI*22*(1-pct/100)}" transform="rotate(-90 26 26)"/>
+      </svg>
+      <span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:${pct===100?"#10B981":"#3B82F6"};font-family:'Inter',sans-serif;">${pct}%</span>
+    </div>
+    <div>
+      <div style="font-size:20px;font-weight:700;color:${textMain};font-family:'Inter',sans-serif;">${doneT} de ${totalT}</div>
+      <div style="font-size:12px;color:${textSub};margin-top:2px;font-family:'DM Sans',sans-serif;">tarefas concluídas</div>
+    </div>
+  </div>
+
+  <!-- Conteúdo -->
+  ${bodyContent}
+
+  <!-- Rodapé -->
+  <div style="margin-top:32px;padding-top:16px;border-top:1px solid ${border};text-align:center;">
+    <p style="font-size:10px;color:${textMuted};font-family:'DM Sans',sans-serif;">Planner Semanal · Colossenses 3:23-24</p>
+  </div>
+
+</div>
+<script>
+  window.onload=function(){
+    document.querySelectorAll('img').forEach(function(img){
+      if(!img.complete||img.naturalWidth===0){img.style.display='none';}
+    });
+  };
+<\/script>
+</body>
+</html>`;
+  };
+
+  const handleGenerate=()=>{
+    setGenerating(true);
+    try{
+      const html=buildHTML();
+      const win=window.open("","_blank","width=900,height=700");
+      if(!win){alert("Permita pop-ups para gerar o relatório.");setGenerating(false);return;}
+      win.document.write(html);
+      win.document.close();
+      setTimeout(()=>{win.focus();win.print();},800);
+    }catch(e){console.error(e);}
+    setGenerating(false);
+    onClose();
+  };
+
+  const Toggle=({label,value,onChange})=>(
+    <button onClick={()=>onChange(!value)} style={{display:"flex",alignItems:"center",gap:8,background:"none",border:"none",cursor:"pointer",padding:"4px 0",fontFamily:F}}>
+      <div style={{width:36,height:20,borderRadius:10,background:value?"#3B82F6":tc.inputBg,border:`1px solid ${value?"#3B82F6":tc.cardBorder}`,position:"relative",transition:"all 0.2s",flexShrink:0}}>
+        <div style={{position:"absolute",top:2,left:value?17:2,width:14,height:14,borderRadius:"50%",background:"#fff",transition:"left 0.2s",boxShadow:"0 1px 3px rgba(0,0,0,0.3)"}}/>
+      </div>
+      <span style={{fontSize:13,color:tc.textSub,fontWeight:500}}>{label}</span>
+    </button>
+  );
+
+  const OptionBtn=({label,icon,active,onClick})=>(
+    <button onClick={onClick} style={{flex:1,padding:"10px 8px",borderRadius:10,border:`1.5px solid ${active?"#3B82F6":tc.cardBorder}`,background:active?"rgba(59,130,246,0.12)":tc.inputBg,cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:5,transition:"all 0.15s"}}>
+      <span style={{fontSize:20}}>{icon}</span>
+      <span style={{fontSize:11,fontWeight:600,color:active?"#3B82F6":tc.textSub,fontFamily:F}}>{label}</span>
+    </button>
+  );
+
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",backdropFilter:"blur(5px)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:3000,padding:16,animation:"fadeIn 0.2s ease"}} onClick={onClose}>
+      <div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:420,background:tc.modalBg,border:"1px solid rgba(59,130,246,0.2)",borderRadius:22,boxShadow:"0 8px 50px rgba(0,0,0,0.5)",overflow:"hidden"}}>
+
+        {/* Header */}
+        <div style={{padding:"20px 22px 16px",borderBottom:`1px solid ${tc.divider}`,display:"flex",alignItems:"center",gap:12}}>
+          <div style={{width:40,height:40,borderRadius:11,background:"linear-gradient(135deg,rgba(59,130,246,0.2),rgba(139,92,246,0.15))",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#60A5FA" strokeWidth="2" strokeLinecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><polyline points="9 15 12 18 15 15"/><line x1="12" y1="12" x2="12" y2="18"/></svg>
+          </div>
+          <div style={{flex:1}}>
+            <h2 style={{margin:0,fontSize:17,fontWeight:800,color:tc.text,fontFamily:FS}}>Gerar Relatório</h2>
+            <p style={{margin:0,fontSize:11,color:tc.textMuted,fontFamily:F}}>Escolha as opções abaixo</p>
+          </div>
+          <button onClick={onClose} style={{background:"none",border:"none",cursor:"pointer",padding:4,opacity:0.35}} onMouseEnter={e=>e.currentTarget.style.opacity="0.9"} onMouseLeave={e=>e.currentTarget.style.opacity="0.35"}>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={tc.textSub} strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+
+        <div style={{padding:"18px 22px 22px",display:"flex",flexDirection:"column",gap:18}}>
+
+          {/* View */}
+          <div>
+            <span style={{fontSize:10,color:tc.textMuted,fontWeight:700,display:"block",marginBottom:8,textTransform:"uppercase",letterSpacing:0.6}}>Organizar por</span>
+            <div style={{display:"flex",gap:8}}>
+              <OptionBtn label="Projetos" icon="📂" active={viewType==="projects"} onClick={()=>setViewType("projects")}/>
+              <OptionBtn label="Dias da Semana" icon="📅" active={viewType==="days"} onClick={()=>setViewType("days")}/>
+            </div>
+          </div>
+
+          {/* Semana */}
+          <div>
+            <span style={{fontSize:10,color:tc.textMuted,fontWeight:700,display:"block",marginBottom:8,textTransform:"uppercase",letterSpacing:0.6}}>Semana</span>
+            <div style={{display:"flex",gap:6}}>
+              {[{v:"current",l:"Semana Atual",i:"📍"},{v:"next",l:"Próxima Semana",i:"⏭️"},{v:"both",l:"Ambas",i:"📋"}].map(o=>(
+                <button key={o.v} onClick={()=>setWeekSel(o.v)} style={{flex:1,padding:"8px 4px",borderRadius:9,border:`1.5px solid ${weekSel===o.v?"#3B82F6":tc.cardBorder}`,background:weekSel===o.v?"rgba(59,130,246,0.12)":tc.inputBg,cursor:"pointer",fontSize:10,fontWeight:600,color:weekSel===o.v?"#3B82F6":tc.textSub,fontFamily:F,transition:"all 0.15s"}}>
+                  <div style={{fontSize:16,marginBottom:3}}>{o.i}</div>{o.l}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Anexos */}
+          <div style={{padding:"12px 14px",borderRadius:11,background:tc.taskBg,border:`1px solid ${tc.cardBorder}`}}>
+            <Toggle label="Incluir anexos (fotos, vídeos, documentos)" value={includeAttachments} onChange={setIncludeAttachments}/>
+            {includeAttachments&&<p style={{fontSize:10,color:tc.textMuted,fontFamily:F,marginTop:6,marginLeft:44}}>Imagens, PDFs e iframes de vídeo serão embutidos no relatório.</p>}
+          </div>
+
+          {/* Botão gerar */}
+          <button onClick={handleGenerate} disabled={generating} style={{width:"100%",padding:"14px",borderRadius:13,border:"none",background:"linear-gradient(135deg,#3B82F6,#8B5CF6)",color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:F,display:"flex",alignItems:"center",justifyContent:"center",gap:8,opacity:generating?0.7:1}}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><polyline points="9 15 12 18 15 15"/><line x1="12" y1="12" x2="12" y2="18"/></svg>
+            {generating?"Gerando...":"Gerar e Imprimir / Salvar PDF"}
+          </button>
+          <p style={{fontSize:10,color:tc.textMuted,fontFamily:F,textAlign:"center",marginTop:-12}}>Uma nova aba será aberta com o relatório. Use Ctrl+P / ⌘+P para salvar como PDF.</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ─── Main App ─── */
 export default function App(){
   const theme=useTheme();
@@ -1636,6 +1954,7 @@ export default function App(){
   const [showAdmin,setShowAdmin]=useState(false);
   const [showSettings,setShowSettings]=useState(false);
   const [showWhatsNew,setShowWhatsNew]=useState(false);
+  const [showReport,setShowReport]=useState(false);
   const [hasUnread,setHasUnread]=useState(false);
   const [userProfile,setUserProfile]=useState({displayName:"",photoURL:""});
 
@@ -1879,6 +2198,10 @@ export default function App(){
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={hasUnread?"#60A5FA":c.textSub} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
               {hasUnread&&<span style={{position:"absolute",top:5,right:5,width:8,height:8,borderRadius:"50%",background:"#EF4444",border:`2px solid ${c.bg}`,animation:"pulse 2s infinite"}}/>}
             </button>
+            {/* Relatório */}
+            <button onClick={()=>setShowReport(true)} title="Gerar Relatório" className="header-btn" style={{background:c.btnBg,border:`1px solid ${c.btnBorder}`,borderRadius:10,padding:"8px 10px",cursor:"pointer",lineHeight:1,display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.2s ease"}} onMouseEnter={e=>{e.currentTarget.style.borderColor="rgba(16,185,129,0.5)";e.currentTarget.style.background="rgba(16,185,129,0.08)";}} onMouseLeave={e=>{e.currentTarget.style.borderColor=c.btnBorder;e.currentTarget.style.background=c.btnBg;}}>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={c.textSub} strokeWidth="2" strokeLinecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><polyline points="9 15 12 18 15 15"/><line x1="12" y1="12" x2="12" y2="18"/></svg>
+            </button>
             {/* Settings */}
             {userName&&(<button onClick={()=>setShowSettings(true)} title="Configurações do perfil" className="header-btn" style={{background:c.btnBg,border:`1px solid ${c.btnBorder}`,borderRadius:10,padding:"8px 10px",cursor:"pointer",lineHeight:1,display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.2s ease"}} onMouseEnter={e=>{e.currentTarget.style.borderColor="rgba(59,130,246,0.5)";e.currentTarget.style.background="rgba(59,130,246,0.08)";}} onMouseLeave={e=>{e.currentTarget.style.borderColor=c.btnBorder;e.currentTarget.style.background=c.btnBg;}}>
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={c.textSub} strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -2010,6 +2333,7 @@ export default function App(){
         {showAdmin&&<AdminPanel onClose={()=>setShowAdmin(false)} theme={theme}/>}
         {showSettings&&<UserSettingsModal userName={userName} profile={userProfile} onSave={handleSaveProfile} onClose={()=>setShowSettings(false)} c={c}/>}
         {showWhatsNew&&<WhatsNewModal onClose={()=>setShowWhatsNew(false)} c={c} onMarkSeen={markWhatsNewSeen}/>}
+        {showReport&&<ReportModal weeks={weeks} onClose={()=>setShowReport(false)} c={c} theme={theme} userProfile={userProfile} userName={userName}/>}
 
         {/* Footer */}
         <div style={{textAlign:"center",marginTop:32,opacity:0.35}}>
