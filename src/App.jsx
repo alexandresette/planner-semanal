@@ -2345,6 +2345,8 @@ export default function App(){
   useEffect(()=>{(async()=>{try{const r=await window.storage.get(AUTH_KEY);if(r&&r.value==="true"){setAuthed(true);try{const u=await window.storage.get(USER_KEY);if(u&&u.value){const uname=u.value;setUserName(uname);loadUserPrefs(uname);try{const pr=await window.storage.get(`planner-${uname}-profile`);if(pr&&pr.value)setUserProfile(JSON.parse(pr.value));}catch{}}}catch{}}}catch{}})();},[]);
   const userProfileKey=(u)=>`planner-${u}-profile`;
   const handleLogin=useCallback(async(user,googlePhoto="")=>{
+    // Limpar dados do usuário anterior ANTES de setar o novo usuário
+    setWeeks([]);setHistory([]);setLoading(true);
     setAuthed(true);setUserName(user);loadUserPrefs(user);
     window.storage.set(AUTH_KEY,"true").catch(()=>{});
     window.storage.set(USER_KEY,user).catch(()=>{});
@@ -2372,6 +2374,7 @@ export default function App(){
 
   useEffect(()=>{
     if(!authed||!userName)return;
+    activeUserRef.current=""; // Invalidar ref enquanto carrega
     const XANDE_DEFAULT_IDS=["dexan","ministerio","gc","teologia","extras"];
     const hasXandeDefaults=(wks)=>wks.some(w=>w.projects.some(p=>XANDE_DEFAULT_IDS.includes(p.id)));
     (async()=>{
@@ -2386,7 +2389,7 @@ export default function App(){
             setWeeks(clean);
             window.storage.set(userDataKey(userName),JSON.stringify(clean)).catch(()=>{});
             window.storage.set(userHistoryKey(userName),JSON.stringify([])).catch(()=>{});
-            setHistory([]);setLoading(false);return;
+            setHistory([]);activeUserRef.current=userName;setLoading(false);return;
           }
           setWeeks(parsed);
         }else{
@@ -2395,11 +2398,14 @@ export default function App(){
         }
       }catch{const sun=getSunday(new Date());const sat=getSaturday(new Date());setWeeks([{id:weekId(sun),sun:sun.toISOString(),sat:sat.toISOString(),projects:getDefaultProjects(userName)}]);}
       try{const h=await window.storage.get(userHistoryKey(userName));if(h&&h.value)setHistory(JSON.parse(h.value));else setHistory([]);}catch{setHistory([]);}
+      activeUserRef.current=userName; // Liberar persistência só após carregar dados corretos
       setLoading(false);
     })();
   },[authed,userName]);
 
-  useEffect(()=>{if(weeks.length>0&&!loading&&userName)window.storage.set(userDataKey(userName),JSON.stringify(weeks)).catch(()=>{});},[weeks,loading,userName]);
+  const activeUserRef=useRef("");
+
+  useEffect(()=>{if(weeks.length>0&&!loading&&userName&&userName===activeUserRef.current)window.storage.set(userDataKey(userName),JSON.stringify(weeks)).catch(()=>{});},[weeks,loading,userName]);
   useEffect(()=>{if(weeks.length>0){const p=weeks[activeWeekIdx]?.projects;if(p){const a={};p.forEach(pr=>{a[pr.id]=true;});setExpanded(a);}}},[activeWeekIdx]);
 
   const projects=weeks[activeWeekIdx]?.projects||[];
