@@ -6,6 +6,7 @@ const LOGO_LIGHT = `${import.meta.env.BASE_URL}logo-light.svg`;
 
 const AUTH_KEY = "gestor-auth";
 const USER_KEY = "gestor-user";
+const SESSION_TOKEN_KEY = "gestor-session-token";
 
 const CREDENTIALS = {
   "xande": "df0a720d14ebe80f38b75efe20f84c740e176e3eca65183ddaf75999510c08e3",
@@ -76,7 +77,6 @@ async function hashStr(input) {
 }
 async function verifyCredentials(user, pin) {
   const u = user.toLowerCase().trim();
-  console.log("[auth] verifyCredentials — user:", u);
   // Checar credenciais dinâmicas no Firestore — busca exata primeiro
   try {
     const r = await window.storage.get(`${USER_CREDS_PREFIX}${u}`);
@@ -84,35 +84,32 @@ async function verifyCredentials(user, pin) {
       const d = JSON.parse(r.value);
       if (d.hash) {
         const computed = await hashStr(`${u}:${pin}`);
-        console.log("[auth] Firestore exact key — stored hash:", d.hash.slice(0,12), "computed:", computed.slice(0,12), "match:", computed === d.hash);
         return computed === d.hash;
       }
-    } else { console.log("[auth] Firestore exact key — not found"); }
-  } catch (e) { console.log("[auth] Firestore exact key error:", e.message); }
+    } else {
+ }
+  } catch (e) {
+ }
   // Busca ampla
   try {
     const keys = await window.storage.list(USER_CREDS_PREFIX);
-    console.log("[auth] Firestore all keys:", keys.keys);
     for (const k of (keys.keys || [])) {
       const r = await window.storage.get(k).catch(() => null);
       if (r && r.value) {
         const d = JSON.parse(r.value);
-        console.log("[auth] Checking key:", k, "username:", d.username, "has hash:", !!d.hash);
         if (d.username && d.username.toLowerCase().trim() === u && d.hash) {
           const computed = await hashStr(`${u}:${pin}`);
-          console.log("[auth] Broad match — stored:", d.hash.slice(0,12), "computed:", computed.slice(0,12), "match:", computed === d.hash);
           return computed === d.hash;
         }
       }
     }
-  } catch (e) { console.log("[auth] Broad search error:", e.message); }
+  } catch (e) {
+ }
   // Fallback hardcoded
   if (CREDENTIALS[u]) {
     const computed = await hashStr(`${u}:${pin}`);
-    console.log("[auth] Hardcoded fallback — match:", computed === CREDENTIALS[u]);
     return computed === CREDENTIALS[u];
   }
-  console.log("[auth] No credentials found for user:", u);
   return false;
 }
 
@@ -614,35 +611,32 @@ function ResetPasswordScreen({ token, onSuccess, theme }) {
     try {
       const u = tokenData.username.toLowerCase().trim();
       const hash = await hashStr(`${u}:${password}`);
-      console.log("[reset] Salvando hash para user:", u, "hash:", hash.slice(0,12));
       const keys = await window.storage.list(USER_CREDS_PREFIX).catch(() => ({ keys: [] }));
-      console.log("[reset] Keys encontradas:", keys.keys);
       let savedAny = false;
       for (const k of (keys.keys || [])) {
         try {
           const r = await window.storage.get(k);
           if (r && r.value) {
             const d = JSON.parse(r.value);
-            console.log("[reset] Verificando key:", k, "username:", d.username);
             if (d.username && d.username.toLowerCase() === u) {
               await window.storage.set(k, JSON.stringify({ ...d, hash }));
-              console.log("[reset] ✅ Hash atualizado na key:", k);
               savedAny = true;
             }
           }
-        } catch (e) { console.log("[reset] Erro na key:", k, e.message); }
+        } catch (e) {
+ }
       }
       if (!savedAny) {
         const newKey = `${USER_CREDS_PREFIX}${u}`;
         await window.storage.set(newKey, JSON.stringify({ username: u, email: tokenData.email || "", hash }));
-        console.log("[reset] ✅ Novo registro criado:", newKey);
       }
       await window.storage.delete(`${RESET_TOKEN_PREFIX}${token}`).catch(() => {});
       // Limpar sessão para forçar login com a nova senha
       await window.storage.set(AUTH_KEY, "false").catch(() => {});
       await window.storage.set(USER_KEY, "").catch(() => {});
       setDone(true);
-    } catch (e) { console.log("[reset] ❌ Erro:", e.message); setError("Erro ao redefinir senha. Tente novamente."); }
+    } catch (e) {
+ setError("Erro ao redefinir senha. Tente novamente."); }
     setLoading(false);
   };
 
@@ -776,7 +770,6 @@ function ForgotPasswordScreen({ onBack, theme }) {
   );
 }
 
-
 function LoginScreen({ onLogin, theme }) {
   const [email,setEmail]=useState(""); const [pin,setPin]=useState("");
   const [error,setError]=useState(false); const [shake,setShake]=useState(false);
@@ -821,7 +814,7 @@ function LoginScreen({ onLogin, theme }) {
   if (showForgot) return <ForgotPasswordScreen onBack={() => setShowForgot(false)} theme={theme} />;
 
   if (firstAccessEmail) {
-    return <FirstAccessScreen invitedEmail={firstAccessEmail} onSuccess={username => { try { window.history.replaceState({}, "", window.location.pathname); } catch {} onLogin(username); }} onBack={() => { try { window.history.replaceState({}, "", window.location.pathname); } catch {} setFirstAccessEmail(null); setGoogleLoading(false); }} theme={theme} />;
+    return <InviteGate invitedEmail={firstAccessEmail} onSuccess={username => { try { window.history.replaceState({}, "", window.location.pathname); } catch {} onLogin(username); }} onBack={() => { try { window.history.replaceState({}, "", window.location.pathname); } catch {} setFirstAccessEmail(null); setGoogleLoading(false); }} theme={theme} />;
   }
 
   return (
@@ -2386,12 +2379,14 @@ export default function App(){
     handleResize();
     return()=>window.removeEventListener("resize",handleResize);
   },[]);
-  useEffect(()=>{(async()=>{try{const r=await window.storage.get(AUTH_KEY);if(r&&r.value==="true"){setAuthed(true);try{const u=await window.storage.get(USER_KEY);if(u&&u.value){const uname=u.value;setUserName(uname);loadUserPrefs(uname);try{const pr=await window.storage.get(`planner-${uname}-profile`);if(pr&&pr.value)setUserProfile(JSON.parse(pr.value));}catch{}}}catch{}}}catch{}})();},[]);
+  useEffect(()=>{(async()=>{try{const r=await window.storage.get(AUTH_KEY);if(r&&r.value==="true"){const st=sessionStorage.getItem(SESSION_TOKEN_KEY);if(!st){await window.storage.set(AUTH_KEY,"false").catch(()=>{});return;}setAuthed(true);try{const u=await window.storage.get(USER_KEY);if(u&&u.value){const uname=u.value;setUserName(uname);loadUserPrefs(uname);try{const pr=await window.storage.get(`planner-${uname}-profile`);if(pr&&pr.value)setUserProfile(JSON.parse(pr.value));}catch{}}}catch{}}}catch{}})();},[]);
   const userProfileKey=(u)=>`planner-${u}-profile`;
   const handleLogin=useCallback(async(user,googlePhoto="")=>{
     // Limpar dados do usuário anterior ANTES de setar o novo usuário
     setWeeks([]);setHistory([]);setLoading(true);
     setAuthed(true);setUserName(user);loadUserPrefs(user);
+    const sessionToken = Array.from(crypto.getRandomValues(new Uint8Array(32))).map(b=>b.toString(16).padStart(2,"0")).join("");
+    sessionStorage.setItem(SESSION_TOKEN_KEY, sessionToken);
     window.storage.set(AUTH_KEY,"true").catch(()=>{});
     window.storage.set(USER_KEY,user).catch(()=>{});
     window.storage.set(`last-seen-${user}`,String(Date.now())).catch(()=>{});
@@ -2414,7 +2409,7 @@ export default function App(){
     setUserProfile(prof);
     await window.storage.set(userProfileKey(userName),JSON.stringify(prof)).catch(()=>{});
   },[userName]);
-  const handleLogout=useCallback(()=>{setAuthed(false);setUserName("");setWeeks([]);setLoading(true);window.storage.set(AUTH_KEY,"false").catch(()=>{});window.storage.set(USER_KEY,"").catch(()=>{});},[]);
+  const handleLogout=useCallback(()=>{setAuthed(false);setUserName("");setWeeks([]);setLoading(true);sessionStorage.removeItem(SESSION_TOKEN_KEY);window.storage.set(AUTH_KEY,"false").catch(()=>{});window.storage.set(USER_KEY,"").catch(()=>{});},[]);
 
   useEffect(()=>{
     if(!authed||!userName)return;
