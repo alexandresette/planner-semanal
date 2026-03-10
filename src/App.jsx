@@ -1635,6 +1635,7 @@ function WhatsNewModal({onClose,c,onMarkSeen,isAdmin}){
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Inter:wght@600;700;800&display=swap" rel="stylesheet"/>
+<link rel="icon" type="image/svg+xml" href="${window.location.origin}${import.meta.env.BASE_URL||"/"}favicon.svg"/>
 <title>Guia do Planner Semanal</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0;}
