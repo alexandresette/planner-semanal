@@ -1044,6 +1044,8 @@ function TaskViewModal({task,color,projectName,projectEmoji,onToggle,onUpdate,on
 /* ─── Task Item ─── */
 function TaskItem({task,color,onToggle,onUpdate,onDelete,projectName,projectEmoji,onMoveWeek,onEditingChange,openTaskId,onOpen,c,projects,showCategoryPicker}){
   const [showViewModal,setShowViewModal]=useState(false);
+  const openViewModal=()=>{setShowViewModal(true);if(onOpen)onOpen(task.id);};
+  const closeViewModal=()=>{setShowViewModal(false);if(onOpen)onOpen(null);};
   const showOpts = openTaskId === task.id;
   const [editText,setEditText]=useState(task.text);
   const [isEditing,setIsEditing]=useState(false);
@@ -1066,9 +1068,9 @@ function TaskItem({task,color,onToggle,onUpdate,onDelete,projectName,projectEmoj
   const tc = c || themes.dark;
   return(
     <>
-    {showViewModal&&<TaskViewModal task={task} color={color} projectName={projectName} projectEmoji={projectEmoji} onToggle={()=>{onToggle();setShowViewModal(false);}} onUpdate={u=>onUpdate(u)} onClose={()=>setShowViewModal(false)} c={tc}/>}
+    {showViewModal&&<TaskViewModal task={task} color={color} projectName={projectName} projectEmoji={projectEmoji} onToggle={()=>{onToggle();closeViewModal();}} onUpdate={u=>onUpdate(u)} onClose={closeViewModal} c={tc}/>}
     <div className="task-card" style={{borderRadius:12,overflow:"hidden",background:task.done?tc.taskBgDone:tc.taskBg,border:`1px solid ${task.done?tc.taskBorderDone:tc.taskBorder}`,opacity:task.done?0.55:1}}>
-      <div onClick={()=>setShowViewModal(true)} style={{padding:"10px 12px",cursor:"pointer"}}>
+      <div onClick={openViewModal} style={{padding:"10px 12px",cursor:"pointer"}}>
         <div style={{display:"flex",alignItems:"flex-start",gap:10}}>
           <div onClick={e=>{e.stopPropagation();onToggle();}} style={{width:22,height:22,borderRadius:6,flexShrink:0,cursor:"pointer",border:task.done?"none":`2px solid ${color}`,background:task.done?color:"transparent",display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.2s ease",marginTop:1}}>
             {task.done&&<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
