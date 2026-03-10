@@ -238,6 +238,7 @@ function Logo({ size = "normal", theme = "dark" }) {
 
 /* ─── First Access Screen (cadastro de novo usuário convidado) ─── */
 function FirstAccessScreen({ invitedEmail, onSuccess, onBack, theme }) {
+  const [displayName, setDisplayName] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -246,18 +247,21 @@ function FirstAccessScreen({ invitedEmail, onSuccess, onBack, theme }) {
   const c = theme.t;
 
   const handleRegister = async () => {
-    const u = username.trim().toLowerCase();
-    if (!u || u.length < 3) { setError("Nome de usuário precisa ter pelo menos 3 caracteres."); return; }
-    if (CREDENTIALS[u]) { setError("Este nome de usuário não está disponível."); return; }
+    const u = username.trim().toLowerCase().replace(/\s+/g, "");
+    const dname = displayName.trim();
+    if (!dname || dname.length < 2) { setError("Digite seu nome de exibição."); return; }
+    if (!u || u.length < 3) { setError("O login precisa ter pelo menos 3 caracteres (sem espaços)."); return; }
+    if (CREDENTIALS[u]) { setError("Este login não está disponível."); return; }
     if (password.length < 4) { setError("A senha precisa ter pelo menos 4 caracteres."); return; }
     if (password !== confirm) { setError("As senhas não coincidem."); return; }
     setLoading(true); setError("");
     try {
-      // Verificar se username já existe
       const r = await window.storage.get(`${USER_CREDS_PREFIX}${u}`).catch(() => null);
-      if (r && r.value) { setError("Este nome de usuário já está em uso."); setLoading(false); return; }
+      if (r && r.value) { setError("Este login já está em uso."); setLoading(false); return; }
       const hash = await hashStr(`${u}:${password}`);
       await saveDynamicCred(u, hash, invitedEmail);
+      // Salvar displayName no perfil
+      await window.storage.set(`planner-${u}-profile`, JSON.stringify({ displayName: dname, photoURL: "" })).catch(() => {});
       onSuccess(u);
     } catch (e) {
       setError("Erro ao criar conta. Tente novamente.");
@@ -268,15 +272,21 @@ function FirstAccessScreen({ invitedEmail, onSuccess, onBack, theme }) {
   return (
     <div style={{minHeight:"100vh",background:c.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:F,padding:"24px 16px"}}>
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Inter:wght@600;700;800&display=swap" rel="stylesheet"/>
-      <div style={{width:"100%",maxWidth:400,padding:"32px 28px",boxSizing:"border-box",textAlign:"center",background:c.loginCardBg,border:`1px solid ${c.loginCardBorder}`,borderRadius:24,animation:"fadeIn 0.5s ease",boxShadow:theme.mode==="light"?"0 4px 24px rgba(0,0,0,0.08)":"none"}}>
-        <div style={{marginBottom:20}}>
-          <Logo size="large" theme={theme.mode} />
+      <div style={{width:"100%",maxWidth:400,padding:"32px 28px",boxSizing:"border-box",background:c.loginCardBg,border:`1px solid ${c.loginCardBorder}`,borderRadius:24,animation:"fadeIn 0.5s ease",boxShadow:c.mode==="light"?"0 4px 24px rgba(0,0,0,0.08)":"none"}}>
+        <div style={{textAlign:"center",marginBottom:24}}>
+          <Logo size="large" theme={c.mode||"dark"} />
+          <h2 style={{fontSize:20,fontWeight:800,color:c.text,margin:"18px 0 4px",fontFamily:FS}}>Criar sua conta</h2>
+          <p style={{fontSize:12,color:c.textSub,margin:0}}>Convite para <strong style={{color:c.text}}>{invitedEmail}</strong></p>
         </div>
-        <h2 style={{fontSize:18,fontWeight:800,color:c.text,margin:"0 0 4px",fontFamily:FS}}>Primeiro acesso</h2>
-        <p style={{fontSize:12,color:c.textSub,margin:"0 0 20px",lineHeight:1.5}}>Crie seu perfil para <span style={{color:"#3B82F6",fontWeight:600}}>{invitedEmail}</span></p>
         <div style={{textAlign:"left",marginBottom:12}}>
-          <span style={{fontSize:11,color:c.textMuted,fontWeight:600,textTransform:"uppercase",letterSpacing:0.5}}>Nome de usuário</span>
-          <input autoFocus value={username} onChange={e=>setUsername(e.target.value)} onKeyDown={e=>e.key==="Enter"&&document.getElementById("fa-pass")?.focus()} placeholder="ex: João Silva" style={{width:"100%",boxSizing:"border-box",marginTop:6,padding:"12px 16px",fontSize:15,background:c.inputBg,border:`2px solid ${error&&!username?"#EF4444":c.inputBorder}`,borderRadius:12,color:c.inputText,outline:"none",fontFamily:F}}/>
+          <span style={{fontSize:11,color:c.textMuted,fontWeight:600,textTransform:"uppercase",letterSpacing:0.5}}>Seu nome</span>
+          <input autoFocus value={displayName} onChange={e=>setDisplayName(e.target.value)} onKeyDown={e=>e.key==="Enter"&&document.getElementById("fa-login")?.focus()} placeholder="ex: João Silva" style={{width:"100%",boxSizing:"border-box",marginTop:6,padding:"12px 16px",fontSize:15,background:c.inputBg,border:`2px solid ${error&&!displayName?"#EF4444":c.inputBorder}`,borderRadius:12,color:c.inputText,outline:"none",fontFamily:F}}/>
+          <p style={{fontSize:10,color:c.textMuted,margin:"4px 0 0"}}>Aparece no app como "Olá, João"</p>
+        </div>
+        <div style={{textAlign:"left",marginBottom:12}}>
+          <span style={{fontSize:11,color:c.textMuted,fontWeight:600,textTransform:"uppercase",letterSpacing:0.5}}>Login</span>
+          <input id="fa-login" value={username} onChange={e=>setUsername(e.target.value.replace(/\s/g,""))} onKeyDown={e=>e.key==="Enter"&&document.getElementById("fa-pass")?.focus()} placeholder="ex: joaosilva" style={{width:"100%",boxSizing:"border-box",marginTop:6,padding:"12px 16px",fontSize:15,background:c.inputBg,border:`2px solid ${error&&!username?"#EF4444":c.inputBorder}`,borderRadius:12,color:c.inputText,outline:"none",fontFamily:F}}/>
+          <p style={{fontSize:10,color:c.textMuted,margin:"4px 0 0"}}>Usado para entrar — sem espaços</p>
         </div>
         <div style={{textAlign:"left",marginBottom:12}}>
           <span style={{fontSize:11,color:c.textMuted,fontWeight:600,textTransform:"uppercase",letterSpacing:0.5}}>Senha</span>
@@ -286,11 +296,11 @@ function FirstAccessScreen({ invitedEmail, onSuccess, onBack, theme }) {
           <span style={{fontSize:11,color:c.textMuted,fontWeight:600,textTransform:"uppercase",letterSpacing:0.5}}>Confirmar senha</span>
           <input id="fa-confirm" type="password" value={confirm} onChange={e=>setConfirm(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleRegister()} placeholder="repita a senha" style={{width:"100%",boxSizing:"border-box",marginTop:6,padding:"12px 16px",fontSize:15,background:c.inputBg,border:`2px solid ${error&&password!==confirm?"#EF4444":c.inputBorder}`,borderRadius:12,color:c.inputText,outline:"none",fontFamily:F}}/>
         </div>
-        {error&&<p style={{color:"#EF4444",fontSize:13,margin:"10px 0 0"}}>{error}</p>}
+        {error&&<p style={{color:"#EF4444",fontSize:13,margin:"10px 0 0",lineHeight:1.4}}>{error}</p>}
         <button onClick={handleRegister} disabled={loading} style={{width:"100%",marginTop:18,padding:"14px",background:"linear-gradient(135deg,#3B82F6,#8B5CF6)",border:"none",borderRadius:14,color:"#fff",fontSize:15,fontWeight:700,cursor:loading?"default":"pointer",fontFamily:F,opacity:loading?0.7:1}}>
-          {loading?"Criando conta...":"Criar minha conta"}
+          {loading?"Criando conta...":"Criar conta"}
         </button>
-        <button onClick={onBack} style={{width:"100%",marginTop:8,padding:"12px",background:"transparent",border:`1px solid ${c.cardBorder}`,borderRadius:14,color:c.textSub,fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:F}}>← Voltar ao login</button>
+        <button onClick={onBack} style={{width:"100%",marginTop:8,padding:"11px",background:"transparent",border:`1px solid ${c.cardBorder}`,borderRadius:12,color:c.textSub,fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:F}}>← Voltar</button>
       </div>
       <style>{`@keyframes fadeIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}`}</style>
     </div>
