@@ -259,7 +259,7 @@ function FirstAccessScreen({ invitedEmail, onSuccess, onBack, theme }) {
         <p style={{fontSize:12,color:c.textSub,margin:"0 0 20px",lineHeight:1.5}}>Crie seu perfil para <span style={{color:"#3B82F6",fontWeight:600}}>{invitedEmail}</span></p>
         <div style={{textAlign:"left",marginBottom:12}}>
           <span style={{fontSize:11,color:c.textMuted,fontWeight:600,textTransform:"uppercase",letterSpacing:0.5}}>Nome de usuário</span>
-          <input autoFocus value={username} onChange={e=>setUsername(e.target.value.replace(/\s/g,""))} onKeyDown={e=>e.key==="Enter"&&document.getElementById("fa-pass")?.focus()} placeholder="ex: joao" style={{width:"100%",boxSizing:"border-box",marginTop:6,padding:"12px 16px",fontSize:15,background:c.inputBg,border:`2px solid ${error&&!username?"#EF4444":c.inputBorder}`,borderRadius:12,color:c.inputText,outline:"none",fontFamily:F}}/>
+          <input autoFocus value={username} onChange={e=>setUsername(e.target.value)} onKeyDown={e=>e.key==="Enter"&&document.getElementById("fa-pass")?.focus()} placeholder="ex: João Silva" style={{width:"100%",boxSizing:"border-box",marginTop:6,padding:"12px 16px",fontSize:15,background:c.inputBg,border:`2px solid ${error&&!username?"#EF4444":c.inputBorder}`,borderRadius:12,color:c.inputText,outline:"none",fontFamily:F}}/>
         </div>
         <div style={{textAlign:"left",marginBottom:12}}>
           <span style={{fontSize:11,color:c.textMuted,fontWeight:600,textTransform:"uppercase",letterSpacing:0.5}}>Senha</span>
@@ -1621,7 +1621,7 @@ function WhatsNewModal({onClose,c,onMarkSeen,isAdmin}){
         {!isPinned&&i<regularList.length-1&&<div style={{position:"absolute",left:6,top:28,bottom:-20,width:1,background:tc.divider}}/>}
         {/* dot */}
         {!isPinned&&<div style={{position:"absolute",left:0,top:6,width:13,height:13,borderRadius:"50%",background:isLatest?"linear-gradient(135deg,#3B82F6,#8B5CF6)":tc.inputBg,border:isLatest?"none":`1.5px solid ${tc.cardBorder}`,boxShadow:isLatest?"0 0 0 3px rgba(59,130,246,0.2)":"none"}}/>}
-        <div style={{background:isPinned?"linear-gradient(135deg,rgba(245,158,11,0.08),rgba(239,68,68,0.04))":isLatest?`linear-gradient(135deg,rgba(59,130,246,0.06),rgba(139,92,246,0.04))`:tc.taskBg,border:`1px solid ${isPinned?"rgba(245,158,11,0.3)":isLatest?"rgba(59,130,246,0.2)":tc.cardBorder}`,borderRadius:14,padding:"14px 16px",animation:"fadeIn 0.3s ease"}}>
+        <div style={{background:isPinned?"linear-gradient(135deg,rgba(139,92,246,0.08),rgba(109,40,217,0.04))":isLatest?`linear-gradient(135deg,rgba(59,130,246,0.06),rgba(139,92,246,0.04))`:tc.taskBg,border:`1px solid ${isPinned?"rgba(139,92,246,0.3)":isLatest?"rgba(59,130,246,0.2)":tc.cardBorder}`,borderRadius:14,padding:"14px 16px",animation:"fadeIn 0.3s ease"}}>
           <div style={{display:"flex",alignItems:"flex-start",gap:8,marginBottom:8,flexWrap:"wrap"}}>
             <span style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:5,background:bc.bg,color:bc.color,fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>{bc.label}</span>
             <span style={{fontSize:11,fontWeight:700,color:tc.textSub,fontFamily:F}}>{entry.version}</span>
@@ -1638,7 +1638,7 @@ function WhatsNewModal({onClose,c,onMarkSeen,isAdmin}){
           <ul style={{margin:0,padding:0,listStyle:"none",display:"flex",flexDirection:"column",gap:5}}>
             {entry.items.map((item,j)=>(
               <li key={j} style={{display:"flex",alignItems:"flex-start",gap:8,fontSize:12,color:tc.textSub,fontFamily:F,lineHeight:1.5}}>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={isPinned?"#F59E0B":"#3B82F6"} strokeWidth="2.5" strokeLinecap="round" style={{flexShrink:0,marginTop:2}}><polyline points="20 6 9 17 4 12"/></svg>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={isPinned?"#8B5CF6":"#3B82F6"} strokeWidth="2.5" strokeLinecap="round" style={{flexShrink:0,marginTop:2}}><polyline points="20 6 9 17 4 12"/></svg>
                 {item}
               </li>
             ))}
@@ -1653,7 +1653,7 @@ function WhatsNewModal({onClose,c,onMarkSeen,isAdmin}){
           )}
           {/* Botão de desafixar só no card pinado, visível apenas para admin */}
           {isPinned&&isAdmin&&(
-            <button onClick={()=>handlePin(entry.version)} disabled={!!savingPin} style={{marginTop:10,padding:"5px 12px",borderRadius:7,border:"1px solid rgba(245,158,11,0.3)",background:"rgba(245,158,11,0.08)",color:"#F59E0B",fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:F,display:"flex",alignItems:"center",gap:5,transition:"all 0.15s"}} onMouseEnter={e=>e.currentTarget.style.background="rgba(245,158,11,0.16)"} onMouseLeave={e=>e.currentTarget.style.background="rgba(245,158,11,0.08)"}>
+            <button onClick={()=>handlePin(entry.version)} disabled={!!savingPin} style={{marginTop:10,padding:"5px 12px",borderRadius:7,border:"1px solid rgba(139,92,246,0.3)",background:"rgba(139,92,246,0.08)",color:"#8B5CF6",fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:F,display:"flex",alignItems:"center",gap:5,transition:"all 0.15s"}} onMouseEnter={e=>e.currentTarget.style.background="rgba(139,92,246,0.16)"} onMouseLeave={e=>e.currentTarget.style.background="rgba(139,92,246,0.08)"}>
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               Desafixar
             </button>
@@ -1690,8 +1690,8 @@ function WhatsNewModal({onClose,c,onMarkSeen,isAdmin}){
           {pinnedEntry&&(
             <div style={{marginBottom:20}}>
               <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
-                <span style={{fontSize:10,fontWeight:700,color:"#F59E0B",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.06em"}}>📌 Em destaque</span>
-                <div style={{flex:1,height:1,background:"rgba(245,158,11,0.2)"}}/>
+                <span style={{fontSize:10,fontWeight:700,color:"#8B5CF6",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.06em"}}>📌 Em destaque</span>
+                <div style={{flex:1,height:1,background:"rgba(139,92,246,0.2)"}}/>
               </div>
               {renderEntry(pinnedEntry,0,{isPinned:true})}
               <div style={{height:1,background:tc.divider,margin:"20px 0"}}/>
