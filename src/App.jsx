@@ -76,12 +76,25 @@ async function hashStr(input) {
 }
 async function verifyCredentials(user, pin) {
   const u = user.toLowerCase().trim();
-  // Checar credenciais dinâmicas no Firestore primeiro (pode ter senha atualizada via reset)
+  // Checar credenciais dinâmicas no Firestore — busca exata primeiro
   try {
     const r = await window.storage.get(`${USER_CREDS_PREFIX}${u}`);
     if (r && r.value) {
       const d = JSON.parse(r.value);
-      return (await hashStr(`${u}:${pin}`)) === d.hash;
+      if (d.hash) return (await hashStr(`${u}:${pin}`)) === d.hash;
+    }
+  } catch {}
+  // Busca ampla — percorre todos os registros procurando pelo username
+  try {
+    const keys = await window.storage.list(USER_CREDS_PREFIX);
+    for (const k of (keys.keys || [])) {
+      const r = await window.storage.get(k).catch(() => null);
+      if (r && r.value) {
+        const d = JSON.parse(r.value);
+        if (d.username && d.username.toLowerCase().trim() === u && d.hash) {
+          return (await hashStr(`${u}:${pin}`)) === d.hash;
+        }
+      }
     }
   } catch {}
   // Fallback: credenciais hardcoded originais
@@ -539,11 +552,25 @@ function ResetPasswordScreen({ token, onSuccess, theme }) {
     try {
       const u = tokenData.username.toLowerCase().trim();
       const hash = await hashStr(`${u}:${password}`);
-      // Buscar registro existente (pode não existir para usuários hardcoded)
-      const r = await window.storage.get(`${USER_CREDS_PREFIX}${u}`).catch(() => null);
-      const existing = (r && r.value) ? JSON.parse(r.value) : { username: u, email: tokenData.email || "" };
-      // Sempre salva — cria o registro no Firestore se necessário
-      await window.storage.set(`${USER_CREDS_PREFIX}${u}`, JSON.stringify({ ...existing, hash }));
+      // Buscar todos os registros com esse username OU email para atualizar todos
+      const keys = await window.storage.list(USER_CREDS_PREFIX).catch(() => ({ keys: [] }));
+      let savedAny = false;
+      for (const k of (keys.keys || [])) {
+        try {
+          const r = await window.storage.get(k);
+          if (r && r.value) {
+            const d = JSON.parse(r.value);
+            if (d.username && d.username.toLowerCase() === u) {
+              await window.storage.set(k, JSON.stringify({ ...d, hash }));
+              savedAny = true;
+            }
+          }
+        } catch {}
+      }
+      // Se não achou nenhum (ex: usuário hardcoded sem registro), cria um novo
+      if (!savedAny) {
+        await window.storage.set(`${USER_CREDS_PREFIX}${u}`, JSON.stringify({ username: u, email: tokenData.email || "", hash }));
+      }
       // Invalidar token
       await window.storage.delete(`${RESET_TOKEN_PREFIX}${token}`).catch(() => {});
       setDone(true);
