@@ -1452,6 +1452,167 @@ function UserSettingsModal({userName,profile,onSave,onClose,c}){
   );
 }
 
+/* ─── Changelog (editar aqui para adicionar novidades) ─── */
+const CHANGELOG = [
+  {
+    version: "v2.17",
+    date: "09/03/2025",
+    badge: "novo",
+    title: "Anexos nas tarefas",
+    items: [
+      "📸 Anexe fotos e vídeos diretamente nas tarefas",
+      "🔗 Cole links do YouTube, Google Drive, Vimeo ou Loom — o vídeo abre incorporado no pop-up",
+      "📄 Faça upload de documentos e PDFs — PDFs abrem direto no modal",
+      "Anexos também disponíveis ao criar uma nova tarefa",
+    ],
+  },
+  {
+    version: "v2.16",
+    date: "09/03/2025",
+    badge: "novo",
+    title: "Edição completa no pop-up da tarefa",
+    items: [
+      "Botão de edição ✏️ diretamente no modal de visualização da tarefa",
+      "Ao editar, o modal só fecha pelo X, Salvar ou Cancelar — sem fechar por acidente",
+      "Campos editáveis: título, descrição, dia da semana e prioridade",
+    ],
+  },
+  {
+    version: "v2.15",
+    date: "Março 2025",
+    badge: "melhoria",
+    title: "Login com Google & perfil de usuário",
+    items: [
+      "Entre com sua conta Google com um clique",
+      "Foto de perfil automática via Google, com opção de trocar por foto própria",
+      "Crop circular interativo para ajustar a foto de perfil",
+      "Nome de exibição personalizável",
+    ],
+  },
+  {
+    version: "v2.14",
+    date: "Março 2025",
+    badge: "melhoria",
+    title: "Painel de Admin & convites",
+    items: [
+      "Admin pode convidar novos usuários por e-mail",
+      "Novos usuários recebem e-mail de convite e podem criar conta própria",
+      "Sistema de reset de senha por e-mail",
+    ],
+  },
+  {
+    version: "v2.10",
+    date: "Fevereiro 2025",
+    badge: "melhoria",
+    title: "Drag & drop e melhorias de UX",
+    items: [
+      "Arraste tarefas entre dias da semana na view Colunas",
+      "Layout Colunas para tablet e desktop",
+      "Focos da semana: destaque para tarefas de alta prioridade",
+      "Reordenar projetos sincronizado entre semanas",
+    ],
+  },
+  {
+    version: "v2.0",
+    date: "Janeiro 2025",
+    badge: "lançamento",
+    title: "Lançamento do Planner Semanal 🎉",
+    items: [
+      "Sistema de semanas com Semana Atual e Próxima Semana",
+      "Views por Categorias e Dias da Semana",
+      "Tarefas com prioridade, dia, descrição e edição inline",
+      "Histórico de semanas concluídas",
+      "Tema dark e light",
+      "Multi-usuário com login por PIN",
+    ],
+  },
+];
+
+const WHATS_NEW_STORAGE_KEY = "whats-new-last-seen";
+
+/* ─── WhatsNew Modal ─── */
+function WhatsNewModal({onClose,c,onMarkSeen}){
+  const tc=c||themes.dark;
+  const [showAll,setShowAll]=useState(false);
+  const visible=showAll?CHANGELOG:CHANGELOG.slice(0,3);
+  const badgeColors={
+    novo:{bg:"rgba(16,185,129,0.15)",color:"#10B981",label:"Novo"},
+    melhoria:{bg:"rgba(59,130,246,0.12)",color:"#3B82F6",label:"Melhoria"},
+    lançamento:{bg:"rgba(245,158,11,0.15)",color:"#F59E0B",label:"Lançamento"},
+    fix:{bg:"rgba(239,68,68,0.1)",color:"#EF4444",label:"Fix"},
+  };
+  useEffect(()=>{
+    onMarkSeen();
+    const h=(e)=>{if(e.key==="Escape"){e.stopPropagation();onClose();}};
+    window.addEventListener("keydown",h,true);
+    return()=>window.removeEventListener("keydown",h,true);
+  },[]);
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",backdropFilter:"blur(5px)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:3000,padding:16,animation:"fadeIn 0.2s ease"}} onClick={onClose}>
+      <div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:480,maxHeight:"85vh",background:tc.modalBg,border:"1px solid rgba(59,130,246,0.2)",borderRadius:22,boxShadow:"0 8px 50px rgba(0,0,0,0.5)",display:"flex",flexDirection:"column",overflow:"hidden"}}>
+
+        {/* Header */}
+        <div style={{padding:"22px 24px 16px",borderBottom:`1px solid ${tc.divider}`,flexShrink:0}}>
+          <div style={{display:"flex",alignItems:"center",gap:12}}>
+            <div style={{width:42,height:42,borderRadius:12,background:"linear-gradient(135deg,rgba(59,130,246,0.2),rgba(139,92,246,0.2))",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#60A5FA" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            </div>
+            <div style={{flex:1}}>
+              <h2 style={{margin:0,fontSize:18,fontWeight:800,color:tc.text,fontFamily:FS}}>Novidades</h2>
+              <p style={{margin:0,fontSize:12,color:tc.textMuted,fontFamily:F}}>Atualizações do Planner Semanal</p>
+            </div>
+            <button onClick={onClose} style={{background:"none",border:"none",cursor:"pointer",padding:4,opacity:0.35}} onMouseEnter={e=>e.currentTarget.style.opacity="0.9"} onMouseLeave={e=>e.currentTarget.style.opacity="0.35"}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={tc.textSub} strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Lista */}
+        <div style={{overflowY:"auto",flex:1,padding:"16px 24px"}}>
+          <div style={{display:"flex",flexDirection:"column",gap:20}}>
+            {visible.map((entry,i)=>{
+              const bc=badgeColors[entry.badge]||badgeColors.melhoria;
+              const isLatest=i===0;
+              return(
+                <div key={entry.version} style={{position:"relative",paddingLeft:20}}>
+                  {/* linha vertical */}
+                  {i<visible.length-1&&<div style={{position:"absolute",left:6,top:28,bottom:-20,width:1,background:tc.divider}}/>}
+                  {/* dot */}
+                  <div style={{position:"absolute",left:0,top:6,width:13,height:13,borderRadius:"50%",background:isLatest?"linear-gradient(135deg,#3B82F6,#8B5CF6)":tc.inputBg,border:isLatest?"none":`1.5px solid ${tc.cardBorder}`,boxShadow:isLatest?"0 0 0 3px rgba(59,130,246,0.2)":"none"}}/>
+                  <div style={{background:isLatest?`linear-gradient(135deg,rgba(59,130,246,0.06),rgba(139,92,246,0.04))`:tc.taskBg,border:`1px solid ${isLatest?"rgba(59,130,246,0.2)":tc.cardBorder}`,borderRadius:14,padding:"14px 16px",animation:isLatest?"fadeIn 0.3s ease":"none"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8,flexWrap:"wrap"}}>
+                      <span style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:5,background:bc.bg,color:bc.color,fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>{bc.label}</span>
+                      <span style={{fontSize:11,fontWeight:700,color:tc.textSub,fontFamily:F}}>{entry.version}</span>
+                      <span style={{fontSize:10,color:tc.textMuted,fontFamily:F,marginLeft:"auto"}}>{entry.date}</span>
+                    </div>
+                    <h3 style={{margin:"0 0 10px",fontSize:14,fontWeight:700,color:tc.text,fontFamily:FS,lineHeight:1.3}}>{entry.title}</h3>
+                    <ul style={{margin:0,padding:0,listStyle:"none",display:"flex",flexDirection:"column",gap:5}}>
+                      {entry.items.map((item,j)=>(
+                        <li key={j} style={{display:"flex",alignItems:"flex-start",gap:8,fontSize:12,color:tc.textSub,fontFamily:F,lineHeight:1.5}}>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2.5" strokeLinecap="round" style={{flexShrink:0,marginTop:2}}><polyline points="20 6 9 17 4 12"/></svg>
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Ver mais */}
+          {!showAll&&CHANGELOG.length>3&&(
+            <button onClick={()=>setShowAll(true)} style={{width:"100%",marginTop:16,padding:"10px",borderRadius:10,border:`1px solid ${tc.cardBorder}`,background:tc.btnBg,color:tc.textSub,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:F,display:"flex",alignItems:"center",justifyContent:"center",gap:6}} onMouseEnter={e=>{e.currentTarget.style.borderColor="rgba(59,130,246,0.4)";e.currentTarget.style.color="#3B82F6";}} onMouseLeave={e=>{e.currentTarget.style.borderColor=tc.cardBorder;e.currentTarget.style.color=tc.textSub;}}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+              Ver todas as atualizações ({CHANGELOG.length - 3} mais antigas)
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ─── Main App ─── */
 export default function App(){
   const theme=useTheme();
@@ -1476,7 +1637,22 @@ export default function App(){
   const [focosOpen,setFocosOpen]=useState(true);
   const [showAdmin,setShowAdmin]=useState(false);
   const [showSettings,setShowSettings]=useState(false);
+  const [showWhatsNew,setShowWhatsNew]=useState(false);
+  const [hasUnread,setHasUnread]=useState(false);
   const [userProfile,setUserProfile]=useState({displayName:"",photoURL:""});
+
+  // Checar se há novidades não lidas
+  useEffect(()=>{
+    try{
+      const last=localStorage.getItem(WHATS_NEW_STORAGE_KEY);
+      const latest=CHANGELOG[0]?.version||"";
+      setHasUnread(last!==latest);
+    }catch{setHasUnread(true);}
+  },[]);
+  const markWhatsNewSeen=()=>{
+    try{localStorage.setItem(WHATS_NEW_STORAGE_KEY,CHANGELOG[0]?.version||"");}catch{}
+    setHasUnread(false);
+  };
 
   // Preferências por usuário — carregadas e salvas com userName na chave
   function loadUserPrefs(user){
@@ -1671,7 +1847,7 @@ export default function App(){
   return(
     <div style={{minHeight:"100vh",background:c.bg,fontFamily:F,transition:"background 0.3s ease"}}>
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Inter:wght@600;700;800&display=swap" rel="stylesheet"/>
-      <style>{`@keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}.task-card{transition:all 0.25s cubic-bezier(0.4,0,0.2,1)}.task-card:hover{transform:translateY(-1px);box-shadow:0 4px 20px ${c.hoverShadow};border-color:${c.hoverBorder}!important}.project-card{transition:all 0.3s cubic-bezier(0.4,0,0.2,1)}.project-card:hover{box-shadow:0 6px 28px ${c.hoverShadow};border-color:${c.hoverBorder}!important}.logout-btn{transition:all 0.25s ease}.logout-btn:hover{background:rgba(239,68,68,0.08)!important;border-color:rgba(239,68,68,0.35)!important;box-shadow:0 0 16px rgba(239,68,68,0.12)}.theme-btn{transition:all 0.25s ease}.theme-btn:hover{background:rgba(59,130,246,0.08)!important;border-color:rgba(59,130,246,0.35)!important;box-shadow:0 0 16px rgba(59,130,246,0.15)}.theme-btn:hover svg{stroke:#3B82F6}.header-actions{display:flex;flex-direction:row;gap:6px;align-items:center}.header-btn{flex-shrink:0}@media(max-width:767px){.layout-toggle{display:none!important}.header-actions{display:grid!important;grid-template-columns:1fr 1fr;gap:5px;width:auto}.header-actions .header-btn:last-child:nth-child(odd){grid-column:2/3;justify-self:end}}`}</style>
+      <style>{`@keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.7;transform:scale(1.2)}}.task-card{transition:all 0.25s cubic-bezier(0.4,0,0.2,1)}.task-card:hover{transform:translateY(-1px);box-shadow:0 4px 20px ${c.hoverShadow};border-color:${c.hoverBorder}!important}.project-card{transition:all 0.3s cubic-bezier(0.4,0,0.2,1)}.project-card:hover{box-shadow:0 6px 28px ${c.hoverShadow};border-color:${c.hoverBorder}!important}.logout-btn{transition:all 0.25s ease}.logout-btn:hover{background:rgba(239,68,68,0.08)!important;border-color:rgba(239,68,68,0.35)!important;box-shadow:0 0 16px rgba(239,68,68,0.12)}.theme-btn{transition:all 0.25s ease}.theme-btn:hover{background:rgba(59,130,246,0.08)!important;border-color:rgba(59,130,246,0.35)!important;box-shadow:0 0 16px rgba(59,130,246,0.15)}.theme-btn:hover svg{stroke:#3B82F6}.header-actions{display:flex;flex-direction:row;gap:6px;align-items:center}.header-btn{flex-shrink:0}@media(max-width:767px){.layout-toggle{display:none!important}.header-actions{display:grid!important;grid-template-columns:1fr 1fr;gap:5px;width:auto}.header-actions .header-btn:last-child:nth-child(odd){grid-column:2/3;justify-self:end}}`}</style>
 
       <div style={{maxWidth:layoutMode==="columns"?1200:520,margin:"0 auto",padding:"24px 16px 40px",transition:"max-width 0.3s ease"}}>
         {/* Header */}
@@ -1700,6 +1876,11 @@ export default function App(){
             {userName===ADMIN_USER&&(<button onClick={()=>setShowAdmin(true)} title="Painel de Admin" className="header-btn admin-btn" style={{background:"rgba(139,92,246,0.1)",border:"1px solid rgba(139,92,246,0.35)",borderRadius:10,padding:"8px 10px",cursor:"pointer",lineHeight:1,display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.2s ease"}} onMouseEnter={e=>{e.currentTarget.style.borderColor="rgba(139,92,246,0.7)";e.currentTarget.style.background="rgba(139,92,246,0.2)";}} onMouseLeave={e=>{e.currentTarget.style.borderColor="rgba(139,92,246,0.35)";e.currentTarget.style.background="rgba(139,92,246,0.1)";}}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#A78BFA" strokeWidth="2" strokeLinecap="round"><path d="M12 2a5 5 0 1 0 0 10A5 5 0 0 0 12 2z"/><path d="M12 14c-7 0-9 3-9 4v1h18v-1c0-1-2-4-9-4z"/><path d="M19 8l2 2-6 6"/></svg>
             </button>)}
+            {/* Novidades */}
+            <button onClick={()=>setShowWhatsNew(true)} title="Novidades" className="header-btn" style={{position:"relative",background:c.btnBg,border:`1px solid ${c.btnBorder}`,borderRadius:10,padding:"8px 10px",cursor:"pointer",lineHeight:1,display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.2s ease"}} onMouseEnter={e=>{e.currentTarget.style.borderColor="rgba(59,130,246,0.5)";e.currentTarget.style.background="rgba(59,130,246,0.08)";}} onMouseLeave={e=>{e.currentTarget.style.borderColor=c.btnBorder;e.currentTarget.style.background=c.btnBg;}}>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={hasUnread?"#60A5FA":c.textSub} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              {hasUnread&&<span style={{position:"absolute",top:5,right:5,width:8,height:8,borderRadius:"50%",background:"#EF4444",border:`2px solid ${c.bg}`,animation:"pulse 2s infinite"}}/>}
+            </button>
             {/* Settings */}
             {userName&&(<button onClick={()=>setShowSettings(true)} title="Configurações do perfil" className="header-btn" style={{background:c.btnBg,border:`1px solid ${c.btnBorder}`,borderRadius:10,padding:"8px 10px",cursor:"pointer",lineHeight:1,display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.2s ease"}} onMouseEnter={e=>{e.currentTarget.style.borderColor="rgba(59,130,246,0.5)";e.currentTarget.style.background="rgba(59,130,246,0.08)";}} onMouseLeave={e=>{e.currentTarget.style.borderColor=c.btnBorder;e.currentTarget.style.background=c.btnBg;}}>
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={c.textSub} strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -1830,6 +2011,7 @@ export default function App(){
         {/* Admin Panel */}
         {showAdmin&&<AdminPanel onClose={()=>setShowAdmin(false)} theme={theme}/>}
         {showSettings&&<UserSettingsModal userName={userName} profile={userProfile} onSave={handleSaveProfile} onClose={()=>setShowSettings(false)} c={c}/>}
+        {showWhatsNew&&<WhatsNewModal onClose={()=>setShowWhatsNew(false)} c={c} onMarkSeen={markWhatsNewSeen}/>}
 
         {/* Footer */}
         <div style={{textAlign:"center",marginTop:32,opacity:0.35}}>
