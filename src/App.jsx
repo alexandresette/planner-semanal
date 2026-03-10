@@ -415,6 +415,22 @@ function AdminPanel({ onClose, theme }) {
     setDeletingUser(null);
   };
 
+  const clearUserData = async (u) => {
+    if (!window.confirm(`Limpar TODOS os dados (tarefas e histórico) de "${u.username}"? Esta ação não pode ser desfeita.`)) return;
+    setDeletingUser(`clear-${u.username}`);
+    try {
+      const sun = getSunday(new Date()); const sat = getSaturday(new Date());
+      const empty = [{id:weekId(sun),sun:sun.toISOString(),sat:sat.toISOString(),projects:[]}];
+      await window.storage.set(`gestor-${u.username}-data`, JSON.stringify(empty));
+      await window.storage.set(`gestor-${u.username}-history`, JSON.stringify([]));
+      setMsg(`✅ Dados de "${u.username}" limpos com sucesso.`);
+      setTimeout(() => setMsg(""), 5000);
+    } catch (e) {
+      setMsg(`❌ Erro ao limpar: ${e.message}`);
+    }
+    setDeletingUser(null);
+  };
+
   // Separar: quais convites ainda estão pendentes (email não tem conta criada)
   const registeredEmails = new Set(registeredUsers.map(u => (u.email||"").toLowerCase()));
   const pendingInvites = invites.filter(i => !registeredEmails.has(i.email.toLowerCase()));
@@ -495,7 +511,13 @@ function AdminPanel({ onClose, theme }) {
                         {seen && <span style={{fontSize:10,color:seen.color,fontFamily:F,fontWeight:seen.label==="Ativo agora"?700:400}}>{seen.label==="Ativo agora"?"● Ativo agora":`Visto: ${seen.label}`}</span>}
                         {!seen && <span style={{fontSize:10,color:c.textMuted,fontFamily:F,opacity:0.5}}>Nunca acessou</span>}
                       </div>
-                      <button onClick={()=>deleteUser(u)} disabled={deletingUser===u.username} title="Excluir usuário" style={{background:"none",border:"none",cursor:"pointer",padding:4,opacity:0.3,flexShrink:0,transition:"opacity 0.15s"}} onMouseEnter={e=>e.currentTarget.style.opacity="0.9"} onMouseLeave={e=>e.currentTarget.style.opacity="0.3"}>
+                      <button onClick={()=>clearUserData(u)} disabled={!!deletingUser} title="Limpar dados (tarefas e histórico)" style={{background:"none",border:"none",cursor:"pointer",padding:4,opacity:0.3,flexShrink:0,transition:"opacity 0.15s"}} onMouseEnter={e=>e.currentTarget.style.opacity="0.9"} onMouseLeave={e=>e.currentTarget.style.opacity="0.3"}>
+                        {deletingUser===`clear-${u.username}`
+                          ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={c.textMuted} strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/></svg>
+                          : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
+                        }
+                      </button>
+                      <button onClick={()=>deleteUser(u)} disabled={!!deletingUser} title="Excluir usuário" style={{background:"none",border:"none",cursor:"pointer",padding:4,opacity:0.3,flexShrink:0,transition:"opacity 0.15s"}} onMouseEnter={e=>e.currentTarget.style.opacity="0.9"} onMouseLeave={e=>e.currentTarget.style.opacity="0.3"}>
                         {deletingUser===u.username
                           ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={c.textMuted} strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/></svg>
                           : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
