@@ -1044,7 +1044,7 @@ function TaskItem({task,color,onToggle,onUpdate,onDelete,projectName,projectEmoj
             {task.description&&<span style={{fontSize:11,color:tc.textMuted,fontFamily:F,display:"block",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{task.description}</span>}
             <div style={{display:"flex",alignItems:"center",gap:6,marginTop:5,flexWrap:"wrap"}}>
               {projectName&&<span style={{fontSize:9,fontWeight:600,padding:"2px 6px",borderRadius:4,background:`${color}20`,color,fontFamily:F,whiteSpace:"nowrap"}}>{projectName}</span>}
-              {dayInfo&&!projectName&&<span style={{fontSize:10,fontWeight:600,padding:"2px 7px",borderRadius:5,background:tc.tagBg,color:tc.tagColor,fontFamily:F}}>{dayInfo.label}</span>}
+              {dayInfo&&<span style={{fontSize:10,fontWeight:600,padding:"2px 7px",borderRadius:5,background:tc.tagBg,color:tc.tagColor,fontFamily:F}}>{dayInfo.label}</span>}
               <div style={{width:8,height:8,borderRadius:"50%",flexShrink:0,background:priorityConfig[task.priority].dot}}/>
             </div>
           </div>
