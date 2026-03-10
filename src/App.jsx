@@ -1794,7 +1794,6 @@ function WhatsNewModal({onClose,c,onMarkSeen,isAdmin}){
         {!isPinned&&<div style={{position:"absolute",left:0,top:6,width:13,height:13,borderRadius:"50%",background:isLatest?"linear-gradient(135deg,#3B82F6,#8B5CF6)":tc.inputBg,border:isLatest?"none":`1.5px solid ${tc.cardBorder}`,boxShadow:isLatest?"0 0 0 3px rgba(59,130,246,0.2)":"none"}}/>}
         <div style={{background:isPinned?"linear-gradient(135deg,rgba(245,158,11,0.08),rgba(239,68,68,0.04))":isLatest?`linear-gradient(135deg,rgba(59,130,246,0.06),rgba(139,92,246,0.04))`:tc.taskBg,border:`1px solid ${isPinned?"rgba(245,158,11,0.3)":isLatest?"rgba(59,130,246,0.2)":tc.cardBorder}`,borderRadius:14,padding:"14px 16px",animation:"fadeIn 0.3s ease"}}>
           <div style={{display:"flex",alignItems:"flex-start",gap:8,marginBottom:8,flexWrap:"wrap"}}>
-            {isPinned&&<span style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:5,background:"rgba(245,158,11,0.15)",color:"#F59E0B",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em",display:"flex",alignItems:"center",gap:4}}>📌 Fixado</span>}
             <span style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:5,background:bc.bg,color:bc.color,fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>{bc.label}</span>
             <span style={{fontSize:11,fontWeight:700,color:tc.textSub,fontFamily:F}}>{entry.version}</span>
             <span style={{fontSize:10,color:tc.textMuted,fontFamily:F,marginLeft:"auto",display:"flex",alignItems:"center",gap:6}}>
