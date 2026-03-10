@@ -76,29 +76,43 @@ async function hashStr(input) {
 }
 async function verifyCredentials(user, pin) {
   const u = user.toLowerCase().trim();
+  console.log("[auth] verifyCredentials — user:", u);
   // Checar credenciais dinâmicas no Firestore — busca exata primeiro
   try {
     const r = await window.storage.get(`${USER_CREDS_PREFIX}${u}`);
     if (r && r.value) {
       const d = JSON.parse(r.value);
-      if (d.hash) return (await hashStr(`${u}:${pin}`)) === d.hash;
-    }
-  } catch {}
-  // Busca ampla — percorre todos os registros procurando pelo username
+      if (d.hash) {
+        const computed = await hashStr(`${u}:${pin}`);
+        console.log("[auth] Firestore exact key — stored hash:", d.hash.slice(0,12), "computed:", computed.slice(0,12), "match:", computed === d.hash);
+        return computed === d.hash;
+      }
+    } else { console.log("[auth] Firestore exact key — not found"); }
+  } catch (e) { console.log("[auth] Firestore exact key error:", e.message); }
+  // Busca ampla
   try {
     const keys = await window.storage.list(USER_CREDS_PREFIX);
+    console.log("[auth] Firestore all keys:", keys.keys);
     for (const k of (keys.keys || [])) {
       const r = await window.storage.get(k).catch(() => null);
       if (r && r.value) {
         const d = JSON.parse(r.value);
+        console.log("[auth] Checking key:", k, "username:", d.username, "has hash:", !!d.hash);
         if (d.username && d.username.toLowerCase().trim() === u && d.hash) {
-          return (await hashStr(`${u}:${pin}`)) === d.hash;
+          const computed = await hashStr(`${u}:${pin}`);
+          console.log("[auth] Broad match — stored:", d.hash.slice(0,12), "computed:", computed.slice(0,12), "match:", computed === d.hash);
+          return computed === d.hash;
         }
       }
     }
-  } catch {}
-  // Fallback: credenciais hardcoded originais
-  if (CREDENTIALS[u]) return (await hashStr(`${u}:${pin}`)) === CREDENTIALS[u];
+  } catch (e) { console.log("[auth] Broad search error:", e.message); }
+  // Fallback hardcoded
+  if (CREDENTIALS[u]) {
+    const computed = await hashStr(`${u}:${pin}`);
+    console.log("[auth] Hardcoded fallback — match:", computed === CREDENTIALS[u]);
+    return computed === CREDENTIALS[u];
+  }
+  console.log("[auth] No credentials found for user:", u);
   return false;
 }
 
@@ -562,29 +576,32 @@ function ResetPasswordScreen({ token, onSuccess, theme }) {
     try {
       const u = tokenData.username.toLowerCase().trim();
       const hash = await hashStr(`${u}:${password}`);
-      // Buscar todos os registros com esse username OU email para atualizar todos
+      console.log("[reset] Salvando hash para user:", u, "hash:", hash.slice(0,12));
       const keys = await window.storage.list(USER_CREDS_PREFIX).catch(() => ({ keys: [] }));
+      console.log("[reset] Keys encontradas:", keys.keys);
       let savedAny = false;
       for (const k of (keys.keys || [])) {
         try {
           const r = await window.storage.get(k);
           if (r && r.value) {
             const d = JSON.parse(r.value);
+            console.log("[reset] Verificando key:", k, "username:", d.username);
             if (d.username && d.username.toLowerCase() === u) {
               await window.storage.set(k, JSON.stringify({ ...d, hash }));
+              console.log("[reset] ✅ Hash atualizado na key:", k);
               savedAny = true;
             }
           }
-        } catch {}
+        } catch (e) { console.log("[reset] Erro na key:", k, e.message); }
       }
-      // Se não achou nenhum (ex: usuário hardcoded sem registro), cria um novo
       if (!savedAny) {
-        await window.storage.set(`${USER_CREDS_PREFIX}${u}`, JSON.stringify({ username: u, email: tokenData.email || "", hash }));
+        const newKey = `${USER_CREDS_PREFIX}${u}`;
+        await window.storage.set(newKey, JSON.stringify({ username: u, email: tokenData.email || "", hash }));
+        console.log("[reset] ✅ Novo registro criado:", newKey);
       }
-      // Invalidar token
       await window.storage.delete(`${RESET_TOKEN_PREFIX}${token}`).catch(() => {});
       setDone(true);
-    } catch { setError("Erro ao redefinir senha. Tente novamente."); }
+    } catch (e) { console.log("[reset] ❌ Erro:", e.message); setError("Erro ao redefinir senha. Tente novamente."); }
     setLoading(false);
   };
 
