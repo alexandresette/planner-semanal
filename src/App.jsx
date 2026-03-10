@@ -251,6 +251,26 @@ function Logo({ size = "normal", theme = "dark" }) {
 }
 
 /* ─── First Access Screen (cadastro de novo usuário convidado) ─── */
+/* ─── Invite Gate: valida e-mail no Firestore antes de mostrar cadastro ─── */
+function InviteGate({invitedEmail,onSuccess,onBack,theme}){
+  const [status,setStatus]=useState("checking"); // checking | valid | invalid | registered
+  const c=theme.t;
+  useEffect(()=>{
+    (async()=>{
+      try{
+        const already=await isEmailRegistered(invitedEmail);
+        if(already){setStatus("registered");return;}
+        const invited=await isEmailInvited(invitedEmail);
+        setStatus(invited?"valid":"invalid");
+      }catch{setStatus("invalid");}
+    })();
+  },[]);
+  if(status==="checking") return(<div style={{minHeight:"100vh",background:c.bg,display:"flex",alignItems:"center",justifyContent:"center"}}><span style={{color:c.textMuted,fontFamily:F,fontSize:14}}>Verificando convite...</span></div>);
+  if(status==="registered") return(<div style={{minHeight:"100vh",background:c.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:12,padding:24}}><span style={{fontSize:32}}>✅</span><p style={{color:c.text,fontFamily:F,fontSize:15,fontWeight:600,margin:0,textAlign:"center"}}>Esta conta já foi criada.</p><p style={{color:c.textMuted,fontFamily:F,fontSize:13,margin:0}}>Acesse pelo login normal.</p><button onClick={onBack} style={{marginTop:8,padding:"10px 24px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#3B82F6,#8B5CF6)",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:F}}>Ir para o login</button></div>);
+  if(status==="invalid") return(<div style={{minHeight:"100vh",background:c.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:12,padding:24}}><span style={{fontSize:32}}>🚫</span><p style={{color:c.text,fontFamily:F,fontSize:15,fontWeight:600,margin:0,textAlign:"center"}}>Link de convite inválido.</p><p style={{color:c.textMuted,fontFamily:F,fontSize:13,margin:0,textAlign:"center"}}>Este e-mail não possui um convite ativo.</p><button onClick={onBack} style={{marginTop:8,padding:"10px 24px",borderRadius:12,border:"none",background:c.cancelBg,border:"1px solid "+c.cardBorder,color:c.textSub,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:F}}>Voltar</button></div>);
+  return <FirstAccessScreen invitedEmail={invitedEmail} onSuccess={onSuccess} onBack={onBack} theme={theme}/>;
+}
+
 function FirstAccessScreen({ invitedEmail, onSuccess, onBack, theme }) {
   const [displayName, setDisplayName] = useState("");
   const [password, setPassword] = useState("");
@@ -2530,7 +2550,7 @@ export default function App(){
 
   // Detecta ?invite=EMAIL — tem prioridade sobre sessão logada (outro usuário pode abrir o link)
   const inviteParam = (() => { try { const p = new URLSearchParams(window.location.search); const inv = p.get("invite"); return inv ? decodeURIComponent(inv) : null; } catch { return null; } })();
-  if (inviteParam) return <FirstAccessScreen invitedEmail={inviteParam} onSuccess={username => { try { window.history.replaceState({},"",(window.location.pathname)); } catch {} handleLogin(username); }} onBack={() => { try { window.history.replaceState({},"",(window.location.pathname)); } catch {} window.location.replace(window.location.pathname); }} theme={theme} />;
+  if (inviteParam) return <InviteGate invitedEmail={inviteParam} onSuccess={username => { try { window.history.replaceState({},"",(window.location.pathname)); } catch {} handleLogin(username); }} onBack={() => { try { window.history.replaceState({},"",(window.location.pathname)); } catch {} window.location.replace(window.location.pathname); }} theme={theme} />;
 
   if(!authed) return <LoginScreen onLogin={handleLogin} theme={theme}/>;
   if(loading||weeks.length===0) return(<div style={{minHeight:"100vh",background:c.bg,display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{color:c.textMuted,fontSize:16,fontFamily:F}}>Carregando...</div></div>);
