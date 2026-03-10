@@ -914,8 +914,8 @@ function TaskViewModal({task,color,projectName,projectEmoji,onToggle,onUpdate,on
   };
 
   return(
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",backdropFilter:"blur(5px)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:2000,padding:16,animation:"fadeIn 0.2s ease"}} onClick={overlayClick}>
-      <div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:480,maxHeight:"90vh",background:tc.modalBg,border:`1px solid ${color}30`,borderRadius:20,boxShadow:"0 8px 48px rgba(0,0,0,0.45)",display:"flex",flexDirection:"column",overflow:"hidden"}}>
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",backdropFilter:"blur(5px)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:2000,padding:16,animation:"fadeIn 0.2s ease"}} onClick={overlayClick} onMouseDown={e=>e.stopPropagation()} onDragStart={e=>e.preventDefault()}>
+      <div onClick={e=>e.stopPropagation()} onMouseDown={e=>e.stopPropagation()} draggable={false} style={{width:"100%",maxWidth:480,maxHeight:"90vh",background:tc.modalBg,border:`1px solid ${color}30`,borderRadius:20,boxShadow:"0 8px 48px rgba(0,0,0,0.45)",display:"flex",flexDirection:"column",overflow:"hidden"}}>
 
         {/* Header */}
         <div style={{background:`linear-gradient(135deg,${color}18,${color}06)`,borderBottom:`1px solid ${color}18`,padding:"20px 20px 16px",flexShrink:0}}>
