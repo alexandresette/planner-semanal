@@ -752,7 +752,13 @@ function LoginScreen({ onLogin, theme }) {
 
   const handleSubmit = async () => {
     if(!user.trim()||!pin){setError(true);setShake(true);setTimeout(()=>setShake(false),500);setTimeout(()=>setError(false),2000);return;}
-    if(await verifyCredentials(user,pin)){onLogin(user.trim().toLowerCase(),"");}
+    // Se digitou e-mail, resolver para username primeiro
+    let resolvedUser = user.trim().toLowerCase();
+    if (resolvedUser.includes("@")) {
+      const found = await getUsernameByEmail(resolvedUser);
+      if (found) resolvedUser = found;
+    }
+    if(await verifyCredentials(resolvedUser,pin)){onLogin(resolvedUser,"");}
     else{setError(true);setShake(true);setTimeout(()=>setShake(false),500);setTimeout(()=>setError(false),2000);}
   };
 
@@ -796,8 +802,8 @@ function LoginScreen({ onLogin, theme }) {
         <p style={{fontSize:13,color:c.textSub,margin:"0 0 20px",lineHeight:1.5}}>Organize sua semana, acompanhe seus projetos e avance com velocidade!</p>
 
         <div style={{textAlign:"left",marginBottom:12}}>
-          <span style={{fontSize:11,color:c.textMuted,fontWeight:600,textTransform:"uppercase",letterSpacing:0.5}}>Usuário</span>
-          <input type="text" value={user} onChange={e=>setUser(e.target.value)} onKeyDown={e=>e.key==="Enter"&&document.getElementById("pin-input")?.focus()} placeholder="seu usuário" autoFocus
+          <span style={{fontSize:11,color:c.textMuted,fontWeight:600,textTransform:"uppercase",letterSpacing:0.5}}>Usuário ou e-mail</span>
+          <input type="text" value={user} onChange={e=>setUser(e.target.value)} onKeyDown={e=>e.key==="Enter"&&document.getElementById("pin-input")?.focus()} placeholder="seu usuário ou e-mail" autoFocus
             style={{width:"100%",boxSizing:"border-box",marginTop:6,padding:"12px 16px",fontSize:15,background:c.inputBg,border:`2px solid ${error?"#EF4444":c.inputBorder}`,borderRadius:12,color:c.inputText,outline:"none",fontFamily:F,transition:"border-color 0.2s ease"}}/>
         </div>
         <div style={{textAlign:"left",marginBottom:6}}>
