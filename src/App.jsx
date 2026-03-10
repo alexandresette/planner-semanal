@@ -1787,8 +1787,12 @@ function ReportModal({weeks,onClose,c,theme,userProfile,userName}){
   @media print{
     body{background:${bg}!important;}
     .no-print{display:none!important;}
-    @page{margin:20mm 16mm;}
+    @page{margin:12mm 14mm;size:A4;marks:none;}
   }
+  /* Remove cabeçalho/rodapé do navegador na impressão */
+  @page{margin:12mm 14mm;}
+  @page:first{margin-top:12mm;}
+</style>
 </style>
 </head>
 <body>
@@ -1844,11 +1848,11 @@ function ReportModal({weeks,onClose,c,theme,userProfile,userName}){
     setGenerating(true);
     try{
       const html=buildHTML();
-      const win=window.open("","_blank","width=900,height=700");
-      if(!win){alert("Permita pop-ups para gerar o relatório.");setGenerating(false);return;}
-      win.document.write(html);
-      win.document.close();
-      setTimeout(()=>{win.focus();win.print();},800);
+      const blob=new Blob([html],{type:"text/html;charset=utf-8"});
+      const url=URL.createObjectURL(blob);
+      const win=window.open(url,"_blank","width=900,height=700");
+      if(!win){alert("Permita pop-ups para gerar o relatório.");setGenerating(false);URL.revokeObjectURL(url);return;}
+      win.onload=()=>{setTimeout(()=>{win.focus();win.print();URL.revokeObjectURL(url);},400);};
     }catch(e){console.error(e);}
     setGenerating(false);
     onClose();
