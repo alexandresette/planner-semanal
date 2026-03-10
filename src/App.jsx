@@ -500,7 +500,7 @@ function ForgotPasswordScreen({ onBack, theme }) {
       const token = Array.from(crypto.getRandomValues(new Uint8Array(24))).map(b=>b.toString(16).padStart(2,"0")).join("");
       const expiresAt = Date.now() + 60 * 60 * 1000; // 1 hora
       await window.storage.set(`${RESET_TOKEN_PREFIX}${token}`, JSON.stringify({ username, email: em, expiresAt }));
-      const appBase = "https://alexandresette.github.io/planner-semanal/";
+      const appBase = "https://plannersemanal.com/";
       const resetUrl = `${appBase}?reset=${token}`;
       await callSendResetEmail(em, resetUrl);
       setSent(true);
@@ -528,6 +528,7 @@ function ForgotPasswordScreen({ onBack, theme }) {
     <div style={{minHeight:"100vh",background:c.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:F,padding:"24px 16px"}}>
       <div style={{width:"100%",maxWidth:400,padding:"32px 28px",boxSizing:"border-box",background:c.loginCardBg,border:`1px solid ${c.loginCardBorder}`,borderRadius:24,animation:"fadeIn 0.5s ease",boxShadow:theme.mode==="light"?"0 4px 24px rgba(0,0,0,0.08)":"none"}}>
         <div style={{textAlign:"center",marginBottom:20}}>
+          <div style={{marginBottom:16}}><Logo size="large" theme={theme.mode} /></div>
           <div style={{width:48,height:48,borderRadius:14,background:"rgba(59,130,246,0.1)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 12px"}}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
           </div>
