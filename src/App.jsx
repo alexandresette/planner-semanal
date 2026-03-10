@@ -1226,6 +1226,7 @@ function AddTaskInput({color,onAdd,c,projects,requireCategory,defaultDay}){
   const todayKey=WEEK_DAYS_ORDER[new Date().getDay()];
   const [isOpen,setIsOpen]=useState(false);
   const [text,setText]=useState("");
+  const [description,setDescription]=useState("");
   const [day,setDay]=useState(defaultDay||todayKey);
   const [priority,setPriority]=useState("low");
   const [projectId,setProjectId]=useState(()=>projects&&projects.length>0?projects[0].id:"");
@@ -1233,12 +1234,12 @@ function AddTaskInput({color,onAdd,c,projects,requireCategory,defaultDay}){
   const handleAdd=()=>{
     if(!text.trim())return;
     if(requireCategory&&!projectId)return;
-    onAdd(text.trim(),day,priority,requireCategory?projectId:undefined,attachments);
-    setText("");setDay(defaultDay||todayKey);setPriority("low");setAttachments([]);
+    onAdd(text.trim(),day,priority,requireCategory?projectId:undefined,attachments,description.trim());
+    setText("");setDescription("");setDay(defaultDay||todayKey);setPriority("low");setAttachments([]);
     setProjectId(projects&&projects.length>0?projects[0].id:"");
     setIsOpen(false);
   };
-  const reset=()=>{setIsOpen(false);setText("");setDay(defaultDay||todayKey);setPriority("low");setAttachments([]);setProjectId(projects&&projects.length>0?projects[0].id:"");};
+  const reset=()=>{setIsOpen(false);setText("");setDescription("");setDay(defaultDay||todayKey);setPriority("low");setAttachments([]);setProjectId(projects&&projects.length>0?projects[0].id:"");};
   const tc = c || themes.dark;
   const selectedProject = requireCategory&&projects ? projects.find(p=>p.id===projectId) : null;
   const activeColor = selectedProject ? selectedProject.color : (color||"#3B82F6");
@@ -1246,19 +1247,33 @@ function AddTaskInput({color,onAdd,c,projects,requireCategory,defaultDay}){
   if(!isOpen) return(<button onClick={()=>setIsOpen(true)} style={{display:"flex",alignItems:"center",justifyContent:"center",gap:6,width:"100%",padding:"9px 14px",borderRadius:10,cursor:"pointer",background:"transparent",border:`1px dashed ${tc.addTaskBorder}`,color:tc.addTaskColor,fontSize:13,fontWeight:500,fontFamily:F,transition:"all 0.2s ease"}} onMouseEnter={e=>{e.currentTarget.style.borderColor=activeColor;e.currentTarget.style.color=activeColor;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=tc.addTaskBorder;e.currentTarget.style.color=tc.addTaskColor;}}>+ Nova tarefa</button>);
 
   return(
-    <div style={{borderRadius:12,overflow:"visible",background:tc.taskBg,border:`1px solid ${activeColor}30`,animation:"fadeIn 0.2s ease"}}>
-      <div style={{padding:"10px 12px",display:"flex",flexDirection:"column",gap:8}}>
-        <div style={{display:"flex",gap:6}}>
-          <textarea autoFocus value={text} onChange={e=>setText(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();handleAdd();}if(e.key==="Escape")reset();}} placeholder="Título da tarefa..." rows={Math.max(1,text.split("\n").length)} style={{flex:1,minWidth:0,padding:"8px 12px",fontSize:13,borderRadius:8,background:tc.inputBg,border:`1px solid ${activeColor}40`,color:tc.inputText,outline:"none",fontFamily:F,resize:"none",lineHeight:1.5,overflow:"hidden"}}/>
-          <div style={{display:"flex",flexDirection:"column",gap:4}}>
-            <button onClick={handleAdd} style={{flexShrink:0,padding:"8px 12px",borderRadius:8,border:"none",cursor:"pointer",background:activeColor,color:"#fff",fontSize:13,fontWeight:600,fontFamily:F}}>+</button>
-            <button onClick={reset} style={{flexShrink:0,padding:"8px 10px",borderRadius:8,border:`1px solid ${tc.cardBorder}`,background:tc.cancelBg,color:tc.cancelColor,fontSize:13,cursor:"pointer",fontFamily:F}}>✕</button>
+    <div style={{borderRadius:14,overflow:"visible",background:tc.taskBg,border:`1px solid ${activeColor}30`,animation:"fadeIn 0.2s ease"}}>
+      {/* Header colorido igual ao modal */}
+      <div style={{background:`linear-gradient(135deg,${activeColor}18,${activeColor}06)`,borderBottom:`1px solid ${activeColor}18`,padding:"14px 14px 12px",borderRadius:"14px 14px 0 0"}}>
+        <div style={{display:"flex",alignItems:"flex-start",gap:10}}>
+          <div style={{width:22,height:22,borderRadius:6,flexShrink:0,border:`2.5px solid ${activeColor}`,background:"transparent",marginTop:3}}/>
+          <div style={{flex:1,minWidth:0}}>
+            <textarea autoFocus value={text} onChange={e=>setText(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();handleAdd();}if(e.key==="Escape")reset();}} placeholder="Título da tarefa..." rows={Math.max(1,text.split("\n").length)} style={{width:"100%",boxSizing:"border-box",padding:"4px 8px",fontSize:15,fontWeight:700,borderRadius:8,background:tc.inputBg,border:`1.5px solid ${activeColor}50`,color:tc.inputText,outline:"none",fontFamily:FS,resize:"none",lineHeight:1.4,overflow:"hidden"}}/>
           </div>
+          <button onClick={reset} style={{background:"none",border:"none",cursor:"pointer",padding:4,opacity:0.35,lineHeight:1,flexShrink:0}} onMouseEnter={e=>e.currentTarget.style.opacity="0.8"} onMouseLeave={e=>e.currentTarget.style.opacity="0.35"}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={tc.textSub} strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
         </div>
-        {/* Seletor de categoria (na view dias da semana) */}
+      </div>
+
+      {/* Body */}
+      <div style={{padding:"14px 14px 14px",display:"flex",flexDirection:"column",gap:12}}>
+
+        {/* Descrição */}
+        <div>
+          <span style={{fontSize:10,color:tc.textMuted,fontWeight:700,display:"block",marginBottom:6,textTransform:"uppercase",letterSpacing:0.6}}>Descrição</span>
+          <textarea value={description} onChange={e=>setDescription(e.target.value)} onKeyDown={e=>{if(e.key==="Escape")reset();}} placeholder="Adicione uma descrição..." rows={2} style={{width:"100%",boxSizing:"border-box",padding:"8px 12px",fontSize:13,borderRadius:10,background:tc.inputBg,border:`1.5px solid ${activeColor}30`,color:tc.inputText,outline:"none",fontFamily:F,resize:"vertical",lineHeight:1.6}}/>
+        </div>
+
+        {/* Seletor de categoria (view dias da semana) */}
         {requireCategory&&(
           <div>
-            <span style={{fontSize:9,color:tc.textMuted,fontWeight:600,display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:0.5}}>Projeto</span>
+            <span style={{fontSize:10,color:tc.textMuted,fontWeight:700,display:"block",marginBottom:6,textTransform:"uppercase",letterSpacing:0.6}}>Projeto</span>
             {projects&&projects.length>0?(
               <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
                 {projects.map(p=>(<button key={p.id} onClick={()=>setProjectId(p.id)} style={{display:"flex",alignItems:"center",gap:4,padding:"4px 8px",fontSize:10,fontWeight:600,borderRadius:6,border:`1px solid ${projectId===p.id?p.color:tc.cardBorder}`,cursor:"pointer",fontFamily:F,background:projectId===p.id?`${p.color}20`:tc.inputBg,color:projectId===p.id?p.color:tc.textSub,transition:"all 0.15s"}}><span style={{fontSize:12}}>{p.emoji}</span>{p.name}</button>))}
@@ -1270,19 +1285,29 @@ function AddTaskInput({color,onAdd,c,projects,requireCategory,defaultDay}){
             )}
           </div>
         )}
-        <div style={{display:"flex",flexDirection:"column",gap:8}}>
-          <div>
-            <span style={{fontSize:9,color:tc.textMuted,fontWeight:600,display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:0.5}}>Dia</span>
-            <div style={{display:"flex",gap:3,flexWrap:"wrap"}}>{WEEK_DAYS.map(d=>(<button key={d.key} onClick={()=>setDay(d.key)} style={{padding:"3px 6px",fontSize:10,fontWeight:600,borderRadius:5,border:"none",cursor:"pointer",fontFamily:F,background:day===d.key?activeColor:tc.inputBg,color:day===d.key?"#fff":tc.textSub}}>{d.label}</button>))}</div>
+
+        {/* Dia + Prioridade */}
+        <div style={{display:"flex",gap:16,flexWrap:"wrap"}}>
+          <div style={{flex:1,minWidth:120}}>
+            <span style={{fontSize:10,color:tc.textMuted,fontWeight:700,display:"block",marginBottom:6,textTransform:"uppercase",letterSpacing:0.6}}>Dia</span>
+            <div style={{display:"flex",gap:3,flexWrap:"wrap"}}>{WEEK_DAYS.map(d=>(<button key={d.key} onClick={()=>setDay(d.key)} style={{padding:"4px 7px",fontSize:10,fontWeight:600,borderRadius:6,border:"none",cursor:"pointer",fontFamily:F,background:day===d.key?activeColor:tc.inputBg,color:day===d.key?"#fff":tc.textSub,transition:"all 0.15s"}}>{d.label}</button>))}</div>
           </div>
-          <div>
-            <span style={{fontSize:9,color:tc.textMuted,fontWeight:600,display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:0.5}}>Prioridade</span>
-            <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>{Object.entries(priorityConfig).map(([k,v])=>(<button key={k} onClick={()=>setPriority(k)} style={{padding:"3px 9px",fontSize:10,fontWeight:600,borderRadius:5,border:"none",cursor:"pointer",fontFamily:F,background:priority===k?v.dot:v.bg,color:priority===k?"#fff":v.dot}}>{v.label}</button>))}</div>
+          <div style={{flex:1,minWidth:140}}>
+            <span style={{fontSize:10,color:tc.textMuted,fontWeight:700,display:"block",marginBottom:6,textTransform:"uppercase",letterSpacing:0.6}}>Prioridade</span>
+            <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>{Object.entries(priorityConfig).map(([k,v])=>(<button key={k} onClick={()=>setPriority(k)} style={{padding:"4px 10px",fontSize:10,fontWeight:600,borderRadius:6,border:"none",cursor:"pointer",fontFamily:F,background:priority===k?v.dot:v.bg,color:priority===k?"#fff":v.dot,transition:"all 0.15s"}}>{v.label}</button>))}</div>
           </div>
-          <div>
-            <span style={{fontSize:9,color:tc.textMuted,fontWeight:600,display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:0.5}}>Anexos</span>
-            <AttachmentSection attachments={attachments} setAttachments={setAttachments} color={activeColor} tc={tc} compact={true}/>
-          </div>
+        </div>
+
+        {/* Anexos */}
+        <div>
+          <span style={{fontSize:10,color:tc.textMuted,fontWeight:700,display:"block",marginBottom:6,textTransform:"uppercase",letterSpacing:0.6}}>Anexos</span>
+          <AttachmentSection attachments={attachments} setAttachments={setAttachments} color={activeColor} tc={tc} compact={true}/>
+        </div>
+
+        {/* Botões */}
+        <div style={{display:"flex",gap:8,paddingTop:4,borderTop:`1px solid ${tc.divider}`,marginTop:2}}>
+          <button onClick={handleAdd} style={{flex:1,padding:"11px",borderRadius:11,border:"none",cursor:"pointer",background:`linear-gradient(135deg,${activeColor},${activeColor}cc)`,color:"#fff",fontSize:13,fontWeight:700,fontFamily:F}}>Criar tarefa</button>
+          <button onClick={reset} style={{padding:"11px 18px",borderRadius:11,border:`1px solid ${tc.cardBorder}`,background:tc.cancelBg,color:tc.textSub,fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:F}}>Cancelar</button>
         </div>
       </div>
     </div>
@@ -1399,7 +1424,7 @@ function ProjectCard({project,onToggleTask,onUpdateTask,onDeleteTask,onAddTask,o
           </div>
         </div>
       </div>)}
-      {isExpanded&&(<div style={{padding:"0 14px 14px",display:"flex",flexDirection:"column",gap:6}}>{[...project.tasks].sort((a,b)=>{const d=WEEK_DAYS_ORDER.indexOf(a.day)-WEEK_DAYS_ORDER.indexOf(b.day);if(d!==0)return d;const o={high:0,medium:1,low:2};const p=o[a.priority]-o[b.priority];if(p!==0)return p;return a.text.localeCompare(b.text,"pt-BR");}).map(task=>(<TaskItem key={task.id} task={task} color={project.color} projectName={project.name} projectEmoji={project.emoji} onToggle={()=>onToggleTask(project.id,task.id)} onUpdate={u=>onUpdateTask(project.id,task.id,u)} onDelete={()=>onDeleteTask(project.id,task.id)} onMoveWeek={taskMoveWeek?taskMoveWeek(project.id,task.id):null} openTaskId={openTaskId} onOpen={onOpen} c={tc}/>))}<AddTaskInput color={project.color} onAdd={(text,day,priority,_,att)=>onAddTask(project.id,text,day,priority,att)} c={tc}/></div>)}
+      {isExpanded&&(<div style={{padding:"0 14px 14px",display:"flex",flexDirection:"column",gap:6}}>{[...project.tasks].sort((a,b)=>{const d=WEEK_DAYS_ORDER.indexOf(a.day)-WEEK_DAYS_ORDER.indexOf(b.day);if(d!==0)return d;const o={high:0,medium:1,low:2};const p=o[a.priority]-o[b.priority];if(p!==0)return p;return a.text.localeCompare(b.text,"pt-BR");}).map(task=>(<TaskItem key={task.id} task={task} color={project.color} projectName={project.name} projectEmoji={project.emoji} onToggle={()=>onToggleTask(project.id,task.id)} onUpdate={u=>onUpdateTask(project.id,task.id,u)} onDelete={()=>onDeleteTask(project.id,task.id)} onMoveWeek={taskMoveWeek?taskMoveWeek(project.id,task.id):null} openTaskId={openTaskId} onOpen={onOpen} c={tc}/>))}<AddTaskInput color={project.color} onAdd={(text,day,priority,_,att,desc)=>onAddTask(project.id,text,day,priority,att,desc)} c={tc}/></div>)}
     </div>
     </>
   );
@@ -1471,7 +1496,7 @@ function ColumnProjectCard({project:p,done,total,pct,idx,projectsLen,reorderMode
       </div>
       <div style={{padding:"8px 8px 12px",display:"flex",flexDirection:"column",gap:5}}>
         {[...p.tasks].sort((a,b)=>{const d=WEEK_DAYS_ORDER.indexOf(a.day)-WEEK_DAYS_ORDER.indexOf(b.day);if(d!==0)return d;const o={high:0,medium:1,low:2};const pr=o[a.priority]-o[b.priority];if(pr!==0)return pr;return a.text.localeCompare(b.text,"pt-BR");}).map(task=>(<TaskItem key={task.id} task={task} color={p.color} projectName={p.name} projectEmoji={p.emoji} onToggle={()=>onToggleTask(p.id,task.id)} onUpdate={u=>onUpdateTask(p.id,task.id,u)} onDelete={()=>onDeleteTask(p.id,task.id)} onMoveWeek={taskMoveWeekFn(p.id,task.id)} openTaskId={openTaskId} onOpen={onOpen} c={tc}/>))}
-        <AddTaskInput color={p.color} onAdd={(text,day,priority,_,att)=>onAddTask(p.id,text,day,priority,att)} c={tc}/>
+        <AddTaskInput color={p.color} onAdd={(text,day,priority,_,att,desc)=>onAddTask(p.id,text,day,priority,att,desc)} c={tc}/>
       </div>
     </div>
     </>
@@ -2378,13 +2403,13 @@ export default function App(){
     }
   },[updateProjects]);
 
-  const addTask=useCallback((pid,text,day,priority,attachments)=>updateProjects(ps=>ps.map(p=>{if(p.id!==pid)return p;return{...p,tasks:[...p.tasks,{id:`${p.id}_${Date.now()}`,text,done:false,priority:priority||"medium",day:day||"seg",attachments:attachments||[]}]};})),[updateProjects]);
+  const addTask=useCallback((pid,text,day,priority,attachments,description)=>updateProjects(ps=>ps.map(p=>{if(p.id!==pid)return p;return{...p,tasks:[...p.tasks,{id:`${p.id}_${Date.now()}`,text,done:false,priority:priority||"medium",day:day||"seg",attachments:attachments||[],description:description||""}]};})),[updateProjects]);
   const deleteTask=useCallback((pid,tid)=>updateProjects(ps=>ps.map(p=>p.id===pid?{...p,tasks:p.tasks.filter(t=>t.id!==tid)}:p)),[updateProjects]);
 
   // addTaskToProject: usado na view dias da semana (pid vem do seletor de categoria)
-  const addTaskToProject=useCallback((text,day,priority,pid,attachments)=>{
+  const addTaskToProject=useCallback((text,day,priority,pid,attachments,description)=>{
     if(!pid)return;
-    addTask(pid,text,day,priority,attachments);
+    addTask(pid,text,day,priority,attachments,description);
   },[addTask]);
 
   const editProject=useCallback((pid,u)=>updateProjects(ps=>ps.map(p=>p.id===pid?{...p,...u}:p)),[updateProjects]);
