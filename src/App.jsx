@@ -1655,7 +1655,7 @@ function WhatsNewModal({onClose,c,onMarkSeen,isAdmin}){
   <div style="text-align:center;margin-bottom:40px;padding-bottom:28px;border-bottom:1px solid ${border};">
     <img src="${logoUrl}" alt="Planner Semanal" style="height:64px;margin-bottom:16px;border:none;outline:none;display:block;margin-left:auto;margin-right:auto;" onerror="this.style.display='none'"/>
     <h1 style="font-size:18px;font-weight:800;color:${textMain};font-family:'Inter',sans-serif;margin-bottom:6px;">Guia do Planner Semanal</h1>
-    <p style="font-size:12px;color:${textMuted};line-height:1.6;max-width:480px;margin:0 auto;">Tudo o que você precisa saber para organizar sua semana com clareza, foco e intenção.</p>
+    <p style="font-size:12px;color:${textMuted};line-height:1.6;max-width:480px;margin:0 auto;">Tudo o que você precisa saber para organizar sua semana com excelência.</p>
   </div>
 
   <!-- Bem-vindo -->
