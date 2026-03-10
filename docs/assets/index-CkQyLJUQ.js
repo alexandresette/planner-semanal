@@ -3238,12 +3238,16 @@ This typically indicates that your device does not have a healthy Internet conne
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Inter:wght@600;700;800&display=swap" rel="stylesheet"/>
 <link rel="icon" type="image/svg+xml" href="${window.location.origin}/favicon.svg"/>
-<title>Guia do Planner Semanal</title>
+<title> </title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0;}
   body{background:${x};color:${j};font-family:'DM Sans',sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-  @page{margin:12mm 14mm;}
-  @media print{body{background:${x}!important;}}
+  img{border:none!important;outline:none!important;}
+  @page{margin:12mm 14mm;size:A4;}
+  @media print{
+    body{background:${x}!important;}
+    @page{margin:12mm 14mm;}
+  }
 </style>
 </head>
 <body>
@@ -3251,7 +3255,7 @@ This typically indicates that your device does not have a healthy Internet conne
 
   <!-- Header -->
   <div style="text-align:center;margin-bottom:40px;padding-bottom:28px;border-bottom:1px solid ${M};">
-    <img src="${T}" alt="Planner Semanal" style="height:64px;margin-bottom:16px;" onerror="this.style.display='none'"/>
+    <img src="${T}" alt="Planner Semanal" style="height:64px;margin-bottom:16px;border:none;outline:none;display:block;margin-left:auto;margin-right:auto;" onerror="this.style.display='none'"/>
     <h1 style="font-size:18px;font-weight:800;color:${j};font-family:'Inter',sans-serif;margin-bottom:6px;">Guia do Planner Semanal</h1>
     <p style="font-size:12px;color:${_};line-height:1.6;max-width:480px;margin:0 auto;">Tudo o que você precisa saber para organizar sua semana com clareza, foco e intenção.</p>
   </div>
