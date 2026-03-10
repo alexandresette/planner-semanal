@@ -1635,6 +1635,25 @@ function UserSettingsModal({userName,profile,onSave,onClose,c}){
 /* ─── Changelog (editar aqui para adicionar novidades) ─── */
 const CHANGELOG = [
   {
+    version: "v2.31",
+    date: "09/03/2026",
+    badge: "novo",
+    title: "Login simplificado & painel admin completo",
+    items: [
+      "🔐 Login agora é feito só com e-mail e senha — sem campo de usuário",
+      "✨ Criação de conta simplificada: só nome e senha (username gerado automaticamente)",
+      "👤 Nome exibido no app (\"Olá, Déa\") definido na criação — independente do login",
+      "🛡️ Painel Admin mostra usuários ativos com status de último acesso em tempo real",
+      "📋 Convites pendentes separados de usuários já cadastrados no Admin",
+      "🗑️ Admin pode excluir usuário e reenviar convite com um clique",
+      "🌐 Domínio migrado para plannersemanal.com",
+      "📌 Destaque de novidades agora com cor roxa",
+      "🔗 Logo aparece na tela de \"Esqueceu a senha?\"",
+      "🐛 Fix: link de reset de senha agora aponta para plannersemanal.com",
+      "🐛 Fix: após redefinir senha, sessão é encerrada para forçar novo login",
+    ],
+  },
+  {
     version: "v2.20",
     date: "09/03/2025",
     badge: "novo",
