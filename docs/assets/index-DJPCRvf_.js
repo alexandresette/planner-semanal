@@ -3346,7 +3346,7 @@ This typically indicates that your device does not have a healthy Internet conne
 
   <!-- Rodapé -->
   <div style="margin-top:32px;text-align:center;">
-    <p style="font-size:10px;color:${_};font-family:'DM Sans',sans-serif;">Planner Semanal · alexandresette.github.io/planner-semanal</p>
+    <p style="font-size:10px;color:${_};font-family:'DM Sans',sans-serif;">Planner Semanal · plannersemanal.com</p>
   </div>
 
 </div>

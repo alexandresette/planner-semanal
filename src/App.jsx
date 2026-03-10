@@ -1767,7 +1767,7 @@ function WhatsNewModal({onClose,c,onMarkSeen,isAdmin}){
 
   <!-- Rodapé -->
   <div style="margin-top:32px;text-align:center;">
-    <p style="font-size:10px;color:${textMuted};font-family:'DM Sans',sans-serif;">Planner Semanal · alexandresette.github.io/planner-semanal</p>
+    <p style="font-size:10px;color:${textMuted};font-family:'DM Sans',sans-serif;">Planner Semanal · plannersemanal.com</p>
   </div>
 
 </div>
