@@ -1527,24 +1527,91 @@ const CHANGELOG = [
 ];
 
 const WHATS_NEW_STORAGE_KEY = "whats-new-last-seen";
+const WHATS_NEW_PINNED_KEY  = "whats-new-pinned";
 
 /* ─── WhatsNew Modal ─── */
-function WhatsNewModal({onClose,c,onMarkSeen}){
+function WhatsNewModal({onClose,c,onMarkSeen,isAdmin}){
   const tc=c||themes.dark;
   const [showAll,setShowAll]=useState(false);
-  const visible=showAll?CHANGELOG:CHANGELOG.slice(0,3);
+  const [pinnedVersion,setPinnedVersion]=useState(null);
+  const [savingPin,setSavingPin]=useState(false);
+
+  // Carregar pin do Firestore
+  useEffect(()=>{
+    onMarkSeen();
+    window.storage.get(WHATS_NEW_PINNED_KEY).then(r=>{
+      if(r&&r.value)setPinnedVersion(JSON.parse(r.value));
+    }).catch(()=>{});
+    const h=(e)=>{if(e.key==="Escape"){e.stopPropagation();onClose();}};
+    window.addEventListener("keydown",h,true);
+    return()=>window.removeEventListener("keydown",h,true);
+  },[]);
+
+  const handlePin=async(version)=>{
+    setSavingPin(version);
+    const newVal=pinnedVersion===version?null:version;
+    try{
+      if(newVal)await window.storage.set(WHATS_NEW_PINNED_KEY,JSON.stringify(newVal));
+      else await window.storage.delete(WHATS_NEW_PINNED_KEY);
+      setPinnedVersion(newVal);
+    }catch{}
+    setSavingPin(false);
+  };
+
   const badgeColors={
     novo:{bg:"rgba(16,185,129,0.15)",color:"#10B981",label:"Novo"},
     melhoria:{bg:"rgba(59,130,246,0.12)",color:"#3B82F6",label:"Melhoria"},
     lançamento:{bg:"rgba(245,158,11,0.15)",color:"#F59E0B",label:"Lançamento"},
     fix:{bg:"rgba(239,68,68,0.1)",color:"#EF4444",label:"Fix"},
   };
-  useEffect(()=>{
-    onMarkSeen();
-    const h=(e)=>{if(e.key==="Escape"){e.stopPropagation();onClose();}};
-    window.addEventListener("keydown",h,true);
-    return()=>window.removeEventListener("keydown",h,true);
-  },[]);
+
+  const pinnedEntry=pinnedVersion?CHANGELOG.find(e=>e.version===pinnedVersion):null;
+  const regularList=showAll?CHANGELOG:CHANGELOG.slice(0,3);
+
+  const renderEntry=(entry,i,{isLatest=false,isPinned=false}={})=>{
+    const bc=badgeColors[entry.badge]||badgeColors.melhoria;
+    const isPinnedThis=pinnedVersion===entry.version;
+    return(
+      <div key={entry.version+(isPinned?"_pin":"")} style={{position:"relative",paddingLeft:isPinned?0:20}}>
+        {/* linha vertical */}
+        {!isPinned&&i<regularList.length-1&&<div style={{position:"absolute",left:6,top:28,bottom:-20,width:1,background:tc.divider}}/>}
+        {/* dot */}
+        {!isPinned&&<div style={{position:"absolute",left:0,top:6,width:13,height:13,borderRadius:"50%",background:isLatest?"linear-gradient(135deg,#3B82F6,#8B5CF6)":tc.inputBg,border:isLatest?"none":`1.5px solid ${tc.cardBorder}`,boxShadow:isLatest?"0 0 0 3px rgba(59,130,246,0.2)":"none"}}/>}
+        <div style={{background:isPinned?"linear-gradient(135deg,rgba(245,158,11,0.08),rgba(239,68,68,0.04))":isLatest?`linear-gradient(135deg,rgba(59,130,246,0.06),rgba(139,92,246,0.04))`:tc.taskBg,border:`1px solid ${isPinned?"rgba(245,158,11,0.3)":isLatest?"rgba(59,130,246,0.2)":tc.cardBorder}`,borderRadius:14,padding:"14px 16px",animation:"fadeIn 0.3s ease"}}>
+          <div style={{display:"flex",alignItems:"flex-start",gap:8,marginBottom:8,flexWrap:"wrap"}}>
+            {isPinned&&<span style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:5,background:"rgba(245,158,11,0.15)",color:"#F59E0B",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em",display:"flex",alignItems:"center",gap:4}}>📌 Fixado</span>}
+            <span style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:5,background:bc.bg,color:bc.color,fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>{bc.label}</span>
+            <span style={{fontSize:11,fontWeight:700,color:tc.textSub,fontFamily:F}}>{entry.version}</span>
+            <span style={{fontSize:10,color:tc.textMuted,fontFamily:F,marginLeft:"auto",display:"flex",alignItems:"center",gap:6}}>
+              {entry.date}
+              {isAdmin&&!isPinned&&(
+                <button onClick={()=>handlePin(entry.version)} disabled={!!savingPin} title={isPinnedThis?"Desafixar":"Fixar esta novidade para todos"} style={{background:isPinnedThis?"rgba(245,158,11,0.15)":"none",border:`1px solid ${isPinnedThis?"rgba(245,158,11,0.4)":tc.cardBorder}`,borderRadius:6,cursor:"pointer",padding:"2px 6px",display:"inline-flex",alignItems:"center",gap:4,fontSize:9,fontWeight:700,color:isPinnedThis?"#F59E0B":tc.textMuted,fontFamily:F,transition:"all 0.15s",opacity:savingPin===entry.version?0.5:1}} onMouseEnter={e=>{if(!isPinnedThis){e.currentTarget.style.borderColor="rgba(245,158,11,0.4)";e.currentTarget.style.color="#F59E0B";e.currentTarget.style.background="rgba(245,158,11,0.1)";}}} onMouseLeave={e=>{if(!isPinnedThis){e.currentTarget.style.borderColor=tc.cardBorder;e.currentTarget.style.color=tc.textMuted;e.currentTarget.style.background="none";}}}>
+                  {isPinnedThis?"📌 Fixado":"📌 Fixar"}
+                </button>
+              )}
+            </span>
+          </div>
+          <h3 style={{margin:"0 0 10px",fontSize:14,fontWeight:700,color:tc.text,fontFamily:FS,lineHeight:1.3}}>{entry.title}</h3>
+          <ul style={{margin:0,padding:0,listStyle:"none",display:"flex",flexDirection:"column",gap:5}}>
+            {entry.items.map((item,j)=>(
+              <li key={j} style={{display:"flex",alignItems:"flex-start",gap:8,fontSize:12,color:tc.textSub,fontFamily:F,lineHeight:1.5}}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={isPinned?"#F59E0B":"#3B82F6"} strokeWidth="2.5" strokeLinecap="round" style={{flexShrink:0,marginTop:2}}><polyline points="20 6 9 17 4 12"/></svg>
+                {item}
+              </li>
+            ))}
+          </ul>
+          {/* Botão de desafixar só no card pinado, visível apenas para admin */}
+          {isPinned&&isAdmin&&(
+            <button onClick={()=>handlePin(entry.version)} disabled={!!savingPin} style={{marginTop:10,padding:"5px 12px",borderRadius:7,border:"1px solid rgba(245,158,11,0.3)",background:"rgba(245,158,11,0.08)",color:"#F59E0B",fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:F,display:"flex",alignItems:"center",gap:5,transition:"all 0.15s"}} onMouseEnter={e=>e.currentTarget.style.background="rgba(245,158,11,0.16)"} onMouseLeave={e=>e.currentTarget.style.background="rgba(245,158,11,0.08)"}>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              Desafixar
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return(
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",backdropFilter:"blur(5px)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:3000,padding:16,animation:"fadeIn 0.2s ease"}} onClick={onClose}>
       <div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:480,maxHeight:"85vh",background:tc.modalBg,border:"1px solid rgba(59,130,246,0.2)",borderRadius:22,boxShadow:"0 8px 50px rgba(0,0,0,0.5)",display:"flex",flexDirection:"column",overflow:"hidden"}}>
@@ -1557,7 +1624,7 @@ function WhatsNewModal({onClose,c,onMarkSeen}){
             </div>
             <div style={{flex:1}}>
               <h2 style={{margin:0,fontSize:18,fontWeight:800,color:tc.text,fontFamily:FS}}>Novidades</h2>
-              <p style={{margin:0,fontSize:12,color:tc.textMuted,fontFamily:F}}>Atualizações do Planner Semanal</p>
+              <p style={{margin:0,fontSize:12,color:tc.textMuted,fontFamily:F}}>Atualizações do Planner Semanal{isAdmin&&<span style={{marginLeft:8,fontSize:10,padding:"1px 6px",borderRadius:4,background:"rgba(139,92,246,0.15)",color:"#A78BFA",fontWeight:700}}>Admin</span>}</p>
             </div>
             <button onClick={onClose} style={{background:"none",border:"none",cursor:"pointer",padding:4,opacity:0.35}} onMouseEnter={e=>e.currentTarget.style.opacity="0.9"} onMouseLeave={e=>e.currentTarget.style.opacity="0.35"}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={tc.textSub} strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -1567,35 +1634,22 @@ function WhatsNewModal({onClose,c,onMarkSeen}){
 
         {/* Lista */}
         <div style={{overflowY:"auto",flex:1,padding:"16px 24px"}}>
+
+          {/* Card fixado (visível para TODOS se existir) */}
+          {pinnedEntry&&(
+            <div style={{marginBottom:20}}>
+              <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
+                <span style={{fontSize:10,fontWeight:700,color:"#F59E0B",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.06em"}}>📌 Em destaque</span>
+                <div style={{flex:1,height:1,background:"rgba(245,158,11,0.2)"}}/>
+              </div>
+              {renderEntry(pinnedEntry,0,{isPinned:true})}
+              <div style={{height:1,background:tc.divider,margin:"20px 0"}}/>
+            </div>
+          )}
+
+          {/* Timeline normal */}
           <div style={{display:"flex",flexDirection:"column",gap:20}}>
-            {visible.map((entry,i)=>{
-              const bc=badgeColors[entry.badge]||badgeColors.melhoria;
-              const isLatest=i===0;
-              return(
-                <div key={entry.version} style={{position:"relative",paddingLeft:20}}>
-                  {/* linha vertical */}
-                  {i<visible.length-1&&<div style={{position:"absolute",left:6,top:28,bottom:-20,width:1,background:tc.divider}}/>}
-                  {/* dot */}
-                  <div style={{position:"absolute",left:0,top:6,width:13,height:13,borderRadius:"50%",background:isLatest?"linear-gradient(135deg,#3B82F6,#8B5CF6)":tc.inputBg,border:isLatest?"none":`1.5px solid ${tc.cardBorder}`,boxShadow:isLatest?"0 0 0 3px rgba(59,130,246,0.2)":"none"}}/>
-                  <div style={{background:isLatest?`linear-gradient(135deg,rgba(59,130,246,0.06),rgba(139,92,246,0.04))`:tc.taskBg,border:`1px solid ${isLatest?"rgba(59,130,246,0.2)":tc.cardBorder}`,borderRadius:14,padding:"14px 16px",animation:isLatest?"fadeIn 0.3s ease":"none"}}>
-                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8,flexWrap:"wrap"}}>
-                      <span style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:5,background:bc.bg,color:bc.color,fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>{bc.label}</span>
-                      <span style={{fontSize:11,fontWeight:700,color:tc.textSub,fontFamily:F}}>{entry.version}</span>
-                      <span style={{fontSize:10,color:tc.textMuted,fontFamily:F,marginLeft:"auto"}}>{entry.date}</span>
-                    </div>
-                    <h3 style={{margin:"0 0 10px",fontSize:14,fontWeight:700,color:tc.text,fontFamily:FS,lineHeight:1.3}}>{entry.title}</h3>
-                    <ul style={{margin:0,padding:0,listStyle:"none",display:"flex",flexDirection:"column",gap:5}}>
-                      {entry.items.map((item,j)=>(
-                        <li key={j} style={{display:"flex",alignItems:"flex-start",gap:8,fontSize:12,color:tc.textSub,fontFamily:F,lineHeight:1.5}}>
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2.5" strokeLinecap="round" style={{flexShrink:0,marginTop:2}}><polyline points="20 6 9 17 4 12"/></svg>
-                          {item}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              );
-            })}
+            {regularList.map((entry,i)=>renderEntry(entry,i,{isLatest:i===0&&!pinnedEntry}))}
           </div>
 
           {/* Ver mais */}
@@ -2336,7 +2390,7 @@ export default function App(){
         {/* Admin Panel */}
         {showAdmin&&<AdminPanel onClose={()=>setShowAdmin(false)} theme={theme}/>}
         {showSettings&&<UserSettingsModal userName={userName} profile={userProfile} onSave={handleSaveProfile} onClose={()=>setShowSettings(false)} c={c}/>}
-        {showWhatsNew&&<WhatsNewModal onClose={()=>setShowWhatsNew(false)} c={c} onMarkSeen={markWhatsNewSeen}/>}
+        {showWhatsNew&&<WhatsNewModal onClose={()=>setShowWhatsNew(false)} c={c} onMarkSeen={markWhatsNewSeen} isAdmin={userName===ADMIN_USER}/>}
         {showReport&&<ReportModal weeks={weeks} onClose={()=>setShowReport(false)} c={c} theme={theme} userProfile={userProfile} userName={userName}/>}
 
         {/* Footer */}
