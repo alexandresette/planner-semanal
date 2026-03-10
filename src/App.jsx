@@ -2528,6 +2528,10 @@ export default function App(){
   const resetToken = (() => { try { return new URLSearchParams(window.location.search).get("reset"); } catch { return null; } })();
   if (resetToken) return <ResetPasswordScreen token={resetToken} onSuccess={() => { window.location.replace(window.location.pathname); }} theme={theme} />;
 
+  // Detecta ?invite=EMAIL — tem prioridade sobre sessão logada (outro usuário pode abrir o link)
+  const inviteParam = (() => { try { const p = new URLSearchParams(window.location.search); const inv = p.get("invite"); return inv ? decodeURIComponent(inv) : null; } catch { return null; } })();
+  if (inviteParam) return <FirstAccessScreen invitedEmail={inviteParam} onSuccess={username => { try { window.history.replaceState({},"",(window.location.pathname)); } catch {} handleLogin(username); }} onBack={() => { try { window.history.replaceState({},"",(window.location.pathname)); } catch {} window.location.replace(window.location.pathname); }} theme={theme} />;
+
   if(!authed) return <LoginScreen onLogin={handleLogin} theme={theme}/>;
   if(loading||weeks.length===0) return(<div style={{minHeight:"100vh",background:c.bg,display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{color:c.textMuted,fontSize:16,fontFamily:F}}>Carregando...</div></div>);
 
