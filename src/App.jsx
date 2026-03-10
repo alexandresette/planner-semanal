@@ -73,9 +73,7 @@ async function hashStr(input) {
 }
 async function verifyCredentials(user, pin) {
   const u = user.toLowerCase().trim();
-  // Checar hardcoded primeiro
-  if (CREDENTIALS[u]) return (await hashStr(`${u}:${pin}`)) === CREDENTIALS[u];
-  // Checar credenciais dinâmicas no Firestore
+  // Checar credenciais dinâmicas no Firestore primeiro (pode ter senha atualizada via reset)
   try {
     const r = await window.storage.get(`${USER_CREDS_PREFIX}${u}`);
     if (r && r.value) {
@@ -83,6 +81,8 @@ async function verifyCredentials(user, pin) {
       return (await hashStr(`${u}:${pin}`)) === d.hash;
     }
   } catch {}
+  // Fallback: credenciais hardcoded originais
+  if (CREDENTIALS[u]) return (await hashStr(`${u}:${pin}`)) === CREDENTIALS[u];
   return false;
 }
 
@@ -409,12 +409,11 @@ function ResetPasswordScreen({ token, onSuccess, theme }) {
     try {
       const u = tokenData.username;
       const hash = await hashStr(`${u}:${password}`);
-      // Atualizar senha: pode ser usuário dinâmico
+      // Buscar registro existente (pode não existir para usuários hardcoded)
       const r = await window.storage.get(`${USER_CREDS_PREFIX}${u}`).catch(() => null);
-      if (r && r.value) {
-        const d = JSON.parse(r.value);
-        await window.storage.set(`${USER_CREDS_PREFIX}${u}`, JSON.stringify({ ...d, hash }));
-      }
+      const existing = (r && r.value) ? JSON.parse(r.value) : { username: u, email: tokenData.email || "" };
+      // Sempre salva — cria o registro no Firestore se necessário
+      await window.storage.set(`${USER_CREDS_PREFIX}${u}`, JSON.stringify({ ...existing, hash }));
       // Invalidar token
       await window.storage.delete(`${RESET_TOKEN_PREFIX}${token}`).catch(() => {});
       setDone(true);
