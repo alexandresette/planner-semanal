@@ -879,13 +879,16 @@ function TaskViewModal({task,color,projectName,projectEmoji,onToggle,onUpdate,on
   const cancelEdit=()=>{setEditing(false);setAttachments(task.attachments||[]);};
   const saveEdit=()=>{onUpdate({text:editText.trim()||task.text,description:editDesc.trim(),priority:editPriority,day:editDay,attachments});setEditing(false);};
 
+  // Escape: em edição cancela edição, fora fecha o modal
   useEffect(()=>{
     const h=(e)=>{if(e.key==="Escape"){e.stopPropagation();if(editing)cancelEdit();else onClose();}};
     window.addEventListener("keydown",h,true);
     return()=>window.removeEventListener("keydown",h,true);
   },[editing]);
 
-  const overlayClick=()=>{if(!editing)onClose();};
+  // Bloquear qualquer evento de drag/touch de arrastar elementos do DOM por baixo
+  const blockDrag=(e)=>{e.preventDefault();e.stopPropagation();};
+  const blockMouse=(e)=>e.stopPropagation();
 
   // Renderizar um anexo na visualização
   const renderAttachment=(att,i)=>{
@@ -914,9 +917,17 @@ function TaskViewModal({task,color,projectName,projectEmoji,onToggle,onUpdate,on
   };
 
   return(
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",backdropFilter:"blur(5px)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:2000,padding:16,animation:"fadeIn 0.2s ease"}} onClick={overlayClick} onMouseDown={e=>e.stopPropagation()} onDragStart={e=>{e.preventDefault();e.stopPropagation();}}>
-      <div onClick={e=>e.stopPropagation()} onMouseDown={e=>e.stopPropagation()} onDragStart={e=>{e.preventDefault();e.stopPropagation();}} draggable={false} style={{width:"100%",maxWidth:480,maxHeight:"90vh",background:tc.modalBg,border:`1px solid ${color}30`,borderRadius:20,boxShadow:"0 8px 48px rgba(0,0,0,0.45)",display:"flex",flexDirection:"column",overflow:"hidden"}}>
-
+    <div
+      style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",backdropFilter:"blur(5px)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:2000,padding:16,animation:"fadeIn 0.2s ease"}}
+      onMouseDown={e=>{if(e.target===e.currentTarget&&!editing)onClose();}}
+      onDragStart={blockDrag}
+    >
+      <div
+        onMouseDown={blockMouse}
+        onDragStart={blockDrag}
+        draggable={false}
+        style={{width:"100%",maxWidth:480,maxHeight:"90vh",background:tc.modalBg,border:`1px solid ${color}30`,borderRadius:20,boxShadow:"0 8px 48px rgba(0,0,0,0.45)",display:"flex",flexDirection:"column",overflow:"hidden"}}
+      >
         {/* Header */}
         <div style={{background:`linear-gradient(135deg,${color}18,${color}06)`,borderBottom:`1px solid ${color}18`,padding:"20px 20px 16px",flexShrink:0}}>
           <div style={{display:"flex",alignItems:"flex-start",gap:12}}>
@@ -942,7 +953,8 @@ function TaskViewModal({task,color,projectName,projectEmoji,onToggle,onUpdate,on
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                 </button>
               )}
-              <button onClick={editing?cancelEdit:onClose} style={{background:"none",border:"none",cursor:"pointer",padding:4,opacity:0.35,lineHeight:1}} onMouseEnter={e=>e.currentTarget.style.opacity="0.8"} onMouseLeave={e=>e.currentTarget.style.opacity="0.35"}>
+              {/* X: sempre fecha o modal por completo */}
+              <button onClick={onClose} style={{background:"none",border:"none",cursor:"pointer",padding:4,opacity:0.35,lineHeight:1}} onMouseEnter={e=>e.currentTarget.style.opacity="0.8"} onMouseLeave={e=>e.currentTarget.style.opacity="0.35"}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={tc.textSub} strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               </button>
             </div>
@@ -994,7 +1006,7 @@ function TaskViewModal({task,color,projectName,projectEmoji,onToggle,onUpdate,on
             </div>
           )}
 
-          {/* Salvar / Cancelar */}
+          {/* Salvar / Cancelar — voltam para visualização, não fecham o modal */}
           {editing&&(
             <div style={{display:"flex",gap:8,paddingTop:4,borderTop:`1px solid ${tc.divider}`,marginTop:4}}>
               <button onClick={saveEdit} style={{flex:1,padding:"11px",borderRadius:11,border:"none",cursor:"pointer",background:`linear-gradient(135deg,${color},${color}cc)`,color:"#fff",fontSize:13,fontWeight:700,fontFamily:F}}>Salvar</button>
