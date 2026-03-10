@@ -2623,7 +2623,7 @@ export default function App(){
 
         {/* Actions */}
         <div style={{display:"flex",gap:8,justifyContent:"center",marginTop:28,flexWrap:"wrap"}}>
-          {isCurrentWeek&&<button onClick={()=>canComplete&&setShowConfirm(true)} style={{background:canComplete?"linear-gradient(135deg,rgba(16,185,129,0.15),rgba(59,130,246,0.15))":c.btnBg,border:`1px solid ${canComplete?"rgba(16,185,129,0.25)":c.btnBorder}`,color:canComplete?"#10B981":c.textMuted,fontSize:12,padding:"10px 16px",borderRadius:10,cursor:canComplete?"pointer":"default",fontFamily:F,fontWeight:600,opacity:canComplete?1:0.5}}>✓ Completar semana</button>}
+          {isCurrentWeek&&<button onClick={()=>canComplete&&setShowConfirm(true)} style={{background:canComplete?"linear-gradient(135deg,rgba(59,130,246,0.15),rgba(139,92,246,0.15))":c.btnBg,border:`1px solid ${canComplete?"rgba(99,102,241,0.3)":c.btnBorder}`,color:canComplete?"#6366F1":c.textMuted,fontSize:12,padding:"10px 16px",borderRadius:10,cursor:canComplete?"pointer":"default",fontFamily:F,fontWeight:600,opacity:canComplete?1:0.5}}>✓ Completar semana</button>}
           {weeks.length<2&&<button onClick={addNextWeek} style={{background:c.btnBg,border:`1px solid ${c.btnBorder}`,color:c.textSub,fontSize:12,padding:"10px 16px",borderRadius:10,cursor:"pointer",fontFamily:F,fontWeight:500}}>+ Nova semana</button>}
           <button onClick={()=>setShowHistory(!showHistory)} style={{background:showHistory?"rgba(59,130,246,0.12)":c.btnBg,border:`1px solid ${showHistory?"rgba(59,130,246,0.3)":c.btnBorder}`,color:showHistory?"#3B82F6":c.textSub,fontSize:12,padding:"10px 16px",borderRadius:10,cursor:"pointer",fontFamily:F,fontWeight:500}}>📋 Histórico</button>
         </div>
