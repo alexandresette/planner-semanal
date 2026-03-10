@@ -6,6 +6,18 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Inter:wght@600;700;800&display=swap" rel="stylesheet"/>
 <link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
 <title>Guia Planner</title>
+<script>
+  // Lê ?theme=, persiste no localStorage, aplica classe no <html>
+  (function(){
+    var param = new URLSearchParams(window.location.search).get('theme');
+    if(param === 'light' || param === 'dark'){
+      localStorage.setItem('planner-guide-theme', param);
+    }
+    var saved = localStorage.getItem('planner-guide-theme');
+    var theme = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    document.documentElement.setAttribute('data-theme', theme);
+  })();
+</script>
 <style>
   *{box-sizing:border-box;margin:0;padding:0;}
   :root{
@@ -16,79 +28,67 @@
     --text-sub:#94A3B8;
     --text-muted:#64748B;
     --accent:#3B82F6;
-    --logo:url('/logo.svg');
+    --thead-bg:rgba(255,255,255,0.04);
+    --welcome-bg:linear-gradient(135deg,rgba(59,130,246,0.08),rgba(139,92,246,0.06));
+    --welcome-border:rgba(59,130,246,0.15);
+    --tip-bg:rgba(59,130,246,0.06);
+    --tip-border:rgba(59,130,246,0.12);
+    --section-icon-bg:rgba(59,130,246,0.12);
   }
-  @media(prefers-color-scheme:light){
-    :root{
-      --bg:#F8FAFC;
-      --card-bg:#fff;
-      --border:#E2E8F0;
-      --text:#0F172A;
-      --text-sub:#475569;
-      --text-muted:#94A3B8;
-      --logo:url('/logo-light.svg');
-    }
+  [data-theme="light"]{
+    --bg:#F8FAFC;
+    --card-bg:#fff;
+    --border:#E2E8F0;
+    --text:#0F172A;
+    --text-sub:#475569;
+    --text-muted:#94A3B8;
+    --thead-bg:rgba(0,0,0,0.03);
+    --welcome-bg:linear-gradient(135deg,rgba(59,130,246,0.05),rgba(139,92,246,0.04));
+    --welcome-border:rgba(59,130,246,0.12);
+    --tip-bg:rgba(59,130,246,0.04);
+    --tip-border:rgba(59,130,246,0.1);
+    --section-icon-bg:rgba(59,130,246,0.08);
   }
   body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
   img{border:none!important;outline:none!important;}
   .wrap{max-width:680px;margin:0 auto;padding:36px 24px 60px;}
-  /* Header */
   .guide-header{text-align:center;margin-bottom:40px;padding-bottom:28px;border-bottom:1px solid var(--border);}
   .guide-header img{height:64px;margin-bottom:16px;display:block;margin-left:auto;margin-right:auto;}
   .guide-header h1{font-size:18px;font-weight:800;color:var(--text);font-family:'Inter',sans-serif;margin-bottom:6px;}
   .guide-header p{font-size:12px;color:var(--text-muted);line-height:1.6;max-width:480px;margin:0 auto;}
-  /* Section */
   .section{margin-bottom:32px;}
   .section-title{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
-  .section-icon{width:34px;height:34px;border-radius:10px;background:rgba(59,130,246,0.12);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+  .section-icon{width:34px;height:34px;border-radius:10px;background:var(--section-icon-bg);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
   .section-title h2{margin:0;font-size:16px;font-weight:800;color:var(--text);font-family:'Inter',sans-serif;}
-  /* Welcome box */
-  .welcome-box{padding:16px 20px;border-radius:14px;background:linear-gradient(135deg,rgba(59,130,246,0.08),rgba(139,92,246,0.06));border:1px solid rgba(59,130,246,0.15);}
+  .welcome-box{padding:16px 20px;border-radius:14px;background:var(--welcome-bg);border:1px solid var(--welcome-border);}
   .welcome-box p{font-size:14px;color:var(--text-sub);line-height:1.7;margin:0;}
-  /* Bullets */
   ul.bullets{list-style:none;padding:0;}
   ul.bullets li{display:flex;align-items:flex-start;gap:8px;margin-bottom:7px;}
   ul.bullets li svg{flex-shrink:0;margin-top:3px;}
   ul.bullets li span{font-size:13px;color:var(--text-sub);font-family:'DM Sans',sans-serif;line-height:1.6;}
-  /* Tip */
-  .tip{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border-radius:10px;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.12);margin-bottom:8px;}
+  .tip{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border-radius:10px;background:var(--tip-bg);border:1px solid var(--tip-border);margin-bottom:8px;}
   .tip-icon{font-size:16px;flex-shrink:0;margin-top:1px;}
   .tip p{margin:0;font-size:13px;color:var(--text-sub);font-family:'DM Sans',sans-serif;line-height:1.6;}
-  /* Cards grid */
   .cards-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
   .card{padding:14px 16px;border-radius:12px;background:var(--card-bg);border:1px solid var(--border);}
   .card-emoji{font-size:20px;margin-bottom:8px;}
   .card strong{font-size:13px;color:var(--text);font-family:'Inter',sans-serif;display:block;margin-bottom:4px;}
   .card p{font-size:12px;color:var(--text-sub);line-height:1.5;margin:0;}
   .card-note{font-size:12px;color:var(--text-muted);margin-top:10px;font-style:italic;}
-  /* Table */
   .table-wrap{border-radius:12px;overflow:hidden;border:1px solid var(--border);}
   table{width:100%;border-collapse:collapse;}
-  thead tr{background:rgba(255,255,255,0.04);}
+  thead tr{background:var(--thead-bg);}
   th{padding:10px 12px;font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;text-align:left;font-family:'DM Sans',sans-serif;border-bottom:1px solid var(--border);}
   td{padding:9px 12px;font-size:12px;font-family:'DM Sans',sans-serif;border-bottom:1px solid var(--border);}
   td:first-child{font-weight:600;color:var(--text);white-space:nowrap;}
   td:last-child{color:var(--text-sub);}
-  /* Mission */
-  .mission{margin-top:40px;padding:20px 24px;border-radius:14px;background:linear-gradient(135deg,rgba(59,130,246,0.08),rgba(139,92,246,0.06));border:1px solid rgba(59,130,246,0.15);text-align:center;}
+  .mission{margin-top:40px;padding:20px 24px;border-radius:14px;background:var(--welcome-bg);border:1px solid var(--welcome-border);text-align:center;}
   .mission p{font-size:15px;color:var(--text-sub);font-style:italic;line-height:1.7;margin-bottom:6px;}
   .mission span{font-size:12px;color:var(--text-muted);font-weight:600;font-family:'Inter',sans-serif;}
-  /* Footer */
   .footer{margin-top:32px;text-align:center;}
   .footer p{font-size:10px;color:var(--text-muted);font-family:'DM Sans',sans-serif;}
-  /* Print */
   @page{margin:12mm 14mm;size:A4;}
-  @media print{
-    body{background:var(--bg)!important;}
-  }
-  /* Light mode table override */
-  @media(prefers-color-scheme:light){
-    thead tr{background:rgba(0,0,0,0.03);}
-    .welcome-box{background:linear-gradient(135deg,rgba(59,130,246,0.05),rgba(139,92,246,0.04));border-color:rgba(59,130,246,0.12);}
-    .mission{background:linear-gradient(135deg,rgba(59,130,246,0.05),rgba(139,92,246,0.04));border-color:rgba(59,130,246,0.1);}
-    .tip{background:rgba(59,130,246,0.04);border-color:rgba(59,130,246,0.1);}
-    .section-icon{background:rgba(59,130,246,0.08);}
-  }
+  @media print{body{background:var(--bg)!important;}}
 </style>
 </head>
 <body>
@@ -271,9 +271,9 @@
 
 </div>
 <script>
-  // Ajusta logo conforme tema do sistema
-  const logo = document.getElementById('logo');
-  if(window.matchMedia('(prefers-color-scheme: light)').matches){
+  // Aplica logo correta conforme tema já definido no <html>
+  var logo = document.getElementById('logo');
+  if(document.documentElement.getAttribute('data-theme') === 'light'){
     logo.src = '/logo-light.svg';
   }
 </script>

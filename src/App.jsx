@@ -1604,7 +1604,9 @@ function WhatsNewModal({onClose,c,onMarkSeen,isAdmin}){
   };
 
   const openGuide=()=>{
-    window.open('/guia-usuario','_blank');
+    const isDark=tc===themes.dark||(tc&&tc.bg==="#0B1120");
+    const themeParam=isDark?"dark":"light";
+    window.open(`/guia-usuario?theme=${themeParam}`,'_blank');
   };
 
   const pinnedEntry=pinnedVersion?CHANGELOG.find(e=>e.version===pinnedVersion):null;
