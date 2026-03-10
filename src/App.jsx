@@ -2274,6 +2274,7 @@ export default function App(){
   const [activeWeekIdx,setActiveWeekIdx]=useState(0);
   const [history,setHistory]=useState([]);
   const [expanded,setExpanded]=useState({});
+  const [expandedDays,setExpandedDays]=useState(()=>{const o={};WEEK_DAYS.forEach(d=>{o[d.key]=true;});return o;});
   const [loading,setLoading]=useState(true);
   const [viewMode,setViewMode]=useState("category");
   const [reorderMode,setReorderMode]=useState(false);
@@ -2593,23 +2594,26 @@ export default function App(){
             <AddCategoryCard onAdd={addCategory} c={c}/>
           </>):(
             <>
-            {weekData.map(({day,tasks})=>(<div key={day.key} className="project-card"
+            {weekData.map(({day,tasks})=>{const isDayExpanded=expandedDays[day.key]!==false;return(<div key={day.key} className="project-card"
               onDragOver={e=>{e.preventDefault();setDragOverDay(day.key);}}
               onDragLeave={()=>setDragOverDay(null)}
               onDrop={e=>{e.preventDefault();setDragOverDay(null);if(dragTask){updateTask(dragTask.projectId,dragTask.taskId,{day:day.key});setDragTask(null);}}}
               style={{background:dragOverDay===day.key?c.dragOverBg:c.cardBg,borderRadius:16,border:`1px solid ${dragOverDay===day.key?c.dragOverBorder:c.cardBorder}`,overflow:"hidden",transition:"all 0.2s ease"}}>
-              <div style={{display:"flex",alignItems:"center",gap:14,padding:"16px 20px"}}>
+              <div onClick={()=>setExpandedDays(prev=>({...prev,[day.key]:!isDayExpanded}))} style={{display:"flex",alignItems:"center",gap:14,padding:"16px 20px",cursor:"pointer",userSelect:"none"}}>
                 <div style={{width:42,height:42,borderRadius:12,display:"flex",alignItems:"center",justifyContent:"center",background:tasks.length>0?"rgba(59,130,246,0.12)":c.viewToggleBg,fontSize:13,fontWeight:700,color:tasks.length>0?"#3B82F6":c.textMuted,fontFamily:F}}>{day.label}</div>
                 <div style={{flex:1}}><span style={{fontSize:16,fontWeight:700,color:c.text,fontFamily:F}}>{day.full}</span><span style={{fontSize:12,color:c.textMuted,display:"block",fontFamily:F}}>{tasks.filter(t=>t.done).length}/{tasks.length} concluídas</span></div>
                 {tasks.length>0&&<ProgressRing percent={Math.round((tasks.filter(t=>t.done).length/tasks.length)*100)} color="#3B82F6" size={42} c={c}/>}
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={c.textMuted} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{transition:"transform 0.2s ease",transform:isDayExpanded?"rotate(180deg)":"rotate(0deg)",flexShrink:0}}><polyline points="6 9 12 15 18 9"/></svg>
               </div>
-              {tasks.length>0&&(<div style={{padding:"0 14px 6px",display:"flex",flexDirection:"column",gap:6}}>
-                {[...tasks].sort((a,b)=>{const done=(a.done?1:0)-(b.done?1:0);if(done!==0)return done;const o={high:0,medium:1,low:2};const p=o[a.priority]-o[b.priority];if(p!==0)return p;const pa=projects.find(x=>x.id===a._projectId);const pb=projects.find(x=>x.id===b._projectId);const pn=(pa?.name||"").localeCompare(pb?.name||"","pt-BR");if(pn!==0)return pn;return a.text.localeCompare(b.text,"pt-BR");}).map(t=>{const proj=projects.find(p=>p.id===t._projectId);return(<div key={t.id} draggable={!editingTasks.has(t.id)} onDragStart={()=>{if(!editingTasks.has(t.id))setDragTask({projectId:t._projectId,taskId:t.id});}} onDragEnd={()=>{setDragTask(null);setDragOverDay(null);}} style={{cursor:editingTasks.has(t.id)?"default":"grab",opacity:dragTask?.taskId===t.id?0.4:1,transition:"opacity 0.2s"}}><TaskItem task={t} color={proj?.color||"#64748B"} projectName={proj?.name} onToggle={()=>toggleTask(t._projectId,t.id)} onUpdate={u=>updateTask(t._projectId,t.id,u)} onDelete={()=>deleteTask(t._projectId,t.id)} onMoveWeek={taskMoveWeekFn(t._projectId,t.id)} onEditingChange={v=>{setEditingTasks(prev=>{const n=new Set(prev);if(v)n.add(t.id);else n.delete(t.id);return n;})}} openTaskId={openTaskId} onOpen={setOpenTaskId} c={c} projects={projects} showCategoryPicker={true}/></div>);})}
-              </div>)}
-              <div style={{padding:"6px 14px 14px"}}>
-                <AddTaskInput color="#3B82F6" onAdd={addTaskToProject} c={c} projects={projects} requireCategory={true} defaultDay={day.key}/>
-              </div>
-            </div>))}
+              {isDayExpanded&&(<>
+                {tasks.length>0&&(<div style={{padding:"0 14px 6px",display:"flex",flexDirection:"column",gap:6}}>
+                  {[...tasks].sort((a,b)=>{const done=(a.done?1:0)-(b.done?1:0);if(done!==0)return done;const o={high:0,medium:1,low:2};const p=o[a.priority]-o[b.priority];if(p!==0)return p;const pa=projects.find(x=>x.id===a._projectId);const pb=projects.find(x=>x.id===b._projectId);const pn=(pa?.name||"").localeCompare(pb?.name||"","pt-BR");if(pn!==0)return pn;return a.text.localeCompare(b.text,"pt-BR");}).map(t=>{const proj=projects.find(p=>p.id===t._projectId);return(<div key={t.id} draggable={!editingTasks.has(t.id)} onDragStart={()=>{if(!editingTasks.has(t.id))setDragTask({projectId:t._projectId,taskId:t.id});}} onDragEnd={()=>{setDragTask(null);setDragOverDay(null);}} style={{cursor:editingTasks.has(t.id)?"default":"grab",opacity:dragTask?.taskId===t.id?0.4:1,transition:"opacity 0.2s"}}><TaskItem task={t} color={proj?.color||"#64748B"} projectName={proj?.name} onToggle={()=>toggleTask(t._projectId,t.id)} onUpdate={u=>updateTask(t._projectId,t.id,u)} onDelete={()=>deleteTask(t._projectId,t.id)} onMoveWeek={taskMoveWeekFn(t._projectId,t.id)} onEditingChange={v=>{setEditingTasks(prev=>{const n=new Set(prev);if(v)n.add(t.id);else n.delete(t.id);return n;})}} openTaskId={openTaskId} onOpen={setOpenTaskId} c={c} projects={projects} showCategoryPicker={true}/></div>);})}
+                </div>)}
+                <div style={{padding:"6px 14px 14px"}}>
+                  <AddTaskInput color="#3B82F6" onAdd={addTaskToProject} c={c} projects={projects} requireCategory={true} defaultDay={day.key}/>
+                </div>
+              </>)}
+            </div>);})}
             </>
           )}
         </div>
