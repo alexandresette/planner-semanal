@@ -2296,6 +2296,14 @@ export default function App(){
   const [editingTasks,setEditingTasks]=useState(new Set());
   const [openTaskId,setOpenTaskId]=useState(null);
   const [dragOverDay,setDragOverDay]=useState(null);
+
+  // Bloquear drag global quando qualquer modal de tarefa estiver aberto
+  useEffect(()=>{
+    if(!openTaskId)return;
+    const block=(e)=>{e.preventDefault();e.stopPropagation();};
+    document.addEventListener("dragstart",block,true);
+    return()=>document.removeEventListener("dragstart",block,true);
+  },[openTaskId]);
   const [layoutMode,setLayoutMode]=useState("list");
   const [layoutUserSet,setLayoutUserSet]=useState(false);
   const [focosOpen,setFocosOpen]=useState(true);
