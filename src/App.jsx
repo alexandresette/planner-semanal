@@ -2379,14 +2379,14 @@ export default function App(){
     handleResize();
     return()=>window.removeEventListener("resize",handleResize);
   },[]);
-  useEffect(()=>{(async()=>{try{const r=await window.storage.get(AUTH_KEY);if(r&&r.value==="true"){const st=sessionStorage.getItem(SESSION_TOKEN_KEY);if(!st){await window.storage.set(AUTH_KEY,"false").catch(()=>{});return;}setAuthed(true);try{const u=await window.storage.get(USER_KEY);if(u&&u.value){const uname=u.value;setUserName(uname);loadUserPrefs(uname);try{const pr=await window.storage.get(`planner-${uname}-profile`);if(pr&&pr.value)setUserProfile(JSON.parse(pr.value));}catch{}}}catch{}}}catch{}})();},[]);
+  useEffect(()=>{(async()=>{try{const r=await window.storage.get(AUTH_KEY);if(r&&r.value==="true"){const st=localStorage.getItem(SESSION_TOKEN_KEY);if(!st){await window.storage.set(AUTH_KEY,"false").catch(()=>{});return;}setAuthed(true);try{const u=await window.storage.get(USER_KEY);if(u&&u.value){const uname=u.value;setUserName(uname);loadUserPrefs(uname);try{const pr=await window.storage.get(`planner-${uname}-profile`);if(pr&&pr.value)setUserProfile(JSON.parse(pr.value));}catch{}}}catch{}}}catch{}})();},[]);
   const userProfileKey=(u)=>`planner-${u}-profile`;
   const handleLogin=useCallback(async(user,googlePhoto="")=>{
     // Limpar dados do usuário anterior ANTES de setar o novo usuário
     setWeeks([]);setHistory([]);setLoading(true);
     setAuthed(true);setUserName(user);loadUserPrefs(user);
     const sessionToken = Array.from(crypto.getRandomValues(new Uint8Array(32))).map(b=>b.toString(16).padStart(2,"0")).join("");
-    sessionStorage.setItem(SESSION_TOKEN_KEY, sessionToken);
+    localStorage.setItem(SESSION_TOKEN_KEY, sessionToken);
     window.storage.set(AUTH_KEY,"true").catch(()=>{});
     window.storage.set(USER_KEY,user).catch(()=>{});
     window.storage.set(`last-seen-${user}`,String(Date.now())).catch(()=>{});
@@ -2409,7 +2409,7 @@ export default function App(){
     setUserProfile(prof);
     await window.storage.set(userProfileKey(userName),JSON.stringify(prof)).catch(()=>{});
   },[userName]);
-  const handleLogout=useCallback(()=>{setAuthed(false);setUserName("");setWeeks([]);setLoading(true);sessionStorage.removeItem(SESSION_TOKEN_KEY);window.storage.set(AUTH_KEY,"false").catch(()=>{});window.storage.set(USER_KEY,"").catch(()=>{});},[]);
+  const handleLogout=useCallback(()=>{setAuthed(false);setUserName("");setWeeks([]);setLoading(true);localStorage.removeItem(SESSION_TOKEN_KEY);window.storage.set(AUTH_KEY,"false").catch(()=>{});window.storage.set(USER_KEY,"").catch(()=>{});},[]);
 
   useEffect(()=>{
     if(!authed||!userName)return;
