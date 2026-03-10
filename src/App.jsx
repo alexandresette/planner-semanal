@@ -600,6 +600,9 @@ function ResetPasswordScreen({ token, onSuccess, theme }) {
         console.log("[reset] ✅ Novo registro criado:", newKey);
       }
       await window.storage.delete(`${RESET_TOKEN_PREFIX}${token}`).catch(() => {});
+      // Limpar sessão para forçar login com a nova senha
+      await window.storage.set(AUTH_KEY, "false").catch(() => {});
+      await window.storage.set(USER_KEY, "").catch(() => {});
       setDone(true);
     } catch (e) { console.log("[reset] ❌ Erro:", e.message); setError("Erro ao redefinir senha. Tente novamente."); }
     setLoading(false);
