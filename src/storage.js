@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, getDocs } from 'firebase/firestore';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 
 const firebaseConfig = {
@@ -17,6 +17,29 @@ const db = getFirestore(app);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 const functions = getFunctions(app, 'southamerica-east1');
+
+// Auth anônima: garante que todas as requisições ao Firestore tenham um token válido.
+// As Firestore Security Rules exigem request.auth != null — isso bloqueia acesso
+// direto via curl/API mas não expõe identidade do usuário.
+let _authReady = false;
+const _authReadyPromise = new Promise(resolve => {
+  onAuthStateChanged(auth, user => {
+    if (user) {
+      _authReady = true;
+      resolve();
+    } else {
+      signInAnonymously(auth).catch(e => {
+        console.warn('[storage] signInAnonymously falhou:', e.code);
+        resolve(); // continuar mesmo sem auth (fallback)
+      });
+    }
+  });
+});
+
+async function ensureAuth() {
+  if (_authReady) return;
+  await _authReadyPromise;
+}
 
 export async function signInWithGoogle() {
   const result = await signInWithPopup(auth, googleProvider);
@@ -57,8 +80,7 @@ export async function callSendInviteEmail(email) {
 
 const storage = {
   async get(key) {
-    // Firestore é sempre a fonte da verdade.
-    // localStorage só é usado se o Firestore for genuinamente inacessível (offline).
+    await ensureAuth();
     try {
       const docRef = doc(db, 'storage', key);
       const docSnap = await getDoc(docRef);
@@ -87,6 +109,7 @@ const storage = {
   },
 
   async set(key, value) {
+    await ensureAuth();
     const updatedAt = new Date().toISOString();
     try {
       const docRef = doc(db, 'storage', key);
@@ -110,6 +133,7 @@ const storage = {
   },
 
   async delete(key) {
+    await ensureAuth();
     try {
       const docRef = doc(db, 'storage', key);
       await deleteDoc(docRef);
@@ -122,6 +146,7 @@ const storage = {
   },
 
   async list(prefix) {
+    await ensureAuth();
     try {
       const colRef = collection(db, 'storage');
       const snapshot = await getDocs(colRef);

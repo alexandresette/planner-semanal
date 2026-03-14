@@ -632,8 +632,7 @@ function ResetPasswordScreen({ token, onSuccess, theme }) {
       }
       await window.storage.delete(`${RESET_TOKEN_PREFIX}${token}`).catch(() => {});
       // Limpar sessão para forçar login com a nova senha
-      await window.storage.set(AUTH_KEY, "false").catch(() => {});
-      await window.storage.set(USER_KEY, "").catch(() => {});
+      // Não escrever mais AUTH_KEY/USER_KEY no Firestore — sessão é 100% localStorage
       setDone(true);
     } catch (e) {
  setError("Erro ao redefinir senha. Tente novamente."); }
