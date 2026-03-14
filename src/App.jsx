@@ -249,6 +249,69 @@ function Logo({ size = "normal", theme = "dark" }) {
 
 /* ─── First Access Screen (cadastro de novo usuário convidado) ─── */
 /* ─── Invite Gate: valida e-mail no Firestore antes de mostrar cadastro ─── */
+/* ─── Tela de convite Gmail: só botão Google, sem campos de senha ─── */
+function GoogleInviteScreen({invitedEmail,onSuccess,onBack,theme}){
+  const [loading,setLoading]=useState(false);
+  const [error,setError]=useState("");
+  const c=theme.t;
+
+  const handleGoogle=async()=>{
+    setLoading(true);setError("");
+    try{
+      const firebaseUser=await signInWithGoogle();
+      const em=firebaseUser.email.toLowerCase();
+      // Verificar se o e-mail bate com o convite
+      if(em!==invitedEmail.toLowerCase()){
+        await firebaseSignOut();
+        setError(`Use a conta ${invitedEmail} para aceitar este convite.`);
+        setLoading(false);return;
+      }
+      // Verificar se já tem conta criada
+      const existing=await getUsernameByEmail(em);
+      if(existing){onSuccess(existing,firebaseUser.photoURL||"");return;}
+      // Criar conta automaticamente — username gerado a partir do e-mail
+      const base=em.split("@")[0].toLowerCase().replace(/[^a-z0-9]/g,"");
+      let u=base;let suffix=1;
+      while(CREDENTIALS[u]||(await window.storage.get(`${USER_CREDS_PREFIX}${u}`).catch(()=>null))?.value){u=`${base}${suffix++}`;}
+      // Sem senha — conta só-Google (hash vazio, autenticação é pelo Google)
+      await saveDynamicCred(u,"",em);
+      const displayName=firebaseUser.displayName||em.split("@")[0];
+      const photoURL=firebaseUser.photoURL||"";
+      await window.storage.set(`planner-${u}-profile`,JSON.stringify({displayName,photoURL})).catch(()=>{});
+      onSuccess(u,photoURL);
+    }catch(e){
+      if(e.code!=="auth/popup-closed-by-user")setError("Erro ao entrar com Google. Tente novamente.");
+      setLoading(false);
+    }
+  };
+
+  return(
+    <div style={{minHeight:"100vh",background:c.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:F,padding:"24px 16px"}}>
+      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Inter:wght@600;700;800&display=swap" rel="stylesheet"/>
+      <div style={{width:"100%",maxWidth:400,padding:"36px 28px",boxSizing:"border-box",background:c.loginCardBg,border:`1px solid ${c.loginCardBorder}`,borderRadius:24,animation:"fadeIn 0.5s ease",boxShadow:c.mode==="light"?"0 4px 24px rgba(0,0,0,0.08)":"none",textAlign:"center"}}>
+        <Logo size="large" theme={c.mode||"dark"}/>
+        {/* Ícone de envelope */}
+        <div style={{width:56,height:56,borderRadius:16,background:"linear-gradient(135deg,rgba(59,130,246,0.15),rgba(139,92,246,0.15))",display:"flex",alignItems:"center",justifyContent:"center",margin:"22px auto 0"}}>
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="url(#inv-grad)" strokeWidth="1.8" strokeLinecap="round"><defs><linearGradient id="inv-grad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#3B82F6"/><stop offset="100%" stopColor="#8B5CF6"/></linearGradient></defs><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        </div>
+        <h2 style={{fontSize:20,fontWeight:800,color:c.text,margin:"16px 0 6px",fontFamily:FS}}>Você foi convidado!</h2>
+        <p style={{fontSize:13,color:c.textSub,margin:"0 0 6px",lineHeight:1.5}}>Acesse o Planner Semanal com sua conta Google.</p>
+        {/* Chip do e-mail */}
+        <div style={{display:"inline-flex",alignItems:"center",gap:7,padding:"6px 14px",borderRadius:20,background:c.mode==="dark"?"rgba(59,130,246,0.1)":"rgba(59,130,246,0.08)",border:"1px solid rgba(59,130,246,0.2)",margin:"0 0 28px"}}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          <span style={{fontSize:12,color:"#3B82F6",fontWeight:600,fontFamily:F}}>{invitedEmail}</span>
+        </div>
+        <button onClick={handleGoogle} disabled={loading} style={{width:"100%",padding:"14px 16px",borderRadius:13,border:`1.5px solid ${c.inputBorder}`,background:c.inputBg,color:c.text,fontSize:15,fontWeight:600,cursor:loading?"default":"pointer",fontFamily:F,display:"flex",alignItems:"center",justifyContent:"center",gap:10,opacity:loading?0.7:1,transition:"all 0.2s ease",boxSizing:"border-box"}} onMouseEnter={e=>{if(!loading){e.currentTarget.style.borderColor="#4285F4";e.currentTarget.style.background="rgba(66,133,244,0.06)";}}} onMouseLeave={e=>{e.currentTarget.style.borderColor=c.inputBorder;e.currentTarget.style.background=c.inputBg;}}>
+          {loading?(<><div style={{width:18,height:18,borderRadius:"50%",border:"2px solid rgba(66,133,244,0.3)",borderTopColor:"#4285F4",animation:"spin 0.8s linear infinite"}}/> Entrando...</>):(<><svg width="20" height="20" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>Entrar com Google</>)}
+        </button>
+        {error&&<p style={{color:"#EF4444",fontSize:12,margin:"12px 0 0",lineHeight:1.4}}>{error}</p>}
+        <button onClick={onBack} style={{width:"100%",marginTop:10,padding:"11px",background:"transparent",border:`1px solid ${c.cardBorder}`,borderRadius:12,color:c.textMuted,fontSize:12,fontWeight:500,cursor:"pointer",fontFamily:F}}>← Voltar ao login</button>
+      </div>
+      <style>{`@keyframes fadeIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
+    </div>
+  );
+}
+
 function InviteGate({invitedEmail,onSuccess,onBack,theme}){
   const [status,setStatus]=useState("checking"); // checking | valid | invalid | registered
   const c=theme.t;
@@ -264,7 +327,10 @@ function InviteGate({invitedEmail,onSuccess,onBack,theme}){
   },[]);
   if(status==="checking") return(<div style={{minHeight:"100vh",background:c.bg,display:"flex",alignItems:"center",justifyContent:"center"}}><span style={{color:c.textMuted,fontFamily:F,fontSize:14}}>Verificando convite...</span></div>);
   if(status==="registered") return(<div style={{minHeight:"100vh",background:c.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:12,padding:24}}><span style={{fontSize:32}}>✅</span><p style={{color:c.text,fontFamily:F,fontSize:15,fontWeight:600,margin:0,textAlign:"center"}}>Esta conta já foi criada.</p><p style={{color:c.textMuted,fontFamily:F,fontSize:13,margin:0}}>Acesse pelo login normal.</p><button onClick={onBack} style={{marginTop:8,padding:"10px 24px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#3B82F6,#8B5CF6)",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:F}}>Ir para o login</button></div>);
-  if(status==="invalid") return(<div style={{minHeight:"100vh",background:c.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:12,padding:24}}><span style={{fontSize:32}}>🚫</span><p style={{color:c.text,fontFamily:F,fontSize:15,fontWeight:600,margin:0,textAlign:"center"}}>Link de convite inválido.</p><p style={{color:c.textMuted,fontFamily:F,fontSize:13,margin:0,textAlign:"center"}}>Este e-mail não possui um convite ativo.</p><button onClick={onBack} style={{marginTop:8,padding:"10px 24px",borderRadius:12,border:"none",background:c.cancelBg,border:"1px solid "+c.cardBorder,color:c.textSub,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:F}}>Voltar</button></div>);
+  if(status==="invalid") return(<div style={{minHeight:"100vh",background:c.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:12,padding:24}}><span style={{fontSize:32}}>🚫</span><p style={{color:c.text,fontFamily:F,fontSize:15,fontWeight:600,margin:0,textAlign:"center"}}>Link de convite inválido.</p><p style={{color:c.textMuted,fontFamily:F,fontSize:13,margin:0,textAlign:"center"}}>Este e-mail não possui um convite ativo.</p><button onClick={onBack} style={{marginTop:8,padding:"10px 24px",borderRadius:12,border:"none",background:"transparent",border:"1px solid "+c.cardBorder,color:c.textSub,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:F}}>Voltar</button></div>);
+  // Gmail: tela só com botão Google
+  const isGmail=invitedEmail.toLowerCase().endsWith("@gmail.com");
+  if(isGmail) return <GoogleInviteScreen invitedEmail={invitedEmail} onSuccess={(u,photo)=>onSuccess(u,photo)} onBack={onBack} theme={theme}/>;
   return <FirstAccessScreen invitedEmail={invitedEmail} onSuccess={onSuccess} onBack={onBack} theme={theme}/>;
 }
 
@@ -283,14 +349,9 @@ function FirstAccessScreen({ invitedEmail, onSuccess, onBack, theme }) {
     if (password !== confirm) { setError("As senhas não coincidem."); return; }
     setLoading(true); setError("");
     try {
-      // Gerar username interno a partir do e-mail (parte antes do @, sem caracteres especiais)
       const base = invitedEmail.split("@")[0].toLowerCase().replace(/[^a-z0-9]/g,"");
-      // Garantir unicidade
-      let u = base;
-      let suffix = 1;
-      while (CREDENTIALS[u] || (await window.storage.get(`${USER_CREDS_PREFIX}${u}`).catch(()=>null))?.value) {
-        u = `${base}${suffix++}`;
-      }
+      let u = base; let suffix = 1;
+      while (CREDENTIALS[u] || (await window.storage.get(`${USER_CREDS_PREFIX}${u}`).catch(()=>null))?.value) { u = `${base}${suffix++}`; }
       const hash = await hashStr(`${u}:${password}`);
       await saveDynamicCred(u, hash, invitedEmail);
       await window.storage.set(`planner-${u}-profile`, JSON.stringify({ displayName: dname, photoURL: "" })).catch(() => {});
@@ -813,7 +874,7 @@ function LoginScreen({ onLogin, theme }) {
   if (showForgot) return <ForgotPasswordScreen onBack={() => setShowForgot(false)} theme={theme} />;
 
   if (firstAccessEmail) {
-    return <InviteGate invitedEmail={firstAccessEmail} onSuccess={username => { try { window.history.replaceState({}, "", window.location.pathname); } catch {} onLogin(username); }} onBack={() => { try { window.history.replaceState({}, "", window.location.pathname); } catch {} setFirstAccessEmail(null); setGoogleLoading(false); }} theme={theme} />;
+    return <InviteGate invitedEmail={firstAccessEmail} onSuccess={(username, photo="") => { try { window.history.replaceState({}, "", window.location.pathname); } catch {} onLogin(username, photo); }} onBack={() => { try { window.history.replaceState({}, "", window.location.pathname); } catch {} setFirstAccessEmail(null); setGoogleLoading(false); }} theme={theme} />;
   }
 
   return (
@@ -2598,7 +2659,7 @@ export default function App(){
 
   // Detecta ?invite=EMAIL — tem prioridade sobre sessão logada (outro usuário pode abrir o link)
   const inviteParam = (() => { try { const p = new URLSearchParams(window.location.search); const inv = p.get("invite"); return inv ? decodeURIComponent(inv) : null; } catch { return null; } })();
-  if (inviteParam) return <InviteGate invitedEmail={inviteParam} onSuccess={username => { try { window.history.replaceState({},"",(window.location.pathname)); } catch {} handleLogin(username); }} onBack={() => { try { window.history.replaceState({},"",(window.location.pathname)); } catch {} window.location.replace(window.location.pathname); }} theme={theme} />;
+  if (inviteParam) return <InviteGate invitedEmail={inviteParam} onSuccess={(username, photo="") => { try { window.history.replaceState({},"",(window.location.pathname)); } catch {} handleLogin(username, photo); }} onBack={() => { try { window.history.replaceState({},"",(window.location.pathname)); } catch {} window.location.replace(window.location.pathname); }} theme={theme} />;
 
   if(!authed) return <LoginScreen onLogin={handleLogin} theme={theme}/>;
   if(loading||weeks.length===0) return(<div style={{minHeight:"100vh",background:c.bg,display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{color:c.textMuted,fontSize:16,fontFamily:F}}>Carregando...</div></div>);
