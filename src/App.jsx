@@ -242,8 +242,10 @@ function useTheme() {
   return {mode:t,toggle,t:themes[t]};
 }
 
-function Logo({ size = "normal", theme = "dark" }) {
-  const src = theme === "light" ? LOGO_LIGHT : LOGO_DARK;
+function Logo({ size = "normal", theme }) {
+  // Se não receber tema, lê do localStorage — garante a logo certa em qualquer tela
+  const resolvedTheme = theme || (typeof localStorage !== "undefined" ? localStorage.getItem("planner-theme") || "dark" : "dark");
+  const src = resolvedTheme === "light" ? LOGO_LIGHT : LOGO_DARK;
   return <img src={src} alt="Planner Semanal" style={{ width: size === "normal" ? 180 : 200, display: "block", marginLeft: size === "large" ? "auto" : undefined, marginRight: size === "large" ? "auto" : undefined }} />;
 }
 
@@ -289,7 +291,7 @@ function GoogleInviteScreen({invitedEmail,onSuccess,onBack,theme}){
     <div style={{minHeight:"100vh",background:c.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:F,padding:"24px 16px"}}>
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Inter:wght@600;700;800&display=swap" rel="stylesheet"/>
       <div style={{width:"100%",maxWidth:400,padding:"36px 28px",boxSizing:"border-box",background:c.loginCardBg,border:`1px solid ${c.loginCardBorder}`,borderRadius:24,animation:"fadeIn 0.5s ease",boxShadow:theme.mode==="light"?"0 4px 24px rgba(0,0,0,0.08)":"none",textAlign:"center"}}>
-        <Logo size="large" theme={theme.mode||"dark"}/>
+        <Logo size="large" theme={theme.mode}/>
         {/* Ícone de envelope */}
         <div style={{width:56,height:56,borderRadius:16,background:"linear-gradient(135deg,rgba(59,130,246,0.15),rgba(139,92,246,0.15))",display:"flex",alignItems:"center",justifyContent:"center",margin:"22px auto 0"}}>
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="url(#inv-grad)" strokeWidth="1.8" strokeLinecap="round"><defs><linearGradient id="inv-grad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#3B82F6"/><stop offset="100%" stopColor="#8B5CF6"/></linearGradient></defs><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
@@ -367,7 +369,7 @@ function FirstAccessScreen({ invitedEmail, onSuccess, onBack, theme }) {
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Inter:wght@600;700;800&display=swap" rel="stylesheet"/>
       <div style={{width:"100%",maxWidth:400,padding:"32px 28px",boxSizing:"border-box",background:c.loginCardBg,border:`1px solid ${c.loginCardBorder}`,borderRadius:24,animation:"fadeIn 0.5s ease",boxShadow:theme.mode==="light"?"0 4px 24px rgba(0,0,0,0.08)":"none"}}>
         <div style={{textAlign:"center",marginBottom:24}}>
-          <Logo size="large" theme={theme.mode||"dark"} />
+          <Logo size="large" theme={theme.mode} />
           <h2 style={{fontSize:20,fontWeight:800,color:c.text,margin:"18px 0 4px",fontFamily:FS}}>Criar sua conta</h2>
           <p style={{fontSize:12,color:c.textSub,margin:0}}>Convite para <strong style={{color:c.text}}>{invitedEmail}</strong></p>
         </div>
