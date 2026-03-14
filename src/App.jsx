@@ -2379,25 +2379,45 @@ export default function App(){
     handleResize();
     return()=>window.removeEventListener("resize",handleResize);
   },[]);
-  useEffect(()=>{(async()=>{try{const r=await window.storage.get(AUTH_KEY);if(r&&r.value==="true"){const st=localStorage.getItem(SESSION_TOKEN_KEY);if(!st){await window.storage.set(AUTH_KEY,"false").catch(()=>{});return;}setAuthed(true);try{const u=await window.storage.get(USER_KEY);if(u&&u.value){const uname=u.value;setUserName(uname);loadUserPrefs(uname);try{const pr=await window.storage.get(`planner-${uname}-profile`);if(pr&&pr.value)setUserProfile(JSON.parse(pr.value));}catch{}}}catch{}}}catch{}})();},[]);
+  // ─── Sessão: lida 100% do localStorage para evitar logout involuntário no mobile ───
+  // O iOS/Safari pode limpar o Firestore cache mas o localStorage persiste por sessão de app.
+  // Formato: { user, token, ts } salvo como JSON em SESSION_TOKEN_KEY
+  useEffect(()=>{
+    try{
+      const raw=localStorage.getItem(SESSION_TOKEN_KEY);
+      if(!raw)return; // sem sessão salva → permanece na tela de login
+      const sess=JSON.parse(raw);
+      if(!sess||!sess.user||!sess.token)return;
+      // Sessão válida — restaurar imediatamente sem await de rede
+      const uname=sess.user;
+      setAuthed(true);
+      setUserName(uname);
+      loadUserPrefs(uname);
+      // Carregar perfil (Firestore, non-blocking)
+      window.storage.get(`planner-${uname}-profile`).then(pr=>{
+        if(pr&&pr.value)setUserProfile(JSON.parse(pr.value));
+      }).catch(()=>{});
+      // Atualizar last-seen no Firestore em background
+      window.storage.set(`last-seen-${uname}`,String(Date.now())).catch(()=>{});
+    }catch{/* localStorage corrompido → fica no login */}
+  },[]);
+
   const userProfileKey=(u)=>`planner-${u}-profile`;
   const handleLogin=useCallback(async(user,googlePhoto="")=>{
-    // Limpar dados do usuário anterior ANTES de setar o novo usuário
     setWeeks([]);setHistory([]);setLoading(true);
     setAuthed(true);setUserName(user);loadUserPrefs(user);
-    const sessionToken = Array.from(crypto.getRandomValues(new Uint8Array(32))).map(b=>b.toString(16).padStart(2,"0")).join("");
-    localStorage.setItem(SESSION_TOKEN_KEY, sessionToken);
-    window.storage.set(AUTH_KEY,"true").catch(()=>{});
-    window.storage.set(USER_KEY,user).catch(()=>{});
+    // Persistir sessão APENAS no localStorage (robusto no mobile)
+    const sessionToken=Array.from(crypto.getRandomValues(new Uint8Array(32))).map(b=>b.toString(16).padStart(2,"0")).join("");
+    const sessData=JSON.stringify({user,token:sessionToken,ts:Date.now()});
+    try{localStorage.setItem(SESSION_TOKEN_KEY,sessData);}catch{}
+    // Firestore: last-seen e legado AUTH_KEY (não usado mais para validação)
     window.storage.set(`last-seen-${user}`,String(Date.now())).catch(()=>{});
     // Load profile from Firestore
     try{
       const r=await window.storage.get(userProfileKey(user));
       const p=r&&r.value?JSON.parse(r.value):{};
-      // If Google login and no custom photo yet, use Google photo
       if(googlePhoto&&!p.photoURL){p.photoURL=googlePhoto;}
       setUserProfile({displayName:p.displayName||"",photoURL:p.photoURL||""});
-      // Save back if we added Google photo
       if(googlePhoto&&!JSON.parse(r&&r.value||"{}").photoURL){
         window.storage.set(userProfileKey(user),JSON.stringify({...p,photoURL:googlePhoto})).catch(()=>{});
       }
@@ -2409,7 +2429,10 @@ export default function App(){
     setUserProfile(prof);
     await window.storage.set(userProfileKey(userName),JSON.stringify(prof)).catch(()=>{});
   },[userName]);
-  const handleLogout=useCallback(()=>{setAuthed(false);setUserName("");setWeeks([]);setLoading(true);localStorage.removeItem(SESSION_TOKEN_KEY);window.storage.set(AUTH_KEY,"false").catch(()=>{});window.storage.set(USER_KEY,"").catch(()=>{});},[]);
+  const handleLogout=useCallback(()=>{
+    setAuthed(false);setUserName("");setWeeks([]);setLoading(true);
+    try{localStorage.removeItem(SESSION_TOKEN_KEY);}catch{}
+  },[]);
 
   useEffect(()=>{
     if(!authed||!userName)return;
