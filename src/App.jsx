@@ -2404,13 +2404,23 @@ export default function App(){
 
   const userProfileKey=(u)=>`planner-${u}-profile`;
   const handleLogin=useCallback(async(user,googlePhoto="")=>{
+    // Limpar TODO o cache do localStorage antes de carregar novo usuário
+    // Isso garante que dados cacheados de sessões anteriores não vazem
+    try{
+      const keysToRemove=[];
+      for(let i=0;i<localStorage.length;i++){
+        const k=localStorage.key(i);
+        if(k&&k!=='planner-theme')keysToRemove.push(k);
+      }
+      keysToRemove.forEach(k=>localStorage.removeItem(k));
+    }catch{}
     setWeeks([]);setHistory([]);setLoading(true);
     setAuthed(true);setUserName(user);loadUserPrefs(user);
     // Persistir sessão APENAS no localStorage (robusto no mobile)
     const sessionToken=Array.from(crypto.getRandomValues(new Uint8Array(32))).map(b=>b.toString(16).padStart(2,"0")).join("");
     const sessData=JSON.stringify({user,token:sessionToken,ts:Date.now()});
     try{localStorage.setItem(SESSION_TOKEN_KEY,sessData);}catch{}
-    // Firestore: last-seen e legado AUTH_KEY (não usado mais para validação)
+    // Firestore: last-seen
     window.storage.set(`last-seen-${user}`,String(Date.now())).catch(()=>{});
     // Load profile from Firestore
     try{
@@ -2430,37 +2440,58 @@ export default function App(){
     await window.storage.set(userProfileKey(userName),JSON.stringify(prof)).catch(()=>{});
   },[userName]);
   const handleLogout=useCallback(()=>{
-    setAuthed(false);setUserName("");setWeeks([]);setLoading(true);
-    try{localStorage.removeItem(SESSION_TOKEN_KEY);}catch{}
+    // Limpar TODO o cache do localStorage ao sair — evita vazamento de dados entre usuários
+    try{
+      const keysToRemove=[];
+      for(let i=0;i<localStorage.length;i++){
+        const k=localStorage.key(i);
+        if(k&&k!=='planner-theme')keysToRemove.push(k);
+      }
+      keysToRemove.forEach(k=>localStorage.removeItem(k));
+    }catch{}
+    setAuthed(false);setUserName("");setWeeks([]);setHistory([]);setLoading(true);
   },[]);
 
   useEffect(()=>{
     if(!authed||!userName)return;
-    activeUserRef.current=""; // Invalidar ref enquanto carrega
+    // loadToken garante que dados só sejam aplicados ao usuário que iniciou o carregamento
+    // Se o userName mudar durante o await (troca de conta), o resultado é descartado
+    const loadToken=userName;
+    activeUserRef.current=""; // Bloquear persistência enquanto carrega
     const XANDE_DEFAULT_IDS=["dexan","ministerio","gc","teologia","extras"];
     const hasXandeDefaults=(wks)=>wks.some(w=>w.projects.some(p=>XANDE_DEFAULT_IDS.includes(p.id)));
     (async()=>{
       try{
-        const r=await window.storage.get(userDataKey(userName));
+        const r=await window.storage.get(userDataKey(loadToken));
+        // Checar se o usuário ainda é o mesmo após o await — se não for, descartar
+        if(loadToken!==userName)return;
         if(r&&r.value){
           const parsed=JSON.parse(r.value);
           // Se não é xande mas tem dados dos projetos padrão do xande, limpa tudo
-          if(userName!=="xande"&&hasXandeDefaults(parsed)){
+          if(loadToken!=="xande"&&hasXandeDefaults(parsed)){
             const sun=getSunday(new Date());const sat=getSaturday(new Date());
             const clean=[{id:weekId(sun),sun:sun.toISOString(),sat:sat.toISOString(),projects:[]}];
             setWeeks(clean);
-            window.storage.set(userDataKey(userName),JSON.stringify(clean)).catch(()=>{});
-            window.storage.set(userHistoryKey(userName),JSON.stringify([])).catch(()=>{});
-            setHistory([]);activeUserRef.current=userName;setLoading(false);return;
+            window.storage.set(userDataKey(loadToken),JSON.stringify(clean)).catch(()=>{});
+            window.storage.set(userHistoryKey(loadToken),JSON.stringify([])).catch(()=>{});
+            setHistory([]);activeUserRef.current=loadToken;setLoading(false);return;
           }
           setWeeks(parsed);
         }else{
           const sun=getSunday(new Date());const sat=getSaturday(new Date());
-          setWeeks([{id:weekId(sun),sun:sun.toISOString(),sat:sat.toISOString(),projects:getDefaultProjects(userName)}]);
+          setWeeks([{id:weekId(sun),sun:sun.toISOString(),sat:sat.toISOString(),projects:getDefaultProjects(loadToken)}]);
         }
-      }catch{const sun=getSunday(new Date());const sat=getSaturday(new Date());setWeeks([{id:weekId(sun),sun:sun.toISOString(),sat:sat.toISOString(),projects:getDefaultProjects(userName)}]);}
-      try{const h=await window.storage.get(userHistoryKey(userName));if(h&&h.value)setHistory(JSON.parse(h.value));else setHistory([]);}catch{setHistory([]);}
-      activeUserRef.current=userName; // Liberar persistência só após carregar dados corretos
+      }catch{
+        if(loadToken!==userName)return;
+        const sun=getSunday(new Date());const sat=getSaturday(new Date());
+        setWeeks([{id:weekId(sun),sun:sun.toISOString(),sat:sat.toISOString(),projects:getDefaultProjects(loadToken)}]);
+      }
+      try{
+        const h=await window.storage.get(userHistoryKey(loadToken));
+        if(loadToken!==userName)return; // checar novamente após segundo await
+        if(h&&h.value)setHistory(JSON.parse(h.value));else setHistory([]);
+      }catch{setHistory([]);}
+      activeUserRef.current=loadToken; // Liberar persistência só após dados corretos carregados
       setLoading(false);
     })();
   },[authed,userName]);
