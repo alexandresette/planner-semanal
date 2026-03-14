@@ -288,8 +288,8 @@ function GoogleInviteScreen({invitedEmail,onSuccess,onBack,theme}){
   return(
     <div style={{minHeight:"100vh",background:c.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:F,padding:"24px 16px"}}>
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Inter:wght@600;700;800&display=swap" rel="stylesheet"/>
-      <div style={{width:"100%",maxWidth:400,padding:"36px 28px",boxSizing:"border-box",background:c.loginCardBg,border:`1px solid ${c.loginCardBorder}`,borderRadius:24,animation:"fadeIn 0.5s ease",boxShadow:c.mode==="light"?"0 4px 24px rgba(0,0,0,0.08)":"none",textAlign:"center"}}>
-        <Logo size="large" theme={c.mode||"dark"}/>
+      <div style={{width:"100%",maxWidth:400,padding:"36px 28px",boxSizing:"border-box",background:c.loginCardBg,border:`1px solid ${c.loginCardBorder}`,borderRadius:24,animation:"fadeIn 0.5s ease",boxShadow:theme.mode==="light"?"0 4px 24px rgba(0,0,0,0.08)":"none",textAlign:"center"}}>
+        <Logo size="large" theme={theme.mode||"dark"}/>
         {/* Ícone de envelope */}
         <div style={{width:56,height:56,borderRadius:16,background:"linear-gradient(135deg,rgba(59,130,246,0.15),rgba(139,92,246,0.15))",display:"flex",alignItems:"center",justifyContent:"center",margin:"22px auto 0"}}>
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="url(#inv-grad)" strokeWidth="1.8" strokeLinecap="round"><defs><linearGradient id="inv-grad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#3B82F6"/><stop offset="100%" stopColor="#8B5CF6"/></linearGradient></defs><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
@@ -297,7 +297,7 @@ function GoogleInviteScreen({invitedEmail,onSuccess,onBack,theme}){
         <h2 style={{fontSize:20,fontWeight:800,color:c.text,margin:"16px 0 6px",fontFamily:FS}}>Você foi convidado!</h2>
         <p style={{fontSize:13,color:c.textSub,margin:"0 0 6px",lineHeight:1.5}}>Acesse o Planner Semanal com sua conta Google.</p>
         {/* Chip do e-mail */}
-        <div style={{display:"inline-flex",alignItems:"center",gap:7,padding:"6px 14px",borderRadius:20,background:c.mode==="dark"?"rgba(59,130,246,0.1)":"rgba(59,130,246,0.08)",border:"1px solid rgba(59,130,246,0.2)",margin:"0 0 28px"}}>
+        <div style={{display:"inline-flex",alignItems:"center",gap:7,padding:"6px 14px",borderRadius:20,background:theme.mode==="dark"?"rgba(59,130,246,0.1)":"rgba(59,130,246,0.08)",border:"1px solid rgba(59,130,246,0.2)",margin:"0 0 28px"}}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
           <span style={{fontSize:12,color:"#3B82F6",fontWeight:600,fontFamily:F}}>{invitedEmail}</span>
         </div>
@@ -365,9 +365,9 @@ function FirstAccessScreen({ invitedEmail, onSuccess, onBack, theme }) {
   return (
     <div style={{minHeight:"100vh",background:c.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:F,padding:"24px 16px"}}>
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Inter:wght@600;700;800&display=swap" rel="stylesheet"/>
-      <div style={{width:"100%",maxWidth:400,padding:"32px 28px",boxSizing:"border-box",background:c.loginCardBg,border:`1px solid ${c.loginCardBorder}`,borderRadius:24,animation:"fadeIn 0.5s ease",boxShadow:c.mode==="light"?"0 4px 24px rgba(0,0,0,0.08)":"none"}}>
+      <div style={{width:"100%",maxWidth:400,padding:"32px 28px",boxSizing:"border-box",background:c.loginCardBg,border:`1px solid ${c.loginCardBorder}`,borderRadius:24,animation:"fadeIn 0.5s ease",boxShadow:theme.mode==="light"?"0 4px 24px rgba(0,0,0,0.08)":"none"}}>
         <div style={{textAlign:"center",marginBottom:24}}>
-          <Logo size="large" theme={c.mode||"dark"} />
+          <Logo size="large" theme={theme.mode||"dark"} />
           <h2 style={{fontSize:20,fontWeight:800,color:c.text,margin:"18px 0 4px",fontFamily:FS}}>Criar sua conta</h2>
           <p style={{fontSize:12,color:c.textSub,margin:0}}>Convite para <strong style={{color:c.text}}>{invitedEmail}</strong></p>
         </div>
