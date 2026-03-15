@@ -1582,7 +1582,7 @@ function HistoryCard({record,onDelete,c,themeMode}){
         <div><div style="font-size:15px;font-weight:700;color:#111827;">Tarefas concluídas</div><div style="font-size:12px;color:#6B7280;">${record.total} tarefa${record.total!==1?"s":""} no total</div></div>
       </div>
       <table style="width:100%;border-collapse:collapse;border:1px solid #E5E7EB;border-radius:10px;overflow:hidden;">${rows}</table>
-      <div style="margin-top:32px;text-align:center;font-size:11px;color:#9CA3AF;border-top:1px solid #F3F4F6;padding-top:16px;">Planner Semanal · Desenvolvido por Alexandre Sette · Colossenses 3:23-24</div>
+
     </body></html>`;
 
     const win=window.open("","_blank","width=750,height=900");
