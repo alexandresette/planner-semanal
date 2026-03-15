@@ -128,6 +128,8 @@ function weekId(sun) { return sun.toISOString().slice(0,10); }
 function addWeeks(d, n) { const r = new Date(d); r.setDate(r.getDate()+7*n); return r; }
 
 const WEEK_DAYS_ORDER = ["dom","seg","ter","qua","qui","sex","sab"];
+const WEEK_DAY_RANK = {"dom":0,"seg":1,"ter":2,"qua":3,"qui":4,"sex":5,"sab":6};
+function dayRank(key){return key&&WEEK_DAY_RANK[key]!==undefined?WEEK_DAY_RANK[key]:99;}
 const WEEK_DAYS = [
   {key:"dom",label:"Dom",full:"Domingo"},
   {key:"seg",label:"Seg",full:"Segunda"},
@@ -1535,7 +1537,7 @@ function ProjectCard({project,onToggleTask,onUpdateTask,onDeleteTask,onAddTask,o
           </div>
         </div>
       </div>)}
-      {isExpanded&&(<div style={{padding:"0 14px 14px",display:"flex",flexDirection:"column",gap:6}}>{[...project.tasks].sort((a,b)=>{const done=(a.done?1:0)-(b.done?1:0);if(done!==0)return done;const d=WEEK_DAYS_ORDER.indexOf(a.day)-WEEK_DAYS_ORDER.indexOf(b.day);if(d!==0)return d;const o={high:0,medium:1,low:2};const p=o[a.priority]-o[b.priority];if(p!==0)return p;return a.text.localeCompare(b.text,"pt-BR");}).map(task=>(<TaskItem key={task.id} task={task} color={project.color} projectName={project.name} projectEmoji={project.emoji} onToggle={()=>onToggleTask(project.id,task.id)} onUpdate={u=>onUpdateTask(project.id,task.id,u)} onDelete={()=>onDeleteTask(project.id,task.id)} onMoveWeek={taskMoveWeek?taskMoveWeek(project.id,task.id):null} openTaskId={openTaskId} onOpen={onOpen} c={tc}/>))}<AddTaskInput color={project.color} onAdd={(text,day,priority,_,att,desc)=>onAddTask(project.id,text,day,priority,att,desc)} c={tc}/></div>)}
+      {isExpanded&&(<div style={{padding:"0 14px 14px",display:"flex",flexDirection:"column",gap:6}}>{[...project.tasks].sort((a,b)=>{const done=(a.done?1:0)-(b.done?1:0);if(done!==0)return done;const o={high:0,medium:1,low:2};const p=o[a.priority]-o[b.priority];if(p!==0)return p;const d=dayRank(a.day)-dayRank(b.day);if(d!==0)return d;return a.text.localeCompare(b.text,"pt-BR");}).map(task=>(<TaskItem key={task.id} task={task} color={project.color} projectName={project.name} projectEmoji={project.emoji} onToggle={()=>onToggleTask(project.id,task.id)} onUpdate={u=>onUpdateTask(project.id,task.id,u)} onDelete={()=>onDeleteTask(project.id,task.id)} onMoveWeek={taskMoveWeek?taskMoveWeek(project.id,task.id):null} openTaskId={openTaskId} onOpen={onOpen} c={tc}/>))}<AddTaskInput color={project.color} onAdd={(text,day,priority,_,att,desc)=>onAddTask(project.id,text,day,priority,att,desc)} c={tc}/></div>)}
     </div>
     </>
   );
@@ -1658,7 +1660,7 @@ function ColumnProjectCard({project:p,done,total,pct,idx,projectsLen,reorderMode
         </div>)}
       </div>
       <div style={{padding:"8px 8px 12px",display:"flex",flexDirection:"column",gap:5}}>
-        {[...p.tasks].sort((a,b)=>{const done=(a.done?1:0)-(b.done?1:0);if(done!==0)return done;const d=WEEK_DAYS_ORDER.indexOf(a.day)-WEEK_DAYS_ORDER.indexOf(b.day);if(d!==0)return d;const o={high:0,medium:1,low:2};const pr=o[a.priority]-o[b.priority];if(pr!==0)return pr;return a.text.localeCompare(b.text,"pt-BR");}).map(task=>(<TaskItem key={task.id} task={task} color={p.color} projectName={p.name} projectEmoji={p.emoji} onToggle={()=>onToggleTask(p.id,task.id)} onUpdate={u=>onUpdateTask(p.id,task.id,u)} onDelete={()=>onDeleteTask(p.id,task.id)} onMoveWeek={taskMoveWeekFn(p.id,task.id)} openTaskId={openTaskId} onOpen={onOpen} c={tc}/>))}
+        {[...p.tasks].sort((a,b)=>{const done=(a.done?1:0)-(b.done?1:0);if(done!==0)return done;const o={high:0,medium:1,low:2};const pr=o[a.priority]-o[b.priority];if(pr!==0)return pr;const d=dayRank(a.day)-dayRank(b.day);if(d!==0)return d;return a.text.localeCompare(b.text,"pt-BR");}).map(task=>(<TaskItem key={task.id} task={task} color={p.color} projectName={p.name} projectEmoji={p.emoji} onToggle={()=>onToggleTask(p.id,task.id)} onUpdate={u=>onUpdateTask(p.id,task.id,u)} onDelete={()=>onDeleteTask(p.id,task.id)} onMoveWeek={taskMoveWeekFn(p.id,task.id)} openTaskId={openTaskId} onOpen={onOpen} c={tc}/>))}
         <AddTaskInput color={p.color} onAdd={(text,day,priority,_,att,desc)=>onAddTask(p.id,text,day,priority,att,desc)} c={tc}/>
       </div>
     </div>
