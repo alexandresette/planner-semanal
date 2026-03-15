@@ -1551,23 +1551,38 @@ function AddCategoryCard({onAdd,c}){
 }
 
 /* ─── History Card ─── */
-function HistoryCard({record,onDelete,c,themeMode}){
+function HistoryCard({record,onDelete,c,themeMode,viewMode}){
   const [expanded,setExpanded]=useState(false);
   const dateStr=new Date(record.date).toLocaleDateString("pt-BR",{day:"2-digit",month:"short",year:"numeric"});
   const tc = c || themes.dark;
+  const byDay=viewMode==="weekday";
 
   const handlePrint=useCallback((e)=>{
     e.stopPropagation();
     const isLight=themeMode==="light";
     const logoFile=isLight?"logo-light.svg":"logo.svg";
     const logoUrl=window.location.origin+import.meta.env.BASE_URL+logoFile;
-    const rows=record.projects.map(p=>{
-      const tasks=p.tasks.map(t=>{
-        const di=WEEK_DAYS.find(d=>d.key===t.day);
-        return `<tr><td style="padding:6px 12px 6px 36px;font-size:13px;color:#374151;border-bottom:1px solid #F3F4F6;">${p.emoji} ${t.text}</td><td style="padding:6px 12px;font-size:11px;color:#6B7280;text-align:right;border-bottom:1px solid #F3F4F6;white-space:nowrap;">${di?di.label:""}</td></tr>`;
+
+    let rows="";
+    if(byDay){
+      // Agrupa todas as tarefas por dia da semana
+      const allTasks=record.projects.flatMap(p=>p.tasks.map(t=>({...t,_emoji:p.emoji,_name:p.name,_color:p.color})));
+      rows=WEEK_DAYS.map(d=>{
+        const tasks=allTasks.filter(t=>t.day===d.key);
+        if(tasks.length===0)return"";
+        const taskRows=tasks.map(t=>`<tr><td style="padding:6px 12px 6px 36px;font-size:13px;color:#374151;border-bottom:1px solid #F3F4F6;">${t._emoji} ${t.text}</td><td style="padding:6px 12px;font-size:11px;border-bottom:1px solid #F3F4F6;white-space:nowrap;text-align:right;"><span style="background:${t._color}18;color:${t._color};padding:1px 6px;border-radius:4px;font-weight:600;">${t._name}</span></td></tr>`).join("");
+        return`<tr><td colspan="2" style="padding:12px 12px 6px;font-size:12px;font-weight:700;color:#374151;letter-spacing:0.3px;border-bottom:1px solid #E5E7EB;background:#F9FAFB;">${d.label} — ${d.full} <span style="font-weight:400;color:#9CA3AF;font-size:11px;">(${tasks.length})</span></td></tr>${taskRows}`;
       }).join("");
-      return `<tr><td colspan="2" style="padding:12px 12px 6px;font-size:12px;font-weight:700;color:${p.color};letter-spacing:0.3px;border-bottom:1px solid #E5E7EB;">${p.emoji} ${p.name} <span style="font-weight:400;color:#9CA3AF;font-size:11px;">(${p.tasks.length})</span></td></tr>${tasks}`;
-    }).join("");
+    } else {
+      // Agrupa por projeto
+      rows=record.projects.map(p=>{
+        const tasks=p.tasks.map(t=>{
+          const di=WEEK_DAYS.find(d=>d.key===t.day);
+          return`<tr><td style="padding:6px 12px 6px 36px;font-size:13px;color:#374151;border-bottom:1px solid #F3F4F6;">${t.text}</td><td style="padding:6px 12px;font-size:11px;color:#6B7280;text-align:right;border-bottom:1px solid #F3F4F6;white-space:nowrap;">${di?di.label:""}</td></tr>`;
+        }).join("");
+        return`<tr><td colspan="2" style="padding:12px 12px 6px;font-size:12px;font-weight:700;color:${p.color};letter-spacing:0.3px;border-bottom:1px solid #E5E7EB;">${p.emoji} ${p.name} <span style="font-weight:400;color:#9CA3AF;font-size:11px;">(${p.tasks.length})</span></td></tr>${tasks}`;
+      }).join("");
+    }
 
     const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Relatório — ${record.week}</title><style>*{margin:0;padding:0;box-sizing:border-box;}body{font-family:'DM Sans',system-ui,sans-serif;background:#fff;color:#111827;padding:40px;}@media print{body{padding:20px;}@page{margin:20mm;}}</style></head><body>
       <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:20px;border-bottom:2px solid #E5E7EB;margin-bottom:28px;">
@@ -1579,10 +1594,9 @@ function HistoryCard({record,onDelete,c,themeMode}){
       </div>
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px;">
         <div style="width:28px;height:28px;border-radius:8px;background:#D1FAE5;display:flex;align-items:center;justify-content:center;font-size:14px;">✓</div>
-        <div><div style="font-size:15px;font-weight:700;color:#111827;">Tarefas concluídas</div><div style="font-size:12px;color:#6B7280;">${record.total} tarefa${record.total!==1?"s":""} no total</div></div>
+        <div><div style="font-size:15px;font-weight:700;color:#111827;">Tarefas concluídas${byDay?" · por dia":""}</div><div style="font-size:12px;color:#6B7280;">${record.total} tarefa${record.total!==1?"s":""} no total</div></div>
       </div>
       <table style="width:100%;border-collapse:collapse;border:1px solid #E5E7EB;border-radius:10px;overflow:hidden;">${rows}</table>
-
     </body></html>`;
 
     const win=window.open("","_blank","width=750,height=900");
@@ -1590,7 +1604,7 @@ function HistoryCard({record,onDelete,c,themeMode}){
     win.document.write(html);
     win.document.close();
     win.onload=()=>{ win.focus(); win.print(); };
-  },[record,dateStr]);
+  },[record,dateStr,byDay,themeMode]);
 
   return(
     <div className="project-card" style={{background:tc.cardBg,borderRadius:14,border:`1px solid ${tc.cardBorder}`,overflow:"hidden"}}>
@@ -2943,7 +2957,7 @@ export default function App(){
         </div></div>)}
 
         {/* History */}
-        {showHistory&&(<div style={{marginTop:20,display:"flex",flexDirection:"column",gap:10,animation:"fadeIn 0.3s ease"}}><h3 style={{fontSize:14,fontWeight:700,color:c.textSub,margin:0,fontFamily:F}}>Semanas concluídas</h3>{history.length===0&&<p style={{fontSize:13,color:c.textMuted,fontFamily:F}}>Nenhum registro ainda.</p>}{history.map((rec,i)=>(<HistoryCard key={i} record={rec} onDelete={()=>deleteHistoryEntry(i)} c={c} themeMode={theme.mode}/>))}</div>)}
+        {showHistory&&(<div style={{marginTop:20,display:"flex",flexDirection:"column",gap:10,animation:"fadeIn 0.3s ease"}}><h3 style={{fontSize:14,fontWeight:700,color:c.textSub,margin:0,fontFamily:F}}>Semanas concluídas</h3>{history.length===0&&<p style={{fontSize:13,color:c.textMuted,fontFamily:F}}>Nenhum registro ainda.</p>}{history.map((rec,i)=>(<HistoryCard key={i} record={rec} onDelete={()=>deleteHistoryEntry(i)} c={c} themeMode={theme.mode} viewMode={viewMode}/>))}</div>)}
 
         {/* Admin Panel */}
         {showAdmin&&<AdminPanel onClose={()=>setShowAdmin(false)} theme={theme}/>}
