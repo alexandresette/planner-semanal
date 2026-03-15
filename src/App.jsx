@@ -1555,11 +1555,47 @@ function HistoryCard({record,onDelete,c}){
   const [expanded,setExpanded]=useState(false);
   const dateStr=new Date(record.date).toLocaleDateString("pt-BR",{day:"2-digit",month:"short",year:"numeric"});
   const tc = c || themes.dark;
+
+  const handlePrint=useCallback((e)=>{
+    e.stopPropagation();
+    const logoUrl=window.location.origin+import.meta.env.BASE_URL+"logo.svg";
+    const rows=record.projects.map(p=>{
+      const tasks=p.tasks.map(t=>{
+        const di=WEEK_DAYS.find(d=>d.key===t.day);
+        return `<tr><td style="padding:6px 12px 6px 36px;font-size:13px;color:#374151;border-bottom:1px solid #F3F4F6;">${p.emoji} ${t.text}</td><td style="padding:6px 12px;font-size:11px;color:#6B7280;text-align:right;border-bottom:1px solid #F3F4F6;white-space:nowrap;">${di?di.label:""}</td></tr>`;
+      }).join("");
+      return `<tr><td colspan="2" style="padding:12px 12px 6px;font-size:12px;font-weight:700;color:${p.color};letter-spacing:0.3px;border-bottom:1px solid #E5E7EB;">${p.emoji} ${p.name} <span style="font-weight:400;color:#9CA3AF;font-size:11px;">(${p.tasks.length})</span></td></tr>${tasks}`;
+    }).join("");
+
+    const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Relatório — ${record.week}</title><style>*{margin:0;padding:0;box-sizing:border-box;}body{font-family:'DM Sans',system-ui,sans-serif;background:#fff;color:#111827;padding:40px;}@media print{body{padding:20px;}@page{margin:20mm;}}</style></head><body>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:20px;border-bottom:2px solid #E5E7EB;margin-bottom:28px;">
+        <img src="${logoUrl}" style="height:36px;" onerror="this.style.display='none'"/>
+        <div style="text-align:right;">
+          <div style="font-size:18px;font-weight:800;color:#111827;">${record.week}</div>
+          <div style="font-size:12px;color:#6B7280;margin-top:2px;">Concluída em ${dateStr}</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px;">
+        <div style="width:28px;height:28px;border-radius:8px;background:#D1FAE5;display:flex;align-items:center;justify-content:center;font-size:14px;">✓</div>
+        <div><div style="font-size:15px;font-weight:700;color:#111827;">Tarefas concluídas</div><div style="font-size:12px;color:#6B7280;">${record.total} tarefa${record.total!==1?"s":""} no total</div></div>
+      </div>
+      <table style="width:100%;border-collapse:collapse;border:1px solid #E5E7EB;border-radius:10px;overflow:hidden;">${rows}</table>
+      <div style="margin-top:32px;text-align:center;font-size:11px;color:#9CA3AF;border-top:1px solid #F3F4F6;padding-top:16px;">Planner Semanal · Desenvolvido por Alexandre Sette · Colossenses 3:23-24</div>
+    </body></html>`;
+
+    const win=window.open("","_blank","width=750,height=900");
+    if(!win)return;
+    win.document.write(html);
+    win.document.close();
+    win.onload=()=>{ win.focus(); win.print(); };
+  },[record,dateStr]);
+
   return(
     <div className="project-card" style={{background:tc.cardBg,borderRadius:14,border:`1px solid ${tc.cardBorder}`,overflow:"hidden"}}>
       <div onClick={()=>setExpanded(!expanded)} style={{display:"flex",alignItems:"center",gap:12,padding:"14px 18px",cursor:"pointer",userSelect:"none"}}>
         <div style={{width:38,height:38,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",background:tc.historyIconBg,fontSize:16,color:tc.historyIconColor}}>✓</div>
         <div style={{flex:1}}><span style={{fontSize:13,fontWeight:700,color:tc.text,fontFamily:F,display:"block"}}>{record.week}</span><span style={{fontSize:11,color:tc.textMuted,fontFamily:F}}>{dateStr} — {record.total} tarefas</span></div>
+        <div onClick={handlePrint} title="Imprimir relatório" style={{cursor:"pointer",padding:4,opacity:0.3,transition:"opacity 0.2s"}} onMouseEnter={e=>e.currentTarget.style.opacity="0.8"} onMouseLeave={e=>e.currentTarget.style.opacity="0.3"}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={tc.textSub} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></div>
         <div onClick={e=>{e.stopPropagation();if(confirm("Apagar este registro?"))onDelete();}} style={{cursor:"pointer",padding:4,opacity:0.3,transition:"opacity 0.2s"}} onMouseEnter={e=>e.currentTarget.style.opacity="0.8"} onMouseLeave={e=>e.currentTarget.style.opacity="0.3"}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></div>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={tc.textMuted} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{transition:"transform 0.2s ease",transform:expanded?"rotate(180deg)":"rotate(0deg)"}}><polyline points="6 9 12 15 18 9"/></svg>
       </div>
