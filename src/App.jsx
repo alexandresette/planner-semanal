@@ -1551,14 +1551,16 @@ function AddCategoryCard({onAdd,c}){
 }
 
 /* ─── History Card ─── */
-function HistoryCard({record,onDelete,c}){
+function HistoryCard({record,onDelete,c,themeMode}){
   const [expanded,setExpanded]=useState(false);
   const dateStr=new Date(record.date).toLocaleDateString("pt-BR",{day:"2-digit",month:"short",year:"numeric"});
   const tc = c || themes.dark;
 
   const handlePrint=useCallback((e)=>{
     e.stopPropagation();
-    const logoUrl=window.location.origin+import.meta.env.BASE_URL+"logo.svg";
+    const isLight=themeMode==="light";
+    const logoFile=isLight?"logo-light.svg":"logo.svg";
+    const logoUrl=window.location.origin+import.meta.env.BASE_URL+logoFile;
     const rows=record.projects.map(p=>{
       const tasks=p.tasks.map(t=>{
         const di=WEEK_DAYS.find(d=>d.key===t.day);
@@ -2941,7 +2943,7 @@ export default function App(){
         </div></div>)}
 
         {/* History */}
-        {showHistory&&(<div style={{marginTop:20,display:"flex",flexDirection:"column",gap:10,animation:"fadeIn 0.3s ease"}}><h3 style={{fontSize:14,fontWeight:700,color:c.textSub,margin:0,fontFamily:F}}>Semanas concluídas</h3>{history.length===0&&<p style={{fontSize:13,color:c.textMuted,fontFamily:F}}>Nenhum registro ainda.</p>}{history.map((rec,i)=>(<HistoryCard key={i} record={rec} onDelete={()=>deleteHistoryEntry(i)} c={c}/>))}</div>)}
+        {showHistory&&(<div style={{marginTop:20,display:"flex",flexDirection:"column",gap:10,animation:"fadeIn 0.3s ease"}}><h3 style={{fontSize:14,fontWeight:700,color:c.textSub,margin:0,fontFamily:F}}>Semanas concluídas</h3>{history.length===0&&<p style={{fontSize:13,color:c.textMuted,fontFamily:F}}>Nenhum registro ainda.</p>}{history.map((rec,i)=>(<HistoryCard key={i} record={rec} onDelete={()=>deleteHistoryEntry(i)} c={c} themeMode={theme.mode}/>))}</div>)}
 
         {/* Admin Panel */}
         {showAdmin&&<AdminPanel onClose={()=>setShowAdmin(false)} theme={theme}/>}
