@@ -2092,10 +2092,10 @@ function WhatsNewModal({onClose,c,onMarkSeen,isAdmin}){
 }
 
 /* ─── Report Generator ─── */
-function ReportModal({weeks,onClose,c,theme,userProfile,userName}){
+function ReportModal({weeks,onClose,c,theme,userProfile,userName,initialViewType}){
   const tc=c||themes.dark;
   const isDark=theme.mode==="dark";
-  const [viewType,setViewType]=useState("projects"); // projects | days
+  const [viewType,setViewType]=useState(initialViewType||"projects"); // projects | days
   const [weekSel,setWeekSel]=useState("current"); // current | next | both
   const [includeAttachments,setIncludeAttachments]=useState(false);
   const [generating,setGenerating]=useState(false);
@@ -2949,7 +2949,7 @@ export default function App(){
         {showAdmin&&<AdminPanel onClose={()=>setShowAdmin(false)} theme={theme}/>}
         {showSettings&&<UserSettingsModal userName={userName} profile={userProfile} onSave={handleSaveProfile} onClose={()=>setShowSettings(false)} c={c}/>}
         {showWhatsNew&&<WhatsNewModal onClose={()=>setShowWhatsNew(false)} c={c} onMarkSeen={markWhatsNewSeen} isAdmin={userName===ADMIN_USER}/>}
-        {showReport&&<ReportModal weeks={weeks} onClose={()=>setShowReport(false)} c={c} theme={theme} userProfile={userProfile} userName={userName}/>}
+        {showReport&&<ReportModal weeks={weeks} onClose={()=>setShowReport(false)} c={c} theme={theme} userProfile={userProfile} userName={userName} initialViewType={viewMode==="weekday"?"days":"projects"}/>}
 
         {/* Footer */}
         <div style={{textAlign:"center",marginTop:32,opacity:0.35}}>
