@@ -2652,7 +2652,58 @@ export default function App(){
   const addNextWeek=useCallback(()=>{const last=weeks[weeks.length-1];const lastSun=last?new Date(last.sun):getSunday(new Date());const nextSun=addWeeks(lastSun,1);const nextSat=getSaturday(nextSun);const empty=projects.map(p=>({...p,tasks:[]}));setWeeks(prev=>[...prev,{id:weekId(nextSun),sun:nextSun.toISOString(),sat:nextSat.toISOString(),projects:empty}]);},[weeks,projects]);
 
   const canComplete=projects.some(p=>p.tasks.some(t=>t.done));
-  const confirmComplete=useCallback(()=>{if(!userName)return;const curTitle=weeks[activeWeekIdx]?.title||(activeWeekIdx===0?"Semana Atual":"Próxima Semana");const rec={week:curTitle,date:new Date().toISOString(),projects:projects.map(p=>{const d=p.tasks.filter(t=>t.done);return d.length>0?{name:p.name,emoji:p.emoji,color:p.color,tasks:d.map(t=>({text:t.text,day:t.day,priority:t.priority}))}:null;}).filter(Boolean)};rec.total=rec.projects.reduce((s,p)=>s+p.tasks.length,0);const newH=[rec,...history].slice(0,52);setHistory(newH);window.storage.set(userHistoryKey(userName),JSON.stringify(newH)).catch(()=>{});setWeeks(prev=>{const arr=[...prev];arr[activeWeekIdx]={...arr[activeWeekIdx],projects:arr[activeWeekIdx].projects.map(p=>({...p,tasks:p.tasks.filter(t=>!t.done)}))};if(arr[1]&&!arr[1].title){arr[1]={...arr[1],title:""};}return arr;});setShowConfirm(false);},[projects,userName,history,currentSun,currentSat,activeWeekIdx,weeks]);
+
+  // Puxa todas as tarefas da próxima semana para a atual (mescla, sem duplicar)
+  const pullNextWeek=useCallback(()=>{
+    if(weeks.length<2)return;
+    setWeeks(prev=>{
+      const arr=[...prev];
+      const cur=arr[0];
+      const nxt=arr[1];
+      // Para cada projeto, mescla tarefas da próxima semana nas da atual
+      const mergedProjects=cur.projects.map(p=>{
+        const nxtProj=nxt.projects.find(np=>np.id===p.id);
+        if(!nxtProj||nxtProj.tasks.length===0)return p;
+        const newTasks=nxtProj.tasks.map(t=>({...t,id:t.id||Date.now()+Math.random(),done:false}));
+        return{...p,tasks:[...p.tasks,...newTasks]};
+      });
+      // Limpa tarefas da próxima semana (mantém estrutura de projetos)
+      const clearedNext={...nxt,projects:nxt.projects.map(p=>({...p,tasks:[]})),title:""};
+      arr[0]={...cur,projects:mergedProjects};
+      arr[1]=clearedNext;
+      return arr;
+    });
+  },[weeks]);
+
+  const confirmComplete=useCallback(()=>{
+    if(!userName)return;
+    const curTitle=weeks[activeWeekIdx]?.title||(activeWeekIdx===0?"Semana Atual":"Próxima Semana");
+    const rec={week:curTitle,date:new Date().toISOString(),projects:projects.map(p=>{const d=p.tasks.filter(t=>t.done);return d.length>0?{name:p.name,emoji:p.emoji,color:p.color,tasks:d.map(t=>({text:t.text,day:t.day,priority:t.priority}))}:null;}).filter(Boolean)};
+    rec.total=rec.projects.reduce((s,p)=>s+p.tasks.length,0);
+    const newH=[rec,...history].slice(0,52);
+    setHistory(newH);
+    window.storage.set(userHistoryKey(userName),JSON.stringify(newH)).catch(()=>{});
+    setWeeks(prev=>{
+      const arr=[...prev];
+      // Remove tarefas concluídas da semana atual
+      arr[activeWeekIdx]={...arr[activeWeekIdx],projects:arr[activeWeekIdx].projects.map(p=>({...p,tasks:p.tasks.filter(t=>!t.done)}))};
+      // Se existe próxima semana, mescla tarefas dela na atual e limpa
+      if(activeWeekIdx===0&&arr[1]){
+        const cur=arr[0];
+        const nxt=arr[1];
+        const mergedProjects=cur.projects.map(p=>{
+          const nxtProj=nxt.projects.find(np=>np.id===p.id);
+          if(!nxtProj||nxtProj.tasks.length===0)return p;
+          const newTasks=nxtProj.tasks.map(t=>({...t,id:t.id||Date.now()+Math.random(),done:false}));
+          return{...p,tasks:[...p.tasks,...newTasks]};
+        });
+        arr[0]={...cur,projects:mergedProjects};
+        arr[1]={...nxt,projects:nxt.projects.map(p=>({...p,tasks:[]})),title:""};
+      }
+      return arr;
+    });
+    setShowConfirm(false);
+  },[projects,userName,history,currentSun,currentSat,activeWeekIdx,weeks]);
   const deleteHistoryEntry=useCallback(i=>{const n=history.filter((_,j)=>j!==i);setHistory(n);window.storage.set(userHistoryKey(userName),JSON.stringify(n)).catch(()=>{});},[history,userName]);
 
   // Detecta ?reset=TOKEN na URL para tela de redefinição de senha
@@ -2838,6 +2889,7 @@ export default function App(){
         {/* Actions */}
         <div style={{display:"flex",gap:8,justifyContent:"center",marginTop:28,flexWrap:"wrap"}}>
           {isCurrentWeek&&<button onClick={()=>canComplete&&setShowConfirm(true)} style={{background:canComplete?"linear-gradient(135deg,rgba(59,130,246,0.15),rgba(139,92,246,0.15))":c.btnBg,border:`1px solid ${canComplete?"rgba(99,102,241,0.3)":c.btnBorder}`,color:canComplete?"#6366F1":c.textMuted,fontSize:12,padding:"10px 16px",borderRadius:10,cursor:canComplete?"pointer":"default",fontFamily:F,fontWeight:600,opacity:canComplete?1:0.5}}>✓ Completar semana</button>}
+          {!isCurrentWeek&&weeks[1]&&weeks[1].projects.some(p=>p.tasks.length>0)&&<button onClick={()=>{if(window.confirm("Puxar todas as tarefas da Próxima Semana para a Semana Atual? As tarefas serão adicionadas às que já existem na semana atual."))pullNextWeek();}} style={{background:"linear-gradient(135deg,rgba(16,185,129,0.15),rgba(5,150,105,0.1))",border:"1px solid rgba(16,185,129,0.3)",color:"#10B981",fontSize:12,padding:"10px 16px",borderRadius:10,cursor:"pointer",fontFamily:F,fontWeight:600}}>⬆ Puxar para semana atual</button>}
           {weeks.length<2&&<button onClick={addNextWeek} style={{background:c.btnBg,border:`1px solid ${c.btnBorder}`,color:c.textSub,fontSize:12,padding:"10px 16px",borderRadius:10,cursor:"pointer",fontFamily:F,fontWeight:500}}>+ Nova semana</button>}
           <button onClick={()=>setShowHistory(!showHistory)} style={{background:showHistory?"rgba(59,130,246,0.12)":c.btnBg,border:`1px solid ${showHistory?"rgba(59,130,246,0.3)":c.btnBorder}`,color:showHistory?"#3B82F6":c.textSub,fontSize:12,padding:"10px 16px",borderRadius:10,cursor:"pointer",fontFamily:F,fontWeight:500}}>📋 Histórico</button>
         </div>
@@ -2845,7 +2897,8 @@ export default function App(){
         {/* Confirm Modal */}
         {showConfirm&&(<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",backdropFilter:"blur(4px)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,animation:"fadeIn 0.2s ease",padding:16}} onClick={()=>setShowConfirm(false)}><div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:460,maxHeight:"85vh",overflowY:"auto",background:c.modalBg,border:`1px solid ${c.cardBorder}`,borderRadius:20,padding:24,boxShadow:theme.mode==="light"?"0 8px 40px rgba(0,0,0,0.15)":"0 8px 40px rgba(0,0,0,0.5)"}}>
           <h2 style={{fontSize:18,fontWeight:800,color:c.text,margin:"0 0 4px",fontFamily:FS}}>Completar semana</h2>
-          <p style={{fontSize:12,color:c.textMuted,margin:"0 0 18px",fontFamily:F}}>{weeks[activeWeekIdx]?.title||(activeWeekIdx===0?"Semana Atual":"Próxima Semana")}</p>
+          <p style={{fontSize:12,color:c.textMuted,margin:"0 0 10px",fontFamily:F}}>{weeks[activeWeekIdx]?.title||(activeWeekIdx===0?"Semana Atual":"Próxima Semana")}</p>
+          {weeks[1]&&weeks[1].projects.some(p=>p.tasks.length>0)&&<div style={{display:"flex",alignItems:"center",gap:6,padding:"8px 12px",borderRadius:8,background:"rgba(16,185,129,0.08)",border:"1px solid rgba(16,185,129,0.2)",marginBottom:14}}><span style={{fontSize:12}}>⬆</span><span style={{fontSize:11,color:"#10B981",fontFamily:F,fontWeight:500}}>As tarefas da Próxima Semana serão puxadas para a Semana Atual</span></div>}
           <div style={{marginBottom:16}}><div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}><div style={{width:8,height:8,borderRadius:"50%",background:"#10B981"}}/><span style={{fontSize:12,fontWeight:700,color:"#10B981",fontFamily:F}}>Concluídas ({totalDone})</span></div>{doneProjects.map((p,i)=>(<div key={i} style={{marginBottom:6,paddingLeft:4}}><div style={{display:"flex",alignItems:"center",gap:6,marginBottom:3}}><span style={{fontSize:14}}>{p.emoji}</span><span style={{fontSize:11,fontWeight:700,color:p.color,fontFamily:F}}>{p.name}</span></div>{p.doneTasks.map((t,k)=>(<div key={k} style={{display:"flex",alignItems:"center",gap:6,padding:"2px 0 2px 22px"}}><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="3" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg><span style={{fontSize:11,color:c.textSub,fontFamily:F}}>{t.text}</span></div>))}</div>))}</div>
           {totalPending>0&&<div style={{marginBottom:18}}><div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}><div style={{width:8,height:8,borderRadius:"50%",background:"#F59E0B"}}/><span style={{fontSize:12,fontWeight:700,color:"#D97706",fontFamily:F}}>Pendentes — permanecem ({totalPending})</span></div>{pendingProjects.map((p,i)=>(<div key={i} style={{marginBottom:6,paddingLeft:4}}><div style={{display:"flex",alignItems:"center",gap:6,marginBottom:3}}><span style={{fontSize:14}}>{p.emoji}</span><span style={{fontSize:11,fontWeight:700,color:p.color,fontFamily:F}}>{p.name}</span></div>{p.pendingTasks.map((t,k)=>(<div key={k} style={{display:"flex",alignItems:"center",gap:6,padding:"2px 0 2px 22px"}}><div style={{width:8,height:8,borderRadius:4,border:`1.5px solid ${c.textMuted}`,flexShrink:0}}/><span style={{fontSize:11,color:c.textSub,fontFamily:F}}>{t.text}</span></div>))}</div>))}</div>}
           <div style={{display:"flex",gap:10}}><button onClick={confirmComplete} style={{flex:1,padding:"12px",borderRadius:12,border:"none",cursor:"pointer",background:"linear-gradient(135deg,#3B82F6,#8B5CF6)",color:"#fff",fontSize:14,fontWeight:700,fontFamily:F}}>Confirmar</button><button onClick={()=>setShowConfirm(false)} style={{padding:"12px 20px",borderRadius:12,border:`1px solid ${c.cardBorder}`,background:c.cancelBg,color:c.textSub,fontSize:14,fontWeight:500,cursor:"pointer",fontFamily:F}}>Cancelar</button></div>
