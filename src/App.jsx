@@ -332,6 +332,25 @@ function useTaskPointerDrag({onDrop, onActiveDayChange, isEnabled}) {
     return null;
   },[]);
 
+  // Função que ativa o modo drag de fato (extraída pra reuso)
+  const activateDrag = useCallback((s, element, pointerId)=>{
+    if(s.activated)return;
+    s.activated = true;
+    try{element.setPointerCapture(pointerId);}catch{}
+    document.body.style.userSelect="none";
+    document.body.style.overflow="hidden";
+    try{navigator.vibrate?.(20);}catch{}
+    const rect = element.getBoundingClientRect();
+    setDraggingId(s.taskData.taskId);
+    setGhost({
+      x: s.lastX - s.offsetX,
+      y: s.lastY - s.offsetY,
+      w: rect.width,
+      h: rect.height,
+      html: element.outerHTML,
+    });
+  },[]);
+
   const onPointerDown = useCallback((e, taskData, element)=>{
     if(!enabledRef.current) return;
     // Só botão esquerdo do mouse / qualquer toque / caneta
@@ -343,49 +362,47 @@ function useTaskPointerDrag({onDrop, onActiveDayChange, isEnabled}) {
 
     const rect = element.getBoundingClientRect();
     const startX = e.clientX, startY = e.clientY;
+    const isMouse = e.pointerType === "mouse";
 
     stateRef.current = {
       pointerId: e.pointerId,
+      pointerType: e.pointerType,
       taskData,
       element,
       startX, startY,
+      lastX: startX, lastY: startY,
       offsetX: e.clientX - rect.left,
       offsetY: e.clientY - rect.top,
       width: rect.width,
       height: rect.height,
       activated: false,
-      timer: setTimeout(()=>{
+      // Mouse: sem timer (ativa pelo threshold de movimento)
+      // Touch/Pen: long-press de 180ms ativa o drag
+      timer: isMouse ? null : setTimeout(()=>{
         const s = stateRef.current;
-        if(!s||s.activated)return;
-        s.activated = true;
-        // Captura o ponteiro para receber move/up mesmo fora do elemento
-        try{element.setPointerCapture(e.pointerId);}catch{}
-        document.body.style.userSelect="none";
-        document.body.style.overflow="hidden"; // trava scroll da página durante drag ativo
-        // Feedback tátil em mobile
-        try{navigator.vibrate?.(20);}catch{}
-        setDraggingId(taskData.taskId);
-        setGhost({
-          x: startX - s.offsetX,
-          y: startY - s.offsetY,
-          w: rect.width,
-          h: rect.height,
-          html: element.outerHTML,
-        });
+        if(s) activateDrag(s, element, e.pointerId);
       }, 180),
     };
-  },[]);
+  },[activateDrag]);
 
   const onPointerMove = useCallback((e)=>{
     const s = stateRef.current;
     if(!s) return;
+    s.lastX = e.clientX; s.lastY = e.clientY;
     const dx = e.clientX - s.startX;
     const dy = e.clientY - s.startY;
 
-    // Antes de ativar: se mexeu muito, cancela (era scroll/tap)
+    // Antes de ativar:
     if(!s.activated){
+      const dist = Math.abs(dx) + Math.abs(dy);
+      if(s.pointerType === "mouse"){
+        // Mouse: ativa o drag imediatamente após pequeno movimento
+        if(dist > 5) activateDrag(s, s.element, s.pointerId);
+        return;
+      }
+      // Touch/pen: se mexeu muito antes do long-press, cancela (era scroll/tap)
       if(Math.abs(dx)>10 || Math.abs(dy)>10){
-        clearTimeout(s.timer);
+        if(s.timer)clearTimeout(s.timer);
         stateRef.current=null;
       }
       return;
@@ -401,7 +418,7 @@ function useTaskPointerDrag({onDrop, onActiveDayChange, isEnabled}) {
     // Auto-scroll
     if(rafRef.current)cancelAnimationFrame(rafRef.current);
     rafRef.current = requestAnimationFrame(()=>autoScroll(e.clientX, e.clientY));
-  },[detectDay, autoScroll, onActiveDayChange]);
+  },[detectDay, autoScroll, onActiveDayChange, activateDrag]);
 
   const onPointerUp = useCallback((e)=>{
     const s = stateRef.current;
