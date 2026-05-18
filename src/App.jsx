@@ -238,6 +238,200 @@ const themes = {
   }
 };
 
+// Hook de drag & drop unificado (mouse + touch + pen) via Pointer Events.
+// Usado para arrastar tarefas entre dias da semana. Funciona no iPad/iOS.
+//
+// Como funciona:
+// - Long-press de ~180ms no balão pra ativar (evita conflito com scroll/tap)
+// - Cria um "ghost" flutuante que segue o dedo
+// - Faz hit-test com elementFromPoint procurando [data-day-key]
+// - Auto-scroll quando o ponteiro chega perto das bordas (importante em colunas)
+function useTaskPointerDrag({onDrop, onActiveDayChange, isEnabled}) {
+  const stateRef = useRef(null);
+  const rafRef = useRef(null);
+  const [activeDay, setActiveDay] = useState(null);
+  const [draggingId, setDraggingId] = useState(null);
+  const [ghost, setGhost] = useState(null); // {x, y, w, h, html, color}
+  const enabledRef = useRef(isEnabled);
+  useEffect(()=>{enabledRef.current=isEnabled;},[isEnabled]);
+
+  const cleanup = useCallback(()=>{
+    if(rafRef.current){cancelAnimationFrame(rafRef.current);rafRef.current=null;}
+    const s = stateRef.current;
+    if(s){
+      if(s.timer)clearTimeout(s.timer);
+      try{s.element?.releasePointerCapture?.(s.pointerId);}catch{}
+    }
+    stateRef.current=null;
+    setActiveDay(null);
+    setDraggingId(null);
+    setGhost(null);
+    if(onActiveDayChange)onActiveDayChange(null);
+    document.body.style.userSelect="";
+    document.body.style.overflow="";
+  },[onActiveDayChange]);
+
+  // Auto-scroll quando ponteiro está perto das bordas
+  const autoScroll = useCallback((x,y)=>{
+    const EDGE=80, MAX_SPEED=14;
+    // Procura container de scroll horizontal (colunas)
+    let el = document.elementFromPoint(x,y);
+    while(el && el!==document.body){
+      const cs = getComputedStyle(el);
+      const canScrollX = (cs.overflowX==="auto"||cs.overflowX==="scroll") && el.scrollWidth>el.clientWidth;
+      const canScrollY = (cs.overflowY==="auto"||cs.overflowY==="scroll") && el.scrollHeight>el.clientHeight;
+      if(canScrollX||canScrollY){
+        const r = el.getBoundingClientRect();
+        if(canScrollX){
+          if(x<r.left+EDGE) el.scrollLeft -= MAX_SPEED*(1-(x-r.left)/EDGE);
+          else if(x>r.right-EDGE) el.scrollLeft += MAX_SPEED*(1-(r.right-x)/EDGE);
+        }
+        if(canScrollY){
+          if(y<r.top+EDGE) el.scrollTop -= MAX_SPEED*(1-(y-r.top)/EDGE);
+          else if(y>r.bottom-EDGE) el.scrollTop += MAX_SPEED*(1-(r.bottom-y)/EDGE);
+        }
+        break;
+      }
+      el = el.parentElement;
+    }
+    // Scroll vertical da página (pra view lista)
+    if(y<EDGE) window.scrollBy(0,-MAX_SPEED*(1-y/EDGE));
+    else if(y>window.innerHeight-EDGE) window.scrollBy(0,MAX_SPEED*(1-(window.innerHeight-y)/EDGE));
+  },[]);
+
+  // Detecta qual dia está sob o ponteiro
+  const detectDay = useCallback((x,y)=>{
+    // Esconde temporariamente o ghost pra não interferir no hit-test
+    const els = document.elementsFromPoint(x,y);
+    for(const el of els){
+      const target = el.closest?.("[data-day-key]");
+      if(target) return target.getAttribute("data-day-key");
+    }
+    return null;
+  },[]);
+
+  const onPointerDown = useCallback((e, taskData, element)=>{
+    if(!enabledRef.current) return;
+    // Só botão esquerdo do mouse / qualquer toque / caneta
+    if(e.pointerType==="mouse" && e.button!==0) return;
+    // Ignora se clicou em controle interativo (checkbox, botão de opções, links)
+    const tag = e.target.tagName;
+    if(tag==="INPUT"||tag==="TEXTAREA"||tag==="BUTTON"||tag==="SELECT") return;
+    if(e.target.closest?.("[data-no-drag]")) return;
+
+    const rect = element.getBoundingClientRect();
+    const startX = e.clientX, startY = e.clientY;
+
+    stateRef.current = {
+      pointerId: e.pointerId,
+      taskData,
+      element,
+      startX, startY,
+      offsetX: e.clientX - rect.left,
+      offsetY: e.clientY - rect.top,
+      width: rect.width,
+      height: rect.height,
+      activated: false,
+      timer: setTimeout(()=>{
+        const s = stateRef.current;
+        if(!s||s.activated)return;
+        s.activated = true;
+        // Captura o ponteiro para receber move/up mesmo fora do elemento
+        try{element.setPointerCapture(e.pointerId);}catch{}
+        document.body.style.userSelect="none";
+        document.body.style.overflow="hidden"; // trava scroll da página durante drag ativo
+        // Feedback tátil em mobile
+        try{navigator.vibrate?.(20);}catch{}
+        setDraggingId(taskData.taskId);
+        setGhost({
+          x: startX - s.offsetX,
+          y: startY - s.offsetY,
+          w: rect.width,
+          h: rect.height,
+          html: element.outerHTML,
+        });
+      }, 180),
+    };
+  },[]);
+
+  const onPointerMove = useCallback((e)=>{
+    const s = stateRef.current;
+    if(!s) return;
+    const dx = e.clientX - s.startX;
+    const dy = e.clientY - s.startY;
+
+    // Antes de ativar: se mexeu muito, cancela (era scroll/tap)
+    if(!s.activated){
+      if(Math.abs(dx)>10 || Math.abs(dy)>10){
+        clearTimeout(s.timer);
+        stateRef.current=null;
+      }
+      return;
+    }
+
+    e.preventDefault();
+    // Atualiza ghost
+    setGhost(g=>g?{...g, x:e.clientX-s.offsetX, y:e.clientY-s.offsetY}:g);
+    // Detecta dia ativo
+    const day = detectDay(e.clientX, e.clientY);
+    setActiveDay(day);
+    if(onActiveDayChange)onActiveDayChange(day);
+    // Auto-scroll
+    if(rafRef.current)cancelAnimationFrame(rafRef.current);
+    rafRef.current = requestAnimationFrame(()=>autoScroll(e.clientX, e.clientY));
+  },[detectDay, autoScroll, onActiveDayChange]);
+
+  const onPointerUp = useCallback((e)=>{
+    const s = stateRef.current;
+    if(!s) return cleanup();
+    if(!s.activated){
+      // Foi um tap — não interfere, deixa o onClick original rolar
+      clearTimeout(s.timer);
+      stateRef.current=null;
+      return;
+    }
+    const day = detectDay(e.clientX, e.clientY);
+    if(day && onDrop) onDrop(s.taskData, day);
+    cleanup();
+  },[cleanup, detectDay, onDrop]);
+
+  const onPointerCancel = useCallback(()=>{
+    cleanup();
+  },[cleanup]);
+
+  return {
+    bindPointerHandlers: (taskData)=>({
+      onPointerDown: (e)=>{
+        onPointerDown(e, taskData, e.currentTarget);
+      },
+      onPointerMove,
+      onPointerUp,
+      onPointerCancel,
+    }),
+    activeDay,
+    draggingId,
+    ghost,
+  };
+}
+
+// Componente que renderiza o "ghost" do balão sendo arrastado
+function DragGhost({ghost}){
+  if(!ghost) return null;
+  return (
+    <div style={{
+      position:"fixed",
+      left:ghost.x, top:ghost.y,
+      width:ghost.w, height:ghost.h,
+      pointerEvents:"none",
+      zIndex:9999,
+      opacity:0.92,
+      transform:"rotate(-1.5deg) scale(1.03)",
+      filter:"drop-shadow(0 12px 20px rgba(0,0,0,0.35))",
+      transition:"transform 0.05s linear",
+    }} dangerouslySetInnerHTML={{__html: ghost.html}}/>
+  );
+}
+
 function useTheme() {
   const [t,setT]=useState(()=>{try{return localStorage.getItem("planner-theme")||"dark";}catch{return "dark";}});
   const toggle=()=>{const n=t==="dark"?"light":"dark";setT(n);try{localStorage.setItem("planner-theme",n);}catch{}};
@@ -1149,7 +1343,7 @@ function TaskItem({task,color,onToggle,onUpdate,onDelete,projectName,projectEmoj
     <div className="task-card" style={{borderRadius:12,overflow:"hidden",background:task.done?tc.taskBgDone:tc.taskBg,border:`1px solid ${task.done?tc.taskBorderDone:tc.taskBorder}`,opacity:task.done?0.55:1}}>
       <div onClick={openViewModal} style={{padding:"10px 12px",cursor:"pointer"}}>
         <div style={{display:"flex",alignItems:"flex-start",gap:10}}>
-          <div onClick={e=>{e.stopPropagation();onToggle();}} style={{width:22,height:22,borderRadius:6,flexShrink:0,cursor:"pointer",border:task.done?"none":`2px solid ${color}`,background:task.done?color:"transparent",display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.2s ease",marginTop:1}}>
+          <div data-no-drag onClick={e=>{e.stopPropagation();onToggle();}} style={{width:22,height:22,borderRadius:6,flexShrink:0,cursor:"pointer",border:task.done?"none":`2px solid ${color}`,background:task.done?color:"transparent",display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.2s ease",marginTop:1}}>
             {task.done&&<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
           </div>
           <div style={{flex:1,minWidth:0}}>
@@ -1161,13 +1355,13 @@ function TaskItem({task,color,onToggle,onUpdate,onDelete,projectName,projectEmoj
               <div style={{width:8,height:8,borderRadius:"50%",flexShrink:0,background:priorityConfig[task.priority].dot}}/>
             </div>
           </div>
-          <div onClick={toggleOpts} style={{cursor:"pointer",padding:"2px 4px",opacity:0.5,transition:"opacity 0.2s",flexShrink:0}} onMouseEnter={e=>e.currentTarget.style.opacity="1"} onMouseLeave={e=>e.currentTarget.style.opacity="0.5"}>
+          <div data-no-drag onClick={toggleOpts} style={{cursor:"pointer",padding:"2px 4px",opacity:0.5,transition:"opacity 0.2s",flexShrink:0}} onMouseEnter={e=>e.currentTarget.style.opacity="1"} onMouseLeave={e=>e.currentTarget.style.opacity="0.5"}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={tc.textSub} strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
           </div>
         </div>
       </div>
       {showOpts&&(
-        <div draggable={false} onDragStart={e=>e.stopPropagation()} onMouseDown={e=>e.stopPropagation()} style={{padding:"8px 12px 12px",borderTop:`1px solid ${tc.divider}`,animation:"fadeIn 0.2s ease"}}>
+        <div data-no-drag onPointerDown={e=>e.stopPropagation()} style={{padding:"8px 12px 12px",borderTop:`1px solid ${tc.divider}`,animation:"fadeIn 0.2s ease"}}>
           <div style={{marginBottom:10}}>
             <span style={{fontSize:10,color:tc.textMuted,fontWeight:600,display:"block",marginBottom:5,textTransform:"uppercase",letterSpacing:0.5}}>Título</span>
             {isEditing?(<div style={{display:"flex",flexDirection:"column",gap:6}}><textarea autoFocus value={editText} onChange={e=>setEditText(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();saveText();}if(e.key==="Escape"){setEditText(task.text);setIsEditing(false);}}} rows={Math.max(2,editText.split("\n").length)} style={{width:"100%",boxSizing:"border-box",padding:"6px 10px",fontSize:12,borderRadius:8,background:tc.inputBg,border:`1px solid ${color}40`,color:tc.inputText,outline:"none",fontFamily:F,resize:"none",lineHeight:1.5,overflow:"hidden"}}/><button onClick={saveText} style={{alignSelf:"flex-end",padding:"5px 14px",borderRadius:8,border:"none",background:color,color:"#fff",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:F}}>OK</button></div>)
@@ -1825,6 +2019,20 @@ function UserSettingsModal({userName,profile,onSave,onClose,c}){
 /* ─── Changelog (editar aqui para adicionar novidades) ─── */
 const CHANGELOG = [
   {
+    version: "v2.32",
+    date: "18/05/2026",
+    badge: "novo",
+    title: "Arrastar tarefas funcionando bem no iPad",
+    items: [
+      "🎯 Drag & drop reescrito com Pointer Events — agora funciona no iPad e em qualquer touch",
+      "⏱️ Segure ~180ms na tarefa para ativar o modo arrastar (evita conflito com scroll)",
+      "👻 Aparece um \"fantasma\" do balão seguindo o dedo enquanto arrasta",
+      "📱 Vibração leve no celular ao ativar o arrasto, como feedback tátil",
+      "🔄 Auto-scroll quando o dedo chega perto da borda (útil em colunas no iPad)",
+      "🖱️ No desktop continua igual — só clicar e arrastar",
+    ],
+  },
+  {
     version: "v2.31",
     date: "09/03/2026",
     badge: "novo",
@@ -2445,18 +2653,16 @@ export default function App(){
   const [reorderMode,setReorderMode]=useState(false);
   const [showHistory,setShowHistory]=useState(false);
   const [showConfirm,setShowConfirm]=useState(false);
-  const [dragTask,setDragTask]=useState(null);
   const [editingTasks,setEditingTasks]=useState(new Set());
   const [openTaskId,setOpenTaskId]=useState(null);
-  const [dragOverDay,setDragOverDay]=useState(null);
 
-  // Bloquear drag global quando qualquer modal de tarefa estiver aberto
-  useEffect(()=>{
-    if(!openTaskId)return;
-    const block=(e)=>{e.preventDefault();e.stopPropagation();};
-    document.addEventListener("dragstart",block,true);
-    return()=>document.removeEventListener("dragstart",block,true);
-  },[openTaskId]);
+  // Drag de tarefas (Pointer Events — funciona em iPad/touch e desktop)
+  const taskDrag = useTaskPointerDrag({
+    isEnabled: !openTaskId,
+    onDrop: ({projectId, taskId}, dayKey) => {
+      updateTask(projectId, taskId, {day: dayKey});
+    },
+  });
   const [layoutMode,setLayoutMode]=useState("list");
   const [layoutUserSet,setLayoutUserSet]=useState(false);
   const [focosOpen,setFocosOpen]=useState(true);
@@ -2884,11 +3090,9 @@ export default function App(){
             <AddCategoryCard onAdd={addCategory} c={c}/>
           </>):(
             <>
-            {weekData.map(({day,tasks})=>{const isDayExpanded=expandedDays[day.key]!==false;return(<div key={day.key} className="project-card"
-              onDragOver={e=>{e.preventDefault();setDragOverDay(day.key);}}
-              onDragLeave={()=>setDragOverDay(null)}
-              onDrop={e=>{e.preventDefault();setDragOverDay(null);if(dragTask){updateTask(dragTask.projectId,dragTask.taskId,{day:day.key});setDragTask(null);}}}
-              style={{background:dragOverDay===day.key?c.dragOverBg:c.cardBg,borderRadius:16,border:`1px solid ${dragOverDay===day.key?c.dragOverBorder:c.cardBorder}`,overflow:"hidden",transition:"all 0.2s ease"}}>
+            {weekData.map(({day,tasks})=>{const isDayExpanded=expandedDays[day.key]!==false;const isDragOver=taskDrag.activeDay===day.key;return(<div key={day.key} className="project-card"
+              data-day-key={day.key}
+              style={{background:isDragOver?c.dragOverBg:c.cardBg,borderRadius:16,border:`1px solid ${isDragOver?c.dragOverBorder:c.cardBorder}`,overflow:"hidden",transition:"all 0.2s ease"}}>
               <div onClick={()=>setExpandedDays(prev=>({...prev,[day.key]:!isDayExpanded}))} style={{display:"flex",alignItems:"center",gap:14,padding:"16px 20px",cursor:"pointer",userSelect:"none"}}>
                 <div style={{width:42,height:42,borderRadius:12,display:"flex",alignItems:"center",justifyContent:"center",background:tasks.length>0?"rgba(59,130,246,0.12)":c.viewToggleBg,fontSize:13,fontWeight:700,color:tasks.length>0?"#3B82F6":c.textMuted,fontFamily:F}}>{day.label}</div>
                 <div style={{flex:1}}><span style={{fontSize:16,fontWeight:700,color:c.text,fontFamily:F}}>{day.full}</span><span style={{fontSize:12,color:c.textMuted,display:"block",fontFamily:F}}>{tasks.filter(t=>t.done).length}/{tasks.length} concluídas</span></div>
@@ -2897,7 +3101,7 @@ export default function App(){
               </div>
               {isDayExpanded&&(<>
                 {tasks.length>0&&(<div style={{padding:"0 14px 6px",display:"flex",flexDirection:"column",gap:6}}>
-                  {[...tasks].sort((a,b)=>{const done=(a.done?1:0)-(b.done?1:0);if(done!==0)return done;const o={high:0,medium:1,low:2};const p=o[a.priority]-o[b.priority];if(p!==0)return p;const pa=projects.find(x=>x.id===a._projectId);const pb=projects.find(x=>x.id===b._projectId);const pn=(pa?.name||"").localeCompare(pb?.name||"","pt-BR");if(pn!==0)return pn;return a.text.localeCompare(b.text,"pt-BR");}).map(t=>{const proj=projects.find(p=>p.id===t._projectId);return(<div key={t.id} draggable={!editingTasks.has(t.id)&&!openTaskId} onDragStart={()=>{if(!editingTasks.has(t.id)&&!openTaskId)setDragTask({projectId:t._projectId,taskId:t.id});}} onDragEnd={()=>{setDragTask(null);setDragOverDay(null);}} style={{cursor:editingTasks.has(t.id)?"default":"grab",opacity:dragTask?.taskId===t.id?0.4:1,transition:"opacity 0.2s"}}><TaskItem task={t} color={proj?.color||"#64748B"} projectName={proj?.name} onToggle={()=>toggleTask(t._projectId,t.id)} onUpdate={u=>updateTask(t._projectId,t.id,u)} onDelete={()=>deleteTask(t._projectId,t.id)} onMoveWeek={taskMoveWeekFn(t._projectId,t.id)} onEditingChange={v=>{setEditingTasks(prev=>{const n=new Set(prev);if(v)n.add(t.id);else n.delete(t.id);return n;})}} openTaskId={openTaskId} onOpen={setOpenTaskId} c={c} projects={projects} showCategoryPicker={true}/></div>);})}
+                  {[...tasks].sort((a,b)=>{const done=(a.done?1:0)-(b.done?1:0);if(done!==0)return done;const o={high:0,medium:1,low:2};const p=o[a.priority]-o[b.priority];if(p!==0)return p;const pa=projects.find(x=>x.id===a._projectId);const pb=projects.find(x=>x.id===b._projectId);const pn=(pa?.name||"").localeCompare(pb?.name||"","pt-BR");if(pn!==0)return pn;return a.text.localeCompare(b.text,"pt-BR");}).map(t=>{const proj=projects.find(p=>p.id===t._projectId);const canDrag=!editingTasks.has(t.id)&&!openTaskId;const isThisDragging=taskDrag.draggingId===t.id;return(<div key={t.id} {...(canDrag?taskDrag.bindPointerHandlers({projectId:t._projectId,taskId:t.id}):{})} style={{cursor:canDrag?"grab":"default",opacity:isThisDragging?0.35:1,transition:"opacity 0.2s",touchAction:canDrag?"pan-y":"auto"}}><TaskItem task={t} color={proj?.color||"#64748B"} projectName={proj?.name} onToggle={()=>toggleTask(t._projectId,t.id)} onUpdate={u=>updateTask(t._projectId,t.id,u)} onDelete={()=>deleteTask(t._projectId,t.id)} onMoveWeek={taskMoveWeekFn(t._projectId,t.id)} onEditingChange={v=>{setEditingTasks(prev=>{const n=new Set(prev);if(v)n.add(t.id);else n.delete(t.id);return n;})}} openTaskId={openTaskId} onOpen={setOpenTaskId} c={c} projects={projects} showCategoryPicker={true}/></div>);})}
                 </div>)}
                 <div style={{padding:"6px 14px 14px"}}>
                   <AddTaskInput color="#3B82F6" onAdd={addTaskToProject} c={c} projects={projects} requireCategory={true} defaultDay={day.key}/>
@@ -2916,26 +3120,24 @@ export default function App(){
             );})}
             <AddCategoryCard onAdd={addCategory} c={c}/>
           </>):(
-            weekData.map(({day,tasks})=>(
+            weekData.map(({day,tasks})=>{const isDragOver=taskDrag.activeDay===day.key;return(
               <div key={day.key}
-                onDragOver={e=>{e.preventDefault();setDragOverDay(day.key);}}
-                onDragLeave={()=>setDragOverDay(null)}
-                onDrop={e=>{e.preventDefault();setDragOverDay(null);if(dragTask){updateTask(dragTask.projectId,dragTask.taskId,{day:day.key});setDragTask(null);}}}
-                style={{background:dragOverDay===day.key?c.dragOverBg:c.colDayBg,borderRadius:14,border:`1px solid ${dragOverDay===day.key?c.dragOverBorder:c.colDayBorder}`,overflow:"hidden",minWidth:150,transition:"all 0.2s ease"}}>
+                data-day-key={day.key}
+                style={{background:isDragOver?c.dragOverBg:c.colDayBg,borderRadius:14,border:`1px solid ${isDragOver?c.dragOverBorder:c.colDayBorder}`,overflow:"hidden",minWidth:150,transition:"all 0.2s ease"}}>
                 <div style={{padding:"12px 10px",borderBottom:`1px solid ${c.colDayDivider}`,textAlign:"center"}}>
                   <div style={{fontSize:13,fontWeight:700,color:tasks.length>0?"#3B82F6":c.textMuted,fontFamily:F}}>{day.label}</div>
                   <div style={{fontSize:10,color:c.textMuted,fontFamily:F}}>{day.full}</div>
                   {tasks.length>0&&<div style={{marginTop:6}}><ProgressRing percent={Math.round((tasks.filter(t=>t.done).length/tasks.length)*100)} color="#3B82F6" size={32} c={c}/></div>}
                 </div>
                 <div style={{padding:"8px 6px 6px",display:"flex",flexDirection:"column",gap:5,minHeight:60}}>
-                  {[...tasks].sort((a,b)=>{const done=(a.done?1:0)-(b.done?1:0);if(done!==0)return done;const o={high:0,medium:1,low:2};const p=o[a.priority]-o[b.priority];if(p!==0)return p;const pa=projects.find(x=>x.id===a._projectId);const pb=projects.find(x=>x.id===b._projectId);const pn=(pa?.name||"").localeCompare(pb?.name||"","pt-BR");if(pn!==0)return pn;return a.text.localeCompare(b.text,"pt-BR");}).map(t=>{const proj=projects.find(pp=>pp.id===t._projectId);return(<div key={t.id} draggable={!editingTasks.has(t.id)&&!openTaskId} onDragStart={()=>{if(!editingTasks.has(t.id)&&!openTaskId)setDragTask({projectId:t._projectId,taskId:t.id});}} onDragEnd={()=>{setDragTask(null);setDragOverDay(null);}} style={{cursor:editingTasks.has(t.id)?"default":"grab",opacity:dragTask?.taskId===t.id?0.4:1,transition:"opacity 0.2s"}}><TaskItem task={t} color={proj?.color||"#64748B"} projectName={proj?.name} onToggle={()=>toggleTask(t._projectId,t.id)} onUpdate={u=>updateTask(t._projectId,t.id,u)} onDelete={()=>deleteTask(t._projectId,t.id)} onMoveWeek={taskMoveWeekFn(t._projectId,t.id)} onEditingChange={v=>{setEditingTasks(prev=>{const n=new Set(prev);if(v)n.add(t.id);else n.delete(t.id);return n;})}} openTaskId={openTaskId} onOpen={setOpenTaskId} c={c} projects={projects} showCategoryPicker={true}/></div>);})}
-                  {tasks.length===0&&<div style={{fontSize:11,color:dragOverDay===day.key?"#3B82F6":c.textMuted,fontFamily:F,textAlign:"center",padding:"8px 0"}}>{dragOverDay===day.key?"Soltar aqui":"—"}</div>}
+                  {[...tasks].sort((a,b)=>{const done=(a.done?1:0)-(b.done?1:0);if(done!==0)return done;const o={high:0,medium:1,low:2};const p=o[a.priority]-o[b.priority];if(p!==0)return p;const pa=projects.find(x=>x.id===a._projectId);const pb=projects.find(x=>x.id===b._projectId);const pn=(pa?.name||"").localeCompare(pb?.name||"","pt-BR");if(pn!==0)return pn;return a.text.localeCompare(b.text,"pt-BR");}).map(t=>{const proj=projects.find(pp=>pp.id===t._projectId);const canDrag=!editingTasks.has(t.id)&&!openTaskId;const isThisDragging=taskDrag.draggingId===t.id;return(<div key={t.id} {...(canDrag?taskDrag.bindPointerHandlers({projectId:t._projectId,taskId:t.id}):{})} style={{cursor:canDrag?"grab":"default",opacity:isThisDragging?0.35:1,transition:"opacity 0.2s",touchAction:canDrag?"pan-y":"auto"}}><TaskItem task={t} color={proj?.color||"#64748B"} projectName={proj?.name} onToggle={()=>toggleTask(t._projectId,t.id)} onUpdate={u=>updateTask(t._projectId,t.id,u)} onDelete={()=>deleteTask(t._projectId,t.id)} onMoveWeek={taskMoveWeekFn(t._projectId,t.id)} onEditingChange={v=>{setEditingTasks(prev=>{const n=new Set(prev);if(v)n.add(t.id);else n.delete(t.id);return n;})}} openTaskId={openTaskId} onOpen={setOpenTaskId} c={c} projects={projects} showCategoryPicker={true}/></div>);})}
+                  {tasks.length===0&&<div style={{fontSize:11,color:isDragOver?"#3B82F6":c.textMuted,fontFamily:F,textAlign:"center",padding:"8px 0"}}>{isDragOver?"Soltar aqui":"—"}</div>}
                 </div>
                 <div style={{padding:"0 6px 8px"}}>
                   <AddTaskInput color="#3B82F6" onAdd={addTaskToProject} c={c} projects={projects} requireCategory={true} defaultDay={day.key}/>
                 </div>
               </div>
-            ))
+            );})
           )}
         </div>
         )}
@@ -2973,6 +3175,8 @@ export default function App(){
           <p style={{fontSize:10,color:c.textMuted,margin:"4px 0 0",fontStyle:"italic"}}>Colossenses 3:23-24</p>
         </div>
       </div>
+      {/* Ghost flutuante do drag de tarefa (Pointer Events — iPad/desktop) */}
+      <DragGhost ghost={taskDrag.ghost}/>
     </div>
   );
 }
