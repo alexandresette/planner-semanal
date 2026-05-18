@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, createContext, useContext } from "react";
 import { signInWithGoogle, firebaseSignOut, auth, callSendInviteEmail, callSendResetEmail } from "./storage.js";
 
 const LOGO_DARK = `${import.meta.env.BASE_URL}logo.svg`;
@@ -139,6 +139,28 @@ const WEEK_DAYS = [
   {key:"sex",label:"Sex",full:"Sexta"},
   {key:"sab",label:"Sáb",full:"Sábado"},
 ];
+
+const ALL_DAY_KEYS = WEEK_DAYS.map(d=>d.key);
+
+// Retorna a lista de dias ativos (em ordem). Default: todos os 7.
+// activeDays vem do userProfile (array de keys).
+function getActiveWeekDays(activeDays){
+  if(!Array.isArray(activeDays)||activeDays.length===0) return WEEK_DAYS;
+  return WEEK_DAYS.filter(d=>activeDays.includes(d.key));
+}
+
+// Verifica se uma chave de dia está ativa
+function isDayActive(dayKey, activeDays){
+  if(!Array.isArray(activeDays)||activeDays.length===0) return true;
+  return activeDays.includes(dayKey);
+}
+
+// Context dos dias ativos — leitura simples em qualquer descendente
+const ActiveDaysContext = createContext(null);
+function useActiveWeekDays(){
+  const v = useContext(ActiveDaysContext);
+  return v||WEEK_DAYS;
+}
 
 const COLOR_OPTIONS = ["#EF4444","#F59E0B","#10B981","#3B82F6","#8B5CF6","#EC4899","#14B8A6","#F97316","#6366F1","#84CC16"];
 
@@ -1160,6 +1182,7 @@ function TaskViewModal({task,color,projectName,projectEmoji,onToggle,onUpdate,on
   const tc = c || themes.dark;
   const dayInfo=WEEK_DAYS.find(d=>d.key===task.day);
   const prio=priorityConfig[task.priority];
+  const activeDays=useActiveWeekDays();
 
   const [editing,setEditing]=useState(false);
   const [editText,setEditText]=useState(task.text);
@@ -1274,7 +1297,7 @@ function TaskViewModal({task,color,projectName,projectEmoji,onToggle,onUpdate,on
             <div style={{display:"flex",gap:16,marginBottom:14,flexWrap:"wrap"}}>
               <div style={{flex:1,minWidth:120}}>
                 <span style={{fontSize:10,color:tc.textMuted,fontWeight:700,display:"block",marginBottom:6,textTransform:"uppercase",letterSpacing:0.6}}>Dia</span>
-                <div style={{display:"flex",gap:3,flexWrap:"wrap"}}>{WEEK_DAYS.map(d=>(<button key={d.key} onClick={()=>setEditDay(d.key)} style={{padding:"4px 7px",fontSize:10,fontWeight:600,borderRadius:6,border:"none",cursor:"pointer",fontFamily:F,background:editDay===d.key?color:tc.inputBg,color:editDay===d.key?"#fff":tc.textSub,transition:"all 0.15s"}}>{d.label}</button>))}</div>
+                <div style={{display:"flex",gap:3,flexWrap:"wrap"}}>{activeDays.map(d=>(<button key={d.key} onClick={()=>setEditDay(d.key)} style={{padding:"4px 7px",fontSize:10,fontWeight:600,borderRadius:6,border:"none",cursor:"pointer",fontFamily:F,background:editDay===d.key?color:tc.inputBg,color:editDay===d.key?"#fff":tc.textSub,transition:"all 0.15s"}}>{d.label}</button>))}</div>
               </div>
               <div style={{flex:1,minWidth:140}}>
                 <span style={{fontSize:10,color:tc.textMuted,fontWeight:700,display:"block",marginBottom:6,textTransform:"uppercase",letterSpacing:0.6}}>Prioridade</span>
@@ -1315,6 +1338,7 @@ function TaskViewModal({task,color,projectName,projectEmoji,onToggle,onUpdate,on
 /* ─── Task Item ─── */
 function TaskItem({task,color,onToggle,onUpdate,onDelete,projectName,projectEmoji,onMoveWeek,onEditingChange,openTaskId,onOpen,c,projects,showCategoryPicker}){
   const [showViewModal,setShowViewModal]=useState(false);
+  const activeDays=useActiveWeekDays();
   const openViewModal=()=>{setShowViewModal(true);if(onOpen)onOpen(task.id);};
   const closeViewModal=()=>{setShowViewModal(false);if(onOpen)onOpen(null);};
   const showOpts = openTaskId === task.id;
@@ -1381,7 +1405,7 @@ function TaskItem({task,color,onToggle,onUpdate,onDelete,projectName,projectEmoj
               </div>
             </div>
           )}
-          <div style={{marginBottom:8}}><span style={{fontSize:10,color:tc.textMuted,fontWeight:600,display:"block",marginBottom:5,textTransform:"uppercase",letterSpacing:0.5}}>Dia</span><div style={{display:"flex",gap:3,flexWrap:"wrap"}}>{WEEK_DAYS.map(d=>(<button key={d.key} onClick={()=>onUpdate({day:d.key})} style={{padding:"4px 7px",fontSize:10,fontWeight:600,borderRadius:6,border:"none",cursor:"pointer",fontFamily:F,background:task.day===d.key?color:tc.inputBg,color:task.day===d.key?"#fff":tc.textSub,transition:"all 0.15s ease"}}>{d.label}</button>))}</div></div>
+          <div style={{marginBottom:8}}><span style={{fontSize:10,color:tc.textMuted,fontWeight:600,display:"block",marginBottom:5,textTransform:"uppercase",letterSpacing:0.5}}>Dia</span><div style={{display:"flex",gap:3,flexWrap:"wrap"}}>{activeDays.map(d=>(<button key={d.key} onClick={()=>onUpdate({day:d.key})} style={{padding:"4px 7px",fontSize:10,fontWeight:600,borderRadius:6,border:"none",cursor:"pointer",fontFamily:F,background:task.day===d.key?color:tc.inputBg,color:task.day===d.key?"#fff":tc.textSub,transition:"all 0.15s ease"}}>{d.label}</button>))}</div></div>
           <div style={{marginBottom:onMoveWeek?10:0}}><span style={{fontSize:10,color:tc.textMuted,fontWeight:600,display:"block",marginBottom:5,textTransform:"uppercase",letterSpacing:0.5}}>Prioridade</span><div style={{display:"flex",gap:4,flexWrap:"wrap"}}>{Object.entries(priorityConfig).map(([k,v])=>(<button key={k} onClick={()=>onUpdate({priority:k})} style={{padding:"4px 10px",fontSize:10,fontWeight:600,borderRadius:6,border:"none",cursor:"pointer",fontFamily:F,background:task.priority===k?v.dot:v.bg,color:task.priority===k?"#fff":v.dot,transition:"all 0.15s ease"}}>{v.label}</button>))}</div></div>
           {onMoveWeek&&(<div style={{marginBottom:10}}><span style={{fontSize:10,color:tc.textMuted,fontWeight:600,display:"block",marginBottom:5,textTransform:"uppercase",letterSpacing:0.5}}>Semana</span>{onMoveWeek}</div>)}
           {onDelete&&(<div style={{paddingTop:6,borderTop:`1px solid ${tc.divider}`}}>
@@ -1530,11 +1554,15 @@ function AttachmentSection({attachments,setAttachments,color,tc,compact=false}){
 
 /* ─── Add Task (com seletor de categoria opcional) ─── */
 function AddTaskInput({color,onAdd,c,projects,requireCategory,defaultDay}){
+  const activeDays=useActiveWeekDays();
   const todayKey=WEEK_DAYS_ORDER[new Date().getDay()];
+  // Garantir que o dia inicial esteja entre os ativos
+  const pickDay=(d)=>activeDays.some(x=>x.key===d)?d:(activeDays[0]?.key||"seg");
+  const initialDay=pickDay(defaultDay||todayKey);
   const [isOpen,setIsOpen]=useState(false);
   const [text,setText]=useState("");
   const [description,setDescription]=useState("");
-  const [day,setDay]=useState(defaultDay||todayKey);
+  const [day,setDay]=useState(initialDay);
   const [priority,setPriority]=useState("low");
   const [projectId,setProjectId]=useState(()=>projects&&projects.length>0?projects[0].id:"");
   const [attachments,setAttachments]=useState([]);
@@ -1542,7 +1570,7 @@ function AddTaskInput({color,onAdd,c,projects,requireCategory,defaultDay}){
     if(!text.trim())return;
     if(requireCategory&&!projectId)return;
     onAdd(text.trim(),day,priority,requireCategory?projectId:undefined,attachments,description.trim());
-    setText("");setDescription("");setDay(defaultDay||todayKey);setPriority("low");setAttachments([]);
+    setText("");setDescription("");setDay(initialDay);setPriority("low");setAttachments([]);
     setProjectId(projects&&projects.length>0?projects[0].id:"");
     setIsOpen(false);
   };
@@ -1597,7 +1625,7 @@ function AddTaskInput({color,onAdd,c,projects,requireCategory,defaultDay}){
         <div style={{display:"flex",gap:16,flexWrap:"wrap"}}>
           <div style={{flex:1,minWidth:120}}>
             <span style={{fontSize:10,color:tc.textMuted,fontWeight:700,display:"block",marginBottom:6,textTransform:"uppercase",letterSpacing:0.6}}>Dia</span>
-            <div style={{display:"flex",gap:3,flexWrap:"wrap"}}>{WEEK_DAYS.map(d=>(<button key={d.key} onClick={()=>setDay(d.key)} style={{padding:"4px 7px",fontSize:10,fontWeight:600,borderRadius:6,border:"none",cursor:"pointer",fontFamily:F,background:day===d.key?activeColor:tc.inputBg,color:day===d.key?"#fff":tc.textSub,transition:"all 0.15s"}}>{d.label}</button>))}</div>
+            <div style={{display:"flex",gap:3,flexWrap:"wrap"}}>{activeDays.map(d=>(<button key={d.key} onClick={()=>setDay(d.key)} style={{padding:"4px 7px",fontSize:10,fontWeight:600,borderRadius:6,border:"none",cursor:"pointer",fontFamily:F,background:day===d.key?activeColor:tc.inputBg,color:day===d.key?"#fff":tc.textSub,transition:"all 0.15s"}}>{d.label}</button>))}</div>
           </div>
           <div style={{flex:1,minWidth:140}}>
             <span style={{fontSize:10,color:tc.textMuted,fontWeight:700,display:"block",marginBottom:6,textTransform:"uppercase",letterSpacing:0.6}}>Prioridade</span>
@@ -1867,6 +1895,11 @@ function UserSettingsModal({userName,profile,onSave,onClose,c}){
   const tc=c||themes.dark;
   const [displayName,setDisplayName]=useState(profile.displayName||userName);
   const [photoURL,setPhotoURL]=useState(profile.photoURL||"");
+  const [activeDays,setActiveDays]=useState(
+    Array.isArray(profile.activeDays)&&profile.activeDays.length>0
+      ? profile.activeDays
+      : ALL_DAY_KEYS
+  );
   const [saving,setSaving]=useState(false);
   // Crop state
   const [cropSrc,setCropSrc]=useState(null);
@@ -1925,8 +1958,22 @@ function UserSettingsModal({userName,profile,onSave,onClose,c}){
 
   const handleSave=async()=>{
     setSaving(true);
-    await onSave({displayName:displayName.trim()||userName,photoURL});
+    // Garantir pelo menos 1 dia ativo
+    const days = activeDays.length>0 ? activeDays : ALL_DAY_KEYS;
+    await onSave({displayName:displayName.trim()||userName,photoURL,activeDays:days});
     setSaving(false);onClose();
+  };
+
+  const toggleDay=(key)=>{
+    setActiveDays(prev=>{
+      if(prev.includes(key)){
+        // Não permitir desativar todos
+        if(prev.length<=1) return prev;
+        return prev.filter(k=>k!==key);
+      }
+      // Re-adiciona mantendo a ordem da semana
+      return ALL_DAY_KEYS.filter(k=>prev.includes(k)||k===key);
+    });
   };
 
   return(
@@ -2003,6 +2050,36 @@ function UserSettingsModal({userName,profile,onSave,onClose,c}){
             <p style={{fontSize:11,color:tc.textMuted,margin:"6px 0 0",fontFamily:F}}>Aparece no "Olá..." do cabeçalho. Login permanece: <strong style={{color:tc.textSub}}>{userName}</strong></p>
           </div>
 
+          {/* Dias da semana ativos */}
+          <div>
+            <label style={{fontSize:10,color:tc.textMuted,fontWeight:700,display:"block",marginBottom:8,textTransform:"uppercase",letterSpacing:0.5,fontFamily:F}}>Dias da semana ativos</label>
+            <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+              {WEEK_DAYS.map(d=>{
+                const on=activeDays.includes(d.key);
+                return(
+                  <button key={d.key} type="button" onClick={()=>toggleDay(d.key)}
+                    style={{
+                      flex:"1 1 calc(14% - 6px)",
+                      minWidth:42,
+                      padding:"10px 4px",
+                      borderRadius:10,
+                      border:`1.5px solid ${on?"#3B82F6":tc.cardBorder}`,
+                      background:on?"rgba(59,130,246,0.15)":tc.inputBg,
+                      color:on?"#3B82F6":tc.textMuted,
+                      fontSize:12,
+                      fontWeight:700,
+                      fontFamily:F,
+                      cursor:"pointer",
+                      transition:"all 0.15s ease",
+                    }}>
+                    {d.label}
+                  </button>
+                );
+              })}
+            </div>
+            <p style={{fontSize:11,color:tc.textMuted,margin:"8px 0 0",fontFamily:F}}>Dias desativados ficam ocultos. Tarefas neles são movidas pro próximo dia ativo ao salvar.</p>
+          </div>
+
           {/* Actions */}
           <div style={{display:"flex",gap:8,paddingTop:4}}>
             <button onClick={handleSave} disabled={saving} style={{flex:1,padding:"11px",borderRadius:10,border:"none",background:"linear-gradient(135deg,#3B82F6,#6366F1)",color:"#fff",fontSize:13,fontWeight:700,cursor:saving?"default":"pointer",fontFamily:F,opacity:saving?0.7:1}}>
@@ -2018,6 +2095,19 @@ function UserSettingsModal({userName,profile,onSave,onClose,c}){
 
 /* ─── Changelog (editar aqui para adicionar novidades) ─── */
 const CHANGELOG = [
+  {
+    version: "v2.33",
+    date: "18/05/2026",
+    badge: "novo",
+    title: "Escolha quais dias da semana ficam ativos",
+    items: [
+      "📅 Nas Configurações do Perfil agora dá pra escolher quais dias da semana quer manter ativos",
+      "🚫 Dias desativados somem da visualização (lista e colunas) e do picker de dia das tarefas",
+      "↪️ Ao desativar um dia, tarefas que estavam nele são movidas automaticamente pro primeiro dia ativo",
+      "⚙️ Pelo menos 1 dia precisa ficar ativo — não dá pra desativar todos",
+      "🆕 Por padrão todos os 7 dias ficam ativos — só altere se quiser modo trabalho (seg-sex) ou outra preferência",
+    ],
+  },
   {
     version: "v2.32",
     date: "18/05/2026",
@@ -2758,9 +2848,26 @@ export default function App(){
     }
   },[]);
   const handleSaveProfile=useCallback(async(prof)=>{
+    // Detectar mudança nos dias ativos: mover tarefas de dias desativados pro próximo ativo
+    const prevDays = Array.isArray(userProfile?.activeDays)&&userProfile.activeDays.length>0
+      ? userProfile.activeDays : ALL_DAY_KEYS;
+    const newDays = Array.isArray(prof.activeDays)&&prof.activeDays.length>0
+      ? prof.activeDays : ALL_DAY_KEYS;
+    const removed = prevDays.filter(d=>!newDays.includes(d));
+    if(removed.length>0){
+      // Achar primeiro dia ativo (em ordem da semana) pra mover
+      const firstActive = ALL_DAY_KEYS.find(k=>newDays.includes(k)) || "seg";
+      setWeeks(prev=>prev.map(w=>({
+        ...w,
+        projects: w.projects.map(p=>({
+          ...p,
+          tasks: p.tasks.map(t=>removed.includes(t.day)?{...t,day:firstActive}:t),
+        })),
+      })));
+    }
     setUserProfile(prof);
     await window.storage.set(userProfileKey(userName),JSON.stringify(prof)).catch(()=>{});
-  },[userName]);
+  },[userName,userProfile]);
   const handleLogout=useCallback(()=>{
     // Limpar TODO o cache do localStorage ao sair — evita vazamento de dados entre usuários
     try{
@@ -2981,7 +3088,8 @@ export default function App(){
   const doneTasks=projects.reduce((s,p)=>s+p.tasks.filter(t=>t.done).length,0);
   const globalPercent=totalTasks>0?Math.round((doneTasks/totalTasks)*100):0;
   const isCurrentWeek=activeWeekIdx===0;
-  const weekData=WEEK_DAYS.map(day=>{const tasks=[];projects.forEach(p=>{p.tasks.forEach(t=>{if(t.day===day.key)tasks.push({...t,_projectId:p.id});});});return{day,tasks};});
+  const activeDayList = getActiveWeekDays(userProfile?.activeDays);
+  const weekData=activeDayList.map(day=>{const tasks=[];projects.forEach(p=>{p.tasks.forEach(t=>{if(t.day===day.key)tasks.push({...t,_projectId:p.id});});});return{day,tasks};});
 
   const taskMoveWeekFn=(pid,tid)=>{
     if(isCurrentWeek&&weeks.length>1) return(<button onClick={()=>moveTaskToWeek(0,1,pid,tid)} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:8,border:"1px solid rgba(245,158,11,0.3)",background:"rgba(245,158,11,0.1)",color:"#D97706",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:F,width:"100%",justifyContent:"center"}}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2.5" strokeLinecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>Adiar para próxima semana</button>);
@@ -2995,6 +3103,7 @@ export default function App(){
   const totalPending=pendingProjects.reduce((s,p)=>s+p.pendingTasks.length,0);
 
   return(
+    <ActiveDaysContext.Provider value={activeDayList}>
     <div style={{minHeight:"100vh",background:c.bg,fontFamily:F,transition:"background 0.3s ease"}}>
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Inter:wght@600;700;800&display=swap" rel="stylesheet"/>
       <style>{`@keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.7;transform:scale(1.2)}}.task-card{transition:all 0.25s cubic-bezier(0.4,0,0.2,1)}.task-card:hover{transform:translateY(-1px);box-shadow:0 4px 20px ${c.hoverShadow};border-color:${c.hoverBorder}!important}.project-card{transition:all 0.3s cubic-bezier(0.4,0,0.2,1)}.project-card:hover{box-shadow:0 6px 28px ${c.hoverShadow};border-color:${c.hoverBorder}!important}.logout-btn{transition:all 0.25s ease}.logout-btn:hover{background:rgba(239,68,68,0.08)!important;border-color:rgba(239,68,68,0.35)!important;box-shadow:0 0 16px rgba(239,68,68,0.12)}.theme-btn{transition:all 0.25s ease}.theme-btn:hover{background:rgba(59,130,246,0.08)!important;border-color:rgba(59,130,246,0.35)!important;box-shadow:0 0 16px rgba(59,130,246,0.15)}.theme-btn:hover svg{stroke:#3B82F6}.header-actions{display:flex;flex-direction:row;gap:6px;align-items:center}.header-btn{flex-shrink:0}@media(max-width:767px){.layout-toggle{display:none!important}.header-actions{display:grid!important;grid-template-columns:1fr 1fr;gap:5px;width:auto}.header-actions .header-btn:last-child:nth-child(odd){grid-column:2/3;justify-self:end}}`}</style>
@@ -3113,7 +3222,7 @@ export default function App(){
         </div>
         ):(
         /* COLUMNS LAYOUT */
-        <div style={{display:"grid",gridTemplateColumns:viewMode==="category"?`repeat(${Math.min(projects.length+1,5)}, 1fr)`:`repeat(${WEEK_DAYS.length}, 1fr)`,gap:10,overflowX:"auto"}}>
+        <div style={{display:"grid",gridTemplateColumns:viewMode==="category"?`repeat(${Math.min(projects.length+1,5)}, 1fr)`:`repeat(${activeDayList.length}, 1fr)`,gap:10,overflowX:"auto"}}>
           {viewMode==="category"?(<>
             {projects.map((p,idx)=>{const done=p.tasks.filter(t=>t.done).length;const total=p.tasks.length;const pct=total>0?Math.round((done/total)*100):0;return(
               <ColumnProjectCard key={p.id} project={p} done={done} total={total} pct={pct} idx={idx} projectsLen={projects.length} reorderMode={reorderMode} onMoveProject={moveProject} onEditProject={u=>editProject(p.id,u)} onDeleteProject={()=>deleteProject(p.id)} onToggleTask={toggleTask} onUpdateTask={updateTask} onDeleteTask={deleteTask} onAddTask={addTask} taskMoveWeekFn={taskMoveWeekFn} openTaskId={openTaskId} onOpen={setOpenTaskId} c={c}/>
@@ -3178,5 +3287,6 @@ export default function App(){
       {/* Ghost flutuante do drag de tarefa (Pointer Events — iPad/desktop) */}
       <DragGhost ghost={taskDrag.ghost}/>
     </div>
+    </ActiveDaysContext.Provider>
   );
 }
