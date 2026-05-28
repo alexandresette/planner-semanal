@@ -438,14 +438,29 @@ function useTaskPointerDrag({onDrop, onActiveDayChange, isEnabled}) {
     cleanup();
   },[cleanup]);
 
+  // Listeners globais (window): garantem que move/up/cancel SEMPRE disparem,
+  // mesmo se o nó DOM original re-renderizar e perder o pointer capture.
+  // Bug anterior: balão "preso" no mouse quando o React trocava o elemento durante o drag.
+  useEffect(()=>{
+    const handleMove = (e)=>onPointerMove(e);
+    const handleUp = (e)=>onPointerUp(e);
+    const handleCancel = (e)=>onPointerCancel(e);
+    window.addEventListener("pointermove", handleMove, {passive:false});
+    window.addEventListener("pointerup", handleUp);
+    window.addEventListener("pointercancel", handleCancel);
+    return ()=>{
+      window.removeEventListener("pointermove", handleMove);
+      window.removeEventListener("pointerup", handleUp);
+      window.removeEventListener("pointercancel", handleCancel);
+    };
+  },[onPointerMove, onPointerUp, onPointerCancel]);
+
   return {
     bindPointerHandlers: (taskData)=>({
       onPointerDown: (e)=>{
         onPointerDown(e, taskData, e.currentTarget);
       },
-      onPointerMove,
-      onPointerUp,
-      onPointerCancel,
+      // move/up/cancel são tratados via window listeners acima
     }),
     activeDay,
     draggingId,
@@ -3227,7 +3242,7 @@ export default function App(){
               </div>
               {isDayExpanded&&(<>
                 {tasks.length>0&&(<div style={{padding:"0 14px 6px",display:"flex",flexDirection:"column",gap:6}}>
-                  {[...tasks].sort((a,b)=>{const done=(a.done?1:0)-(b.done?1:0);if(done!==0)return done;const o={high:0,medium:1,low:2};const p=o[a.priority]-o[b.priority];if(p!==0)return p;const pa=projects.find(x=>x.id===a._projectId);const pb=projects.find(x=>x.id===b._projectId);const pn=(pa?.name||"").localeCompare(pb?.name||"","pt-BR");if(pn!==0)return pn;return a.text.localeCompare(b.text,"pt-BR");}).map(t=>{const proj=projects.find(p=>p.id===t._projectId);const canDrag=!editingTasks.has(t.id)&&!openTaskId;const isThisDragging=taskDrag.draggingId===t.id;return(<div key={t.id} {...(canDrag?taskDrag.bindPointerHandlers({projectId:t._projectId,taskId:t.id}):{})} style={{cursor:canDrag?"grab":"default",opacity:isThisDragging?0.35:1,transition:"opacity 0.2s",touchAction:canDrag?"pan-y":"auto"}}><TaskItem task={t} color={proj?.color||"#64748B"} projectName={proj?.name} onToggle={()=>toggleTask(t._projectId,t.id)} onUpdate={u=>updateTask(t._projectId,t.id,u)} onDelete={()=>deleteTask(t._projectId,t.id)} onMoveWeek={taskMoveWeekFn(t._projectId,t.id)} onEditingChange={v=>{setEditingTasks(prev=>{const n=new Set(prev);if(v)n.add(t.id);else n.delete(t.id);return n;})}} openTaskId={openTaskId} onOpen={setOpenTaskId} c={c} projects={projects} showCategoryPicker={true}/></div>);})}
+                  {[...tasks].sort((a,b)=>{const done=(a.done?1:0)-(b.done?1:0);if(done!==0)return done;const o={high:0,medium:1,low:2};const p=o[a.priority]-o[b.priority];if(p!==0)return p;const pa=projects.find(x=>x.id===a._projectId);const pb=projects.find(x=>x.id===b._projectId);const pn=(pa?.name||"").localeCompare(pb?.name||"","pt-BR");if(pn!==0)return pn;return a.text.localeCompare(b.text,"pt-BR");}).map(t=>{const proj=projects.find(p=>p.id===t._projectId);const canDrag=!editingTasks.has(t.id)&&!openTaskId;const isThisDragging=taskDrag.draggingId===t.id;return(<div key={t.id} {...(canDrag?taskDrag.bindPointerHandlers({projectId:t._projectId,taskId:t.id}):{})} style={{cursor:canDrag?"grab":"default",opacity:isThisDragging?0.35:1,transition:"opacity 0.2s",touchAction:canDrag?"pan-y":"auto",WebkitUserSelect:canDrag?"none":"auto",userSelect:canDrag?"none":"auto",WebkitTouchCallout:canDrag?"none":"default"}}><TaskItem task={t} color={proj?.color||"#64748B"} projectName={proj?.name} onToggle={()=>toggleTask(t._projectId,t.id)} onUpdate={u=>updateTask(t._projectId,t.id,u)} onDelete={()=>deleteTask(t._projectId,t.id)} onMoveWeek={taskMoveWeekFn(t._projectId,t.id)} onEditingChange={v=>{setEditingTasks(prev=>{const n=new Set(prev);if(v)n.add(t.id);else n.delete(t.id);return n;})}} openTaskId={openTaskId} onOpen={setOpenTaskId} c={c} projects={projects} showCategoryPicker={true}/></div>);})}
                 </div>)}
                 <div style={{padding:"6px 14px 14px"}}>
                   <AddTaskInput color="#3B82F6" onAdd={addTaskToProject} c={c} projects={projects} requireCategory={true} defaultDay={day.key}/>
@@ -3256,7 +3271,7 @@ export default function App(){
                   {tasks.length>0&&<div style={{marginTop:6}}><ProgressRing percent={Math.round((tasks.filter(t=>t.done).length/tasks.length)*100)} color="#3B82F6" size={32} c={c}/></div>}
                 </div>
                 <div style={{padding:"8px 6px 6px",display:"flex",flexDirection:"column",gap:5,minHeight:60}}>
-                  {[...tasks].sort((a,b)=>{const done=(a.done?1:0)-(b.done?1:0);if(done!==0)return done;const o={high:0,medium:1,low:2};const p=o[a.priority]-o[b.priority];if(p!==0)return p;const pa=projects.find(x=>x.id===a._projectId);const pb=projects.find(x=>x.id===b._projectId);const pn=(pa?.name||"").localeCompare(pb?.name||"","pt-BR");if(pn!==0)return pn;return a.text.localeCompare(b.text,"pt-BR");}).map(t=>{const proj=projects.find(pp=>pp.id===t._projectId);const canDrag=!editingTasks.has(t.id)&&!openTaskId;const isThisDragging=taskDrag.draggingId===t.id;return(<div key={t.id} {...(canDrag?taskDrag.bindPointerHandlers({projectId:t._projectId,taskId:t.id}):{})} style={{cursor:canDrag?"grab":"default",opacity:isThisDragging?0.35:1,transition:"opacity 0.2s",touchAction:canDrag?"pan-y":"auto"}}><TaskItem task={t} color={proj?.color||"#64748B"} projectName={proj?.name} onToggle={()=>toggleTask(t._projectId,t.id)} onUpdate={u=>updateTask(t._projectId,t.id,u)} onDelete={()=>deleteTask(t._projectId,t.id)} onMoveWeek={taskMoveWeekFn(t._projectId,t.id)} onEditingChange={v=>{setEditingTasks(prev=>{const n=new Set(prev);if(v)n.add(t.id);else n.delete(t.id);return n;})}} openTaskId={openTaskId} onOpen={setOpenTaskId} c={c} projects={projects} showCategoryPicker={true}/></div>);})}
+                  {[...tasks].sort((a,b)=>{const done=(a.done?1:0)-(b.done?1:0);if(done!==0)return done;const o={high:0,medium:1,low:2};const p=o[a.priority]-o[b.priority];if(p!==0)return p;const pa=projects.find(x=>x.id===a._projectId);const pb=projects.find(x=>x.id===b._projectId);const pn=(pa?.name||"").localeCompare(pb?.name||"","pt-BR");if(pn!==0)return pn;return a.text.localeCompare(b.text,"pt-BR");}).map(t=>{const proj=projects.find(pp=>pp.id===t._projectId);const canDrag=!editingTasks.has(t.id)&&!openTaskId;const isThisDragging=taskDrag.draggingId===t.id;return(<div key={t.id} {...(canDrag?taskDrag.bindPointerHandlers({projectId:t._projectId,taskId:t.id}):{})} style={{cursor:canDrag?"grab":"default",opacity:isThisDragging?0.35:1,transition:"opacity 0.2s",touchAction:canDrag?"pan-y":"auto",WebkitUserSelect:canDrag?"none":"auto",userSelect:canDrag?"none":"auto",WebkitTouchCallout:canDrag?"none":"default"}}><TaskItem task={t} color={proj?.color||"#64748B"} projectName={proj?.name} onToggle={()=>toggleTask(t._projectId,t.id)} onUpdate={u=>updateTask(t._projectId,t.id,u)} onDelete={()=>deleteTask(t._projectId,t.id)} onMoveWeek={taskMoveWeekFn(t._projectId,t.id)} onEditingChange={v=>{setEditingTasks(prev=>{const n=new Set(prev);if(v)n.add(t.id);else n.delete(t.id);return n;})}} openTaskId={openTaskId} onOpen={setOpenTaskId} c={c} projects={projects} showCategoryPicker={true}/></div>);})}
                   {tasks.length===0&&<div style={{fontSize:11,color:isDragOver?"#3B82F6":c.textMuted,fontFamily:F,textAlign:"center",padding:"8px 0"}}>{isDragOver?"Soltar aqui":"—"}</div>}
                 </div>
                 <div style={{padding:"0 6px 8px"}}>
