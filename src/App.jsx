@@ -1614,7 +1614,7 @@ function AddTaskInput({color,onAdd,c,projects,requireCategory,defaultDay}){
   if(!isOpen) return(<button onClick={()=>setIsOpen(true)} style={{display:"flex",alignItems:"center",justifyContent:"center",gap:6,width:"100%",padding:"9px 14px",borderRadius:10,cursor:"pointer",background:"transparent",border:`1px dashed ${tc.addTaskBorder}`,color:tc.addTaskColor,fontSize:13,fontWeight:500,fontFamily:F,transition:"all 0.2s ease"}} onMouseEnter={e=>{e.currentTarget.style.borderColor=activeColor;e.currentTarget.style.color=activeColor;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=tc.addTaskBorder;e.currentTarget.style.color=tc.addTaskColor;}}>+ Nova tarefa</button>);
 
   return(
-    <div style={{borderRadius:14,overflow:"visible",background:tc.taskBg,border:`1px solid ${activeColor}30`,animation:"fadeIn 0.2s ease"}}>
+    <div onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey&&e.target.tagName!=="TEXTAREA"){e.preventDefault();handleAdd();}}} style={{borderRadius:14,overflow:"visible",background:tc.taskBg,border:`1px solid ${activeColor}30`,animation:"fadeIn 0.2s ease"}}>
       {/* Header colorido igual ao modal */}
       <div style={{background:`linear-gradient(135deg,${activeColor}18,${activeColor}06)`,borderBottom:`1px solid ${activeColor}18`,padding:"14px 14px 12px",borderRadius:"14px 14px 0 0"}}>
         <div style={{display:"flex",alignItems:"flex-start",gap:10}}>
@@ -1643,7 +1643,7 @@ function AddTaskInput({color,onAdd,c,projects,requireCategory,defaultDay}){
             <span style={{fontSize:10,color:tc.textMuted,fontWeight:700,display:"block",marginBottom:6,textTransform:"uppercase",letterSpacing:0.6}}>Projeto</span>
             {projects&&projects.length>0?(
               <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
-                {projects.map(p=>(<button key={p.id} onClick={()=>setProjectId(p.id)} style={{display:"flex",alignItems:"center",gap:4,padding:"4px 8px",fontSize:10,fontWeight:600,borderRadius:6,border:`1px solid ${projectId===p.id?p.color:tc.cardBorder}`,cursor:"pointer",fontFamily:F,background:projectId===p.id?`${p.color}20`:tc.inputBg,color:projectId===p.id?p.color:tc.textSub,transition:"all 0.15s"}}><span style={{fontSize:12}}>{p.emoji}</span>{p.name}</button>))}
+                {projects.map(p=>(<button type="button" key={p.id} onClick={()=>setProjectId(p.id)} style={{display:"flex",alignItems:"center",gap:4,padding:"4px 8px",fontSize:10,fontWeight:600,borderRadius:6,border:`1px solid ${projectId===p.id?p.color:tc.cardBorder}`,cursor:"pointer",fontFamily:F,background:projectId===p.id?`${p.color}20`:tc.inputBg,color:projectId===p.id?p.color:tc.textSub,transition:"all 0.15s"}}><span style={{fontSize:12}}>{p.emoji}</span>{p.name}</button>))}
               </div>
             ):(
               <div style={{padding:"8px 10px",borderRadius:8,background:tc.inputBg,border:`1px solid ${tc.cardBorder}`,fontSize:11,color:tc.textMuted,fontFamily:F}}>
@@ -1657,11 +1657,11 @@ function AddTaskInput({color,onAdd,c,projects,requireCategory,defaultDay}){
         <div style={{display:"flex",gap:16,flexWrap:"wrap"}}>
           <div style={{flex:1,minWidth:120}}>
             <span style={{fontSize:10,color:tc.textMuted,fontWeight:700,display:"block",marginBottom:6,textTransform:"uppercase",letterSpacing:0.6}}>Dia</span>
-            <div style={{display:"flex",gap:3,flexWrap:"wrap"}}>{activeDays.map(d=>(<button key={d.key} onClick={()=>setDay(d.key)} style={{padding:"4px 7px",fontSize:10,fontWeight:600,borderRadius:6,border:"none",cursor:"pointer",fontFamily:F,background:day===d.key?activeColor:tc.inputBg,color:day===d.key?"#fff":tc.textSub,transition:"all 0.15s"}}>{d.label}</button>))}</div>
+            <div style={{display:"flex",gap:3,flexWrap:"wrap"}}>{activeDays.map(d=>(<button type="button" key={d.key} onClick={()=>setDay(d.key)} style={{padding:"4px 7px",fontSize:10,fontWeight:600,borderRadius:6,border:"none",cursor:"pointer",fontFamily:F,background:day===d.key?activeColor:tc.inputBg,color:day===d.key?"#fff":tc.textSub,transition:"all 0.15s"}}>{d.label}</button>))}</div>
           </div>
           <div style={{flex:1,minWidth:140}}>
             <span style={{fontSize:10,color:tc.textMuted,fontWeight:700,display:"block",marginBottom:6,textTransform:"uppercase",letterSpacing:0.6}}>Prioridade</span>
-            <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>{Object.entries(priorityConfig).map(([k,v])=>(<button key={k} onClick={()=>setPriority(k)} style={{padding:"4px 10px",fontSize:10,fontWeight:600,borderRadius:6,border:"none",cursor:"pointer",fontFamily:F,background:priority===k?v.dot:v.bg,color:priority===k?"#fff":v.dot,transition:"all 0.15s"}}>{v.label}</button>))}</div>
+            <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>{Object.entries(priorityConfig).map(([k,v])=>(<button type="button" key={k} onClick={()=>setPriority(k)} style={{padding:"4px 10px",fontSize:10,fontWeight:600,borderRadius:6,border:"none",cursor:"pointer",fontFamily:F,background:priority===k?v.dot:v.bg,color:priority===k?"#fff":v.dot,transition:"all 0.15s"}}>{v.label}</button>))}</div>
           </div>
         </div>
 
