@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Inter:wght@600;700;800&display=swap" rel="stylesheet"/>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
+<title>Guia Planner</title>
+<script>
+  // Lê ?theme=, persiste no localStorage, aplica classe no <html>
+  (function(){
+    var param = new URLSearchParams(window.location.search).get('theme');
+    if(param === 'light' || param === 'dark'){
+      localStorage.setItem('planner-guide-theme', param);
+    }
+    var saved = localStorage.getItem('planner-guide-theme');
+    var theme = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    document.documentElement.setAttribute('data-theme', theme);
+  })();
+</script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  :root{
+    --bg:#0B1120;
+    --card-bg:rgba(255,255,255,0.04);
+    --border:rgba(255,255,255,0.07);
+    --text:#F1F5F9;
+    --text-sub:#94A3B8;
+    --text-muted:#64748B;
+    --accent:#3B82F6;
+    --thead-bg:rgba(255,255,255,0.04);
+    --welcome-bg:linear-gradient(135deg,rgba(59,130,246,0.08),rgba(139,92,246,0.06));
+    --welcome-border:rgba(59,130,246,0.15);
+    --tip-bg:rgba(59,130,246,0.06);
+    --tip-border:rgba(59,130,246,0.12);
+    --section-icon-bg:rgba(59,130,246,0.12);
+  }
+  [data-theme="light"]{
+    --bg:#F8FAFC;
+    --card-bg:#fff;
+    --border:#E2E8F0;
+    --text:#0F172A;
+    --text-sub:#475569;
+    --text-muted:#94A3B8;
+    --thead-bg:rgba(0,0,0,0.03);
+    --welcome-bg:linear-gradient(135deg,rgba(59,130,246,0.05),rgba(139,92,246,0.04));
+    --welcome-border:rgba(59,130,246,0.12);
+    --tip-bg:rgba(59,130,246,0.04);
+    --tip-border:rgba(59,130,246,0.1);
+    --section-icon-bg:rgba(59,130,246,0.08);
+  }
+  body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  img{border:none!important;outline:none!important;}
+  .wrap{max-width:680px;margin:0 auto;padding:36px 24px 60px;}
+  .guide-header{text-align:center;margin-bottom:40px;padding-bottom:28px;border-bottom:1px solid var(--border);}
+  .guide-header img{height:64px;margin-bottom:16px;display:block;margin-left:auto;margin-right:auto;}
+  .guide-header h1{font-size:18px;font-weight:800;color:var(--text);font-family:'Inter',sans-serif;margin-bottom:6px;}
+  .guide-header p{font-size:12px;color:var(--text-muted);line-height:1.6;max-width:480px;margin:0 auto;}
+  .section{margin-bottom:32px;}
+  .section-title{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+  .section-icon{width:34px;height:34px;border-radius:10px;background:var(--section-icon-bg);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+  .section-title h2{margin:0;font-size:16px;font-weight:800;color:var(--text);font-family:'Inter',sans-serif;}
+  .welcome-box{padding:16px 20px;border-radius:14px;background:var(--welcome-bg);border:1px solid var(--welcome-border);}
+  .welcome-box p{font-size:14px;color:var(--text-sub);line-height:1.7;margin:0;}
+  ul.bullets{list-style:none;padding:0;}
+  ul.bullets li{display:flex;align-items:flex-start;gap:8px;margin-bottom:7px;}
+  ul.bullets li svg{flex-shrink:0;margin-top:3px;}
+  ul.bullets li span{font-size:13px;color:var(--text-sub);font-family:'DM Sans',sans-serif;line-height:1.6;}
+  .tip{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border-radius:10px;background:var(--tip-bg);border:1px solid var(--tip-border);margin-bottom:8px;}
+  .tip-icon{font-size:16px;flex-shrink:0;margin-top:1px;}
+  .tip p{margin:0;font-size:13px;color:var(--text-sub);font-family:'DM Sans',sans-serif;line-height:1.6;}
+  .cards-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .card{padding:14px 16px;border-radius:12px;background:var(--card-bg);border:1px solid var(--border);}
+  .card-emoji{font-size:20px;margin-bottom:8px;}
+  .card strong{font-size:13px;color:var(--text);font-family:'Inter',sans-serif;display:block;margin-bottom:4px;}
+  .card p{font-size:12px;color:var(--text-sub);line-height:1.5;margin:0;}
+  .card-note{font-size:12px;color:var(--text-muted);margin-top:10px;font-style:italic;}
+  .table-wrap{border-radius:12px;overflow:hidden;border:1px solid var(--border);}
+  table{width:100%;border-collapse:collapse;}
+  thead tr{background:var(--thead-bg);}
+  th{padding:10px 12px;font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;text-align:left;font-family:'DM Sans',sans-serif;border-bottom:1px solid var(--border);}
+  td{padding:9px 12px;font-size:12px;font-family:'DM Sans',sans-serif;border-bottom:1px solid var(--border);}
+  td:first-child{font-weight:600;color:var(--text);white-space:nowrap;}
+  td:last-child{color:var(--text-sub);}
+  .mission{margin-top:40px;padding:20px 24px;border-radius:14px;background:var(--welcome-bg);border:1px solid var(--welcome-border);text-align:center;}
+  .mission p{font-size:15px;color:var(--text-sub);font-style:italic;line-height:1.7;margin-bottom:6px;}
+  .mission span{font-size:12px;color:var(--text-muted);font-weight:600;font-family:'Inter',sans-serif;}
+  .footer{margin-top:32px;text-align:center;}
+  .footer p{font-size:10px;color:var(--text-muted);font-family:'DM Sans',sans-serif;}
+  @page{margin:12mm 14mm;size:A4;}
+  @media print{body{background:var(--bg)!important;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Header -->
+  <div class="guide-header">
+    <img id="logo" alt="Planner Semanal" src="/logo.svg"/>
+    <h1>Guia do Planner Semanal</h1>
+    <p>Tudo o que você precisa saber para organizar sua semana com excelência.</p>
+  </div>
+
+  <!-- Bem-vindo -->
+  <div class="section">
+    <div class="section-title">
+      <div class="section-icon">👋</div>
+      <h2>Bem-vindo!</h2>
+    </div>
+    <div class="welcome-box">
+      <p>O <strong>Planner Semanal</strong> foi criado para te ajudar a organizar sua semana com clareza e intenção — sem complicação. Aqui você gerencia seus projetos, distribui tarefas pelos dias da semana, acompanha seu progresso e encerra cada semana sabendo exatamente o que foi feito.</p>
+    </div>
+  </div>
+
+  <!-- Projetos -->
+  <div class="section">
+    <div class="section-title">
+      <div class="section-icon">📂</div>
+      <h2>Seus Projetos</h2>
+    </div>
+    <p style="font-size:13px;color:var(--text-sub);line-height:1.7;margin-bottom:12px;">Tudo começa pelos <strong style="color:var(--text)">projetos</strong> — cada área da sua vida que precisa de atenção. Profissional, estudos, ministério, saúde, família. Cada projeto tem nome, emoji e cor.</p>
+    <ul class="bullets">
+      <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg><span>Crie quantos projetos precisar — não há limite</span></li>
+      <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg><span>Reordene os projetos arrastando ou usando os controles de ordem</span></li>
+      <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg><span>Use <strong style="color:var(--text)">Repetir na próxima semana</strong> para copiar todas as tarefas de um projeto com um clique</span></li>
+    </ul>
+  </div>
+
+  <!-- Tarefas -->
+  <div class="section">
+    <div class="section-title">
+      <div class="section-icon">✅</div>
+      <h2>Suas Tarefas</h2>
+    </div>
+    <p style="font-size:13px;color:var(--text-sub);line-height:1.7;margin-bottom:12px;">Dentro de cada projeto, crie <strong style="color:var(--text)">tarefas</strong> — as ações concretas que vão te mover para frente. Cada tarefa tem:</p>
+    <ul class="bullets">
+      <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg><span><strong style="color:var(--text)">Título</strong> — o que precisa ser feito</span></li>
+      <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg><span><strong style="color:var(--text)">Descrição</strong> — contexto, links, referências ou detalhes extras</span></li>
+      <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg><span><strong style="color:var(--text)">Dia da semana</strong> — quando você vai executar</span></li>
+      <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg><span><strong style="color:var(--text)">Prioridade</strong> — Alta 🔴, Média 🟡 ou Baixa ⚪</span></li>
+      <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg><span><strong style="color:var(--text)">Anexos</strong> — fotos, vídeos, links ou documentos relacionados</span></li>
+    </ul>
+  </div>
+
+  <!-- Duas Semanas -->
+  <div class="section">
+    <div class="section-title">
+      <div class="section-icon">📅</div>
+      <h2>Duas Semanas Sempre Visíveis</h2>
+    </div>
+    <p style="font-size:13px;color:var(--text-sub);line-height:1.7;margin-bottom:12px;">O Planner trabalha com <strong style="color:var(--text)">Semana Atual</strong> e <strong style="color:var(--text)">Próxima Semana</strong> sempre à mão. Isso te permite planejar com antecedência sem perder o foco no presente.</p>
+    <ul class="bullets">
+      <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg><span>Alterne entre as semanas pelos botões <strong style="color:var(--text)">Atual</strong> e <strong style="color:var(--text)">Próxima</strong> no topo</span></li>
+      <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg><span>Use <strong style="color:var(--text)">Adiar</strong> no pop-up de uma tarefa para movê-la para a próxima semana</span></li>
+      <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg><span>Use <strong style="color:var(--text)">Adiantar</strong> para trazê-la de volta para a semana atual</span></li>
+    </ul>
+  </div>
+
+  <!-- Views -->
+  <div class="section">
+    <div class="section-title">
+      <div class="section-icon">🧭</div>
+      <h2>As Duas Views</h2>
+    </div>
+    <div class="cards-grid">
+      <div class="card">
+        <div class="card-emoji">📂</div>
+        <strong>Projetos</strong>
+        <p>Tarefas agrupadas por projeto. Ideal para ver tudo que está acontecendo em cada área da sua vida.</p>
+      </div>
+      <div class="card">
+        <div class="card-emoji">📅</div>
+        <strong>Dias da Semana</strong>
+        <p>Tarefas agrupadas por dia. Ideal para planejar o dia a dia e ver como sua semana está distribuída.</p>
+      </div>
+    </div>
+    <p class="card-note">No desktop, use o layout <strong>Colunas</strong> para ver os dias lado a lado e arrastar tarefas entre eles.</p>
+  </div>
+
+  <!-- Funcionalidades -->
+  <div class="section">
+    <div class="section-title">
+      <div class="section-icon">⚡</div>
+      <h2>Funcionalidades Principais</h2>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Funcionalidade</th><th>Como usar</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Criar tarefa</td><td>Clique em <em>+ Nova tarefa</em> em qualquer projeto ou dia</td></tr>
+          <tr><td>Editar tarefa</td><td>Clique na tarefa para abrir o pop-up → botão ✏️</td></tr>
+          <tr><td>Mover entre semanas</td><td>No pop-up da tarefa → <em>Adiar</em> ou <em>Adiantar</em></td></tr>
+          <tr><td>Focos da semana</td><td>Tarefas de alta prioridade aparecem automaticamente em destaque</td></tr>
+          <tr><td>Reordenar projetos</td><td>Ícone de reordenar ao lado dos botões de view</td></tr>
+          <tr><td>Repetir projeto</td><td>3 pontinhos do projeto → <em>Repetir na próxima semana</em></td></tr>
+          <tr><td>Gerar relatório</td><td>Ícone de documento no header → escolha as opções → PDF</td></tr>
+          <tr><td>Anexos</td><td>Editar tarefa → botão <em>Anexar</em> → foto, link ou documento</td></tr>
+          <tr><td>Concluir semana</td><td>Botão <em>Concluir semana</em> → registra no histórico</td></tr>
+          <tr><td>Histórico</td><td>Botão de histórico no header → semanas anteriores concluídas</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Focos -->
+  <div class="section">
+    <div class="section-title">
+      <div class="section-icon">🌟</div>
+      <h2>Focos da Semana</h2>
+    </div>
+    <p style="font-size:13px;color:var(--text-sub);line-height:1.7;margin-bottom:12px;">O Planner identifica automaticamente todas as tarefas com <strong style="color:#EF4444">Alta Prioridade</strong> e as exibe em destaque na seção <strong style="color:var(--text)">Focos da Semana</strong> — logo abaixo do seletor de semana.</p>
+    <div class="tip">
+      <span class="tip-icon">💡</span>
+      <p>Use Alta Prioridade com moderação — marque apenas o que <strong>realmente precisa</strong> ser feito naquela semana. Isso torna os Focos mais eficazes e evita sobrecarga visual.</p>
+    </div>
+  </div>
+
+  <!-- Anexos -->
+  <div class="section">
+    <div class="section-title">
+      <div class="section-icon">📎</div>
+      <h2>Anexos nas Tarefas</h2>
+    </div>
+    <ul class="bullets">
+      <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg><span><strong style="color:var(--text)">📸 Foto/Vídeo</strong> — faça upload de imagem ou vídeo do dispositivo</span></li>
+      <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg><span><strong style="color:var(--text)">🔗 Link</strong> — cole um link do YouTube, Google Drive, Vimeo ou Loom. O vídeo abre incorporado diretamente no pop-up da tarefa!</span></li>
+      <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg><span><strong style="color:var(--text)">📄 Documento/PDF</strong> — faça upload de arquivo. PDFs abrem inline para leitura sem sair do app.</span></li>
+    </ul>
+  </div>
+
+  <!-- Relatório -->
+  <div class="section">
+    <div class="section-title">
+      <div class="section-icon">📊</div>
+      <h2>Relatório Semanal</h2>
+    </div>
+    <p style="font-size:13px;color:var(--text-sub);line-height:1.7;margin-bottom:12px;">Clique no ícone de documento no header para gerar um relatório visual da sua semana:</p>
+    <ul class="bullets">
+      <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg><span>Escolha a view: <strong style="color:var(--text)">Projetos</strong> ou <strong style="color:var(--text)">Dias da Semana</strong></span></li>
+      <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg><span>Escolha a semana: <strong style="color:var(--text)">Atual</strong>, <strong style="color:var(--text)">Próxima</strong> ou <strong style="color:var(--text)">Ambas</strong></span></li>
+      <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg><span>Decida se quer incluir os anexos (fotos, vídeos, documentos)</span></li>
+      <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg><span>O relatório abre em nova aba no mesmo tema do app — use <strong style="color:var(--text)">Ctrl+P</strong> para salvar como PDF</span></li>
+    </ul>
+  </div>
+
+  <!-- Dicas -->
+  <div class="section">
+    <div class="section-title">
+      <div class="section-icon">💡</div>
+      <h2>Dicas de Uso</h2>
+    </div>
+    <div class="tip"><span class="tip-icon">🗓️</span><p><strong>Reserve 10 minutos no domingo</strong> para planejar a semana seguinte — distribua as tarefas pelos dias e defina as prioridades.</p></div>
+    <div class="tip"><span class="tip-icon">📝</span><p><strong>Use a descrição das tarefas</strong> para guardar links, referências ou contexto importante — você vai agradecer na hora de executar.</p></div>
+    <div class="tip"><span class="tip-icon">🔄</span><p><strong>Use 'Repetir na próxima semana'</strong> para tarefas recorrentes de um projeto — copia tudo com um clique.</p></div>
+    <div class="tip"><span class="tip-icon">🎯</span><p><strong>Revise o progresso toda manhã</strong> — veja o anel de progresso e os Focos do dia para começar com clareza.</p></div>
+    <div class="tip"><span class="tip-icon">📊</span><p><strong>Gere um relatório ao fim da semana</strong> — é uma forma de celebrar o progresso e compartilhar com quem precisar.</p></div>
+  </div>
+
+  <!-- Missão -->
+  <div class="mission">
+    <p>"E tudo o que fizerdes, fazei-o de todo o coração, como ao Senhor, e não aos homens."</p>
+    <span>— Colossenses 3:23</span>
+  </div>
+
+  <!-- Rodapé -->
+  <div class="footer">
+    <p>Planner Semanal · plannersemanal.com</p>
+  </div>
+
+</div>
+<script>
+  // Aplica logo correta conforme tema já definido no <html>
+  var logo = document.getElementById('logo');
+  if(document.documentElement.getAttribute('data-theme') === 'light'){
+    logo.src = '/logo-light.svg';
+  }
+</script>
+</body>
+</html>
