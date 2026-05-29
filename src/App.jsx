@@ -336,9 +336,11 @@ function useTaskPointerDrag({onDrop, onActiveDayChange, isEnabled}) {
   const activateDrag = useCallback((s, element, pointerId)=>{
     if(s.activated)return;
     s.activated = true;
-    try{element.setPointerCapture(pointerId);}catch{}
+    // NÃO usar setPointerCapture: o nó re-renderiza (opacity) durante o drag e
+    // perde a captura, deixando o balão "preso". Os listeners no window já
+    // garantem que move/up/cancel sempre cheguem.
     document.body.style.userSelect="none";
-    document.body.style.overflow="hidden";
+    if(s.pointerType!=="mouse") document.body.style.overflow="hidden";
     try{navigator.vibrate?.(20);}catch{}
     const rect = element.getBoundingClientRect();
     setDraggingId(s.taskData.taskId);
