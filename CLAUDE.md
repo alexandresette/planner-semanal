@@ -199,7 +199,7 @@ A autenticação do push vem do `gh` (rodar `gh auth setup-git` uma vez se o git
 - **Firestore via REST** exige bearer token do Firebase Auth (anônimo serve).
 - **Chave de API com um caractere errado** derrubou o login Google uma vez. Na dúvida, comparar com o Console do Firebase.
 - **Pull travado por arquivo local não versionado.** Um `functions/package-lock.json` solto bloqueou o `git pull` na migração para local. Guardar com `git stash push -u -- <pasta>` em vez de apagar, e decidir depois.
-- **Login anônimo bloqueado derruba o app inteiro em silêncio.** Em 2026-11 o Firebase passou a recusar `signInAnonymously` com `auth/admin-restricted-operation` (opção de criar contas desligada em Authentication > Settings > User actions). Sem auth, as regras devolvem `permission-denied` em tudo, o app roda só com o cache local e usuário novo não entra. Diagnóstico rápido: `accounts:signUp` na Identity Toolkit API devolve `ADMIN_ONLY_OPERATION`.
+- **Login anônimo bloqueado derruba o app inteiro em silêncio.** Até 2026-11-02 o Firebase recusava `signInAnonymously` com `auth/admin-restricted-operation` porque o provedor Anonymous não estava ativo em Sign-in method (ligar o sign-up em User actions não bastou). Pelos dados, a falha vinha pelo menos desde maio de 2026. Sem auth, as regras devolvem `permission-denied` em tudo, o app roda só com o cache local e usuário novo não entra. Diagnóstico rápido: `accounts:signUp` na Identity Toolkit API devolve `ADMIN_ONLY_OPERATION`.
 - **Cache local não pode vencer o Firestore às cegas, nem ser descartado às cegas.** Sem a `baseUpdatedAt`, um aparelho que carregou os projetos padrão durante a falha subiria esses padrões por cima dos dados reais. Por isso a pendência só sobe com base igual à remota; o resto vira backup.
 - **Function de e-mail que aceita link do cliente é um relay de phishing.** Montar o link no servidor a partir de um token validado.
 - **Runtime de function aposentado bloqueia qualquer deploy.** O Node 20 foi desativado em 2026-10-30 e o deploy falhava antes de subir código. Subimos para Node 22 (`engines` no `functions/package.json`).
@@ -207,8 +207,9 @@ A autenticação do push vem do `gh` (rodar `gh auth setup-git` uma vez se o git
 
 ## Pendências conhecidas (confirmar se ainda estão abertas)
 
-- URGENTE (2026-11-02): ligar "Enable create (sign-up)" em Authentication > Settings > User actions e conferir Anonymous e Google em Sign-in method. Sem isso o app não sincroniza e usuário novo não entra.
-- Revisar documentos `backup-*` no Firestore depois que a sincronização voltar e restaurar à mão o que for necessário.
+- Backups de 2026-11-02 no Firestore (`backup-gestor-xande-data-*`, `backup-gestor-xande-history-*`, `backup-admin-invites-*`) já foram mesclados de volta (tarefas, 7 semanas de histórico e o convite de 21/10). Podem ser apagados quando o Xande confirmar que está tudo certo.
+- Convites de luizppbarbosa, marketing@tropicalonrails e mirella.sultanum81 estavam em `admin-invites` às 09:59 de 2026-11-02 e sumiram até 10:02, sem passar pela restauração. Confirmar com o Xande se foram removidos de propósito em outro aparelho.
+- Outros aparelhos (iPhone, iPad, Déa) podem ter edições locais feitas durante a falha: ao abrirem a v2.34, elas viram `backup-*` no Firestore. Conferir e mesclar.
 - CHANGELOG parado em v2.33: v2.33.1, v2.33.2 e os fixes de drag e Enter de maio/2026 não têm entrada. As datas de v2.0 a v2.20 estão com ano 2025 e provavelmente deveriam ser 2026.
 - `type="button"` só em 3 dos 108 botões do App.jsx. Não há `<form>` no app, então o risco hoje é baixo, mas a regra 6 não é cumprida no código antigo.
 - Segurança: a sessão é só `{ user, token }` no localStorage e o token não é validado em lugar nenhum, então editar o localStorage dá acesso a qualquer usuário. O hash de credencial do admin está no bundle público. Avaliar migrar a identidade para o Firebase Auth e regras por `request.auth.uid`.
@@ -238,6 +239,7 @@ Regras: fatos curtos, sem narrar a sessão inteira; nada de segredo; se o arquiv
 
 | Data | Versão | O que mudou |
 |------|--------|-------------|
+| 2026-11-02 | v2.34 | Provedor Anonymous reativado no Console; tarefas, histórico e convite perdidos na falha restaurados a partir dos backups |
 | 2026-11-02 | v2.34 | Diagnóstico do login anônimo bloqueado; sincronização com base remota, retry de auth e backup de pendências; functions de e-mail travadas e publicadas em Node 22 |
 | 2026-11-02 | v2.33 (+ fixes) | Projeto migrado para local; CLAUDE.md criado e revisado contra o código (modelo de dados, functions, PWA, relatório, anexos, novidades, pendências) |
 | 2026-05 | v2.32 a v2.33.2 | Drag com Pointer Events, dias ativos configuráveis, fixes de Enter e drag no desktop/iPad |
