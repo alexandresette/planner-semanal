@@ -72,7 +72,7 @@ Coleção `storage` no Firestore, um documento por chave (valor em JSON string):
 - `backup-${chave}-${timestamp}`: cópia local pendente que perdeu para o Firestore numa sincronização (ver Sincronização)
 
 Projeto: `{ id, name, emoji, color, tasks }`.
-Tarefa: `{ id, text, description, done, priority: "high"|"medium"|"low", day: "dom"|"seg"|"ter"|"qua"|"qui"|"sex"|"sab", attachments: [{ type: "image"|"video_file"|"link"|"document", name, data }] }`. Em imagem, vídeo e documento, `data` é data URL base64 gravada dentro do documento do Firestore.
+Tarefa: `{ id, text, description, done, recurring?, priority: "high"|"medium"|"low", day: "dom"|"seg"|"ter"|"qua"|"qui"|"sex"|"sab", attachments: [{ type: "image"|"video_file"|"link"|"document", name, data }] }`. Em imagem, vídeo e documento, `data` é data URL base64 gravada dentro do documento do Firestore.
 
 localStorage: cache de cada chave do Firestore com `${chave}__meta` (`{ updatedAt, baseUpdatedAt, pendingSync? }`) e `${chave}__backup_${ts}`; `planner-theme`, `gestor-session-token` (`{ user, token, ts }`), `planner-${user}-viewMode`, `planner-${user}-layoutMode`, `planner-${user}-focosOpen`, `whats-new-last-seen`. Login e logout apagam todo o localStorage exceto `planner-theme`.
 
@@ -100,6 +100,7 @@ localStorage: cache de cada chave do Firestore com `${chave}__meta` (`{ updatedA
 - Mover tarefa entre projetos pelo painel de edição (só na view Dias da Semana)
 - Adiar/adiantar entre semanas, "puxar da próxima semana" (manual e automático ao completar)
 - "Repetir tarefas": clona as tarefas do projeto para a semana seguinte
+- Tarefa recorrente (`recurring: true`, interruptor "Repetir toda semana" na criação, no painel de edição e no modal): ao completar a semana ela vai para o histórico e volta desmarcada no mesmo projeto, dia e prioridade. Se já existir uma igual em aberto (ex.: veio da próxima semana), não duplica e só marca essa como recorrente. Ícone de repetição no balão e aviso no resumo de "Completar semana"
 - Reordenar projetos (sincroniza a ordem em todas as semanas); excluir projeto remove em todas as semanas
 - Completar semana com preview, histórico com impressão (respeita a view ativa, logo conforme o tema)
 - Relatório (`ReportModal`): por projetos ou por dias, semana atual, próxima ou ambas, com ou sem anexos; abre em nova aba para imprimir/salvar PDF
@@ -244,6 +245,7 @@ Regras: fatos curtos, sem narrar a sessão inteira; nada de segredo; se o arquiv
 
 | Data | Versão | O que mudou |
 |------|--------|-------------|
+| 2026-11-02 | v2.36 | Tarefas recorrentes ("Repetir toda semana") recriadas ao completar a semana |
 | 2026-11-02 | v2.35 | Login conferido no servidor com custom token, regras do Firestore por usuário, functions abertas removidas, anexos comprimidos e limitados |
 | 2026-11-02 | v2.34 | Envio de convite testado pelo Xande em produção após as correções: e-mail chegou |
 | 2026-11-02 | v2.34 | Provedor Anonymous reativado no Console; tarefas, histórico e convite perdidos na falha restaurados a partir dos backups |

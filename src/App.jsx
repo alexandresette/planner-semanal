@@ -1103,10 +1103,11 @@ function TaskViewModal({task,color,projectName,projectEmoji,onToggle,onUpdate,on
   const [editPriority,setEditPriority]=useState(task.priority);
   const [editDay,setEditDay]=useState(task.day);
   const [attachments,setAttachments]=useState(task.attachments||[]);
+  const [editRecurring,setEditRecurring]=useState(!!task.recurring);
 
-  const startEdit=()=>{setEditText(task.text);setEditDesc(task.description||"");setEditPriority(task.priority);setEditDay(task.day);setAttachments(task.attachments||[]);setEditing(true);};
+  const startEdit=()=>{setEditText(task.text);setEditDesc(task.description||"");setEditPriority(task.priority);setEditDay(task.day);setAttachments(task.attachments||[]);setEditRecurring(!!task.recurring);setEditing(true);};
   const cancelEdit=()=>{setEditing(false);setAttachments(task.attachments||[]);};
-  const saveEdit=()=>{onUpdate({text:editText.trim()||task.text,description:editDesc.trim(),priority:editPriority,day:editDay,attachments});setEditing(false);};
+  const saveEdit=()=>{onUpdate({text:editText.trim()||task.text,description:editDesc.trim(),priority:editPriority,day:editDay,attachments,recurring:editRecurring});setEditing(false);};
 
   // Escape: em edição cancela edição, fora fecha o modal
   useEffect(()=>{
@@ -1173,6 +1174,7 @@ function TaskViewModal({task,color,projectName,projectEmoji,onToggle,onUpdate,on
                 {projectName&&<span style={{fontSize:10,fontWeight:600,padding:"3px 8px",borderRadius:5,background:`${color}22`,color,fontFamily:F,display:"flex",alignItems:"center",gap:4}}>{projectEmoji&&<span style={{fontSize:12}}>{projectEmoji}</span>}{projectName}</span>}
                 {dayInfo&&<span style={{fontSize:10,fontWeight:600,padding:"3px 8px",borderRadius:5,background:tc.tagBg,color:tc.tagColor,fontFamily:F}}>{dayInfo.full}</span>}
                 <span style={{fontSize:10,fontWeight:600,padding:"3px 8px",borderRadius:5,background:prio.bg,color:prio.dot,fontFamily:F,display:"flex",alignItems:"center",gap:4}}><div style={{width:6,height:6,borderRadius:"50%",background:prio.dot}}/>{prio.label}</span>
+                {task.recurring&&<span style={{fontSize:10,fontWeight:600,padding:"3px 8px",borderRadius:5,background:`${color}18`,color,fontFamily:F,display:"flex",alignItems:"center",gap:4}}><RepeatIcon size={10} color={color}/>Toda semana</span>}
                 {task.done&&<span style={{fontSize:10,fontWeight:600,padding:"3px 8px",borderRadius:5,background:"rgba(16,185,129,0.12)",color:"#10B981",fontFamily:F}}>✓ Concluída</span>}
               </div>}
             </div>
@@ -1216,6 +1218,13 @@ function TaskViewModal({task,color,projectName,projectEmoji,onToggle,onUpdate,on
                 <span style={{fontSize:10,color:tc.textMuted,fontWeight:700,display:"block",marginBottom:6,textTransform:"uppercase",letterSpacing:0.6}}>Prioridade</span>
                 <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>{Object.entries(priorityConfig).map(([k,v])=>(<button key={k} onClick={()=>setEditPriority(k)} style={{padding:"4px 10px",fontSize:10,fontWeight:600,borderRadius:6,border:"none",cursor:"pointer",fontFamily:F,background:editPriority===k?v.dot:v.bg,color:editPriority===k?"#fff":v.dot,transition:"all 0.15s"}}>{v.label}</button>))}</div>
               </div>
+            </div>
+          )}
+
+          {/* Recorrência (edição) */}
+          {editing&&(
+            <div style={{marginBottom:14}}>
+              <RecurringToggle value={editRecurring} onChange={setEditRecurring} color={color} tc={tc}/>
             </div>
           )}
 
@@ -1289,6 +1298,7 @@ function TaskItem({task,color,onToggle,onUpdate,onDelete,projectName,projectEmoj
             <div style={{display:"flex",alignItems:"center",gap:6,marginTop:5,flexWrap:"wrap"}}>
               {projectName&&<span style={{fontSize:9,fontWeight:600,padding:"2px 6px",borderRadius:4,background:`${color}20`,color,fontFamily:F,whiteSpace:"nowrap"}}>{projectName}</span>}
               {dayInfo&&<span style={{fontSize:10,fontWeight:600,padding:"2px 7px",borderRadius:5,background:tc.tagBg,color:tc.tagColor,fontFamily:F}}>{dayInfo.label}</span>}
+              {task.recurring&&<span title="Repete toda semana" style={{display:"flex",alignItems:"center"}}><RepeatIcon size={11} color={color}/></span>}
               <div style={{width:8,height:8,borderRadius:"50%",flexShrink:0,background:priorityConfig[task.priority].dot}}/>
             </div>
           </div>
@@ -1320,6 +1330,7 @@ function TaskItem({task,color,onToggle,onUpdate,onDelete,projectName,projectEmoj
           )}
           <div style={{marginBottom:8}}><span style={{fontSize:10,color:tc.textMuted,fontWeight:600,display:"block",marginBottom:5,textTransform:"uppercase",letterSpacing:0.5}}>Dia</span><div style={{display:"flex",gap:3,flexWrap:"wrap"}}>{activeDays.map(d=>(<button key={d.key} onClick={()=>{const isChanging=task.day!==d.key;onUpdate({day:d.key});if(isChanging){if(onOpen)onOpen(null);if(onEditingChange)onEditingChange(false);}}} style={{padding:"4px 7px",fontSize:10,fontWeight:600,borderRadius:6,border:"none",cursor:"pointer",fontFamily:F,background:task.day===d.key?color:tc.inputBg,color:task.day===d.key?"#fff":tc.textSub,transition:"all 0.15s ease"}}>{d.label}</button>))}</div></div>
           <div style={{marginBottom:onMoveWeek?10:0}}><span style={{fontSize:10,color:tc.textMuted,fontWeight:600,display:"block",marginBottom:5,textTransform:"uppercase",letterSpacing:0.5}}>Prioridade</span><div style={{display:"flex",gap:4,flexWrap:"wrap"}}>{Object.entries(priorityConfig).map(([k,v])=>(<button key={k} onClick={()=>onUpdate({priority:k})} style={{padding:"4px 10px",fontSize:10,fontWeight:600,borderRadius:6,border:"none",cursor:"pointer",fontFamily:F,background:task.priority===k?v.dot:v.bg,color:task.priority===k?"#fff":v.dot,transition:"all 0.15s ease"}}>{v.label}</button>))}</div></div>
+          <div style={{marginTop:onMoveWeek?0:10,marginBottom:10}}><RecurringToggle value={!!task.recurring} onChange={v=>onUpdate({recurring:v})} color={color} tc={tc} compact/></div>
           {onMoveWeek&&(<div style={{marginBottom:10}}><span style={{fontSize:10,color:tc.textMuted,fontWeight:600,display:"block",marginBottom:5,textTransform:"uppercase",letterSpacing:0.5}}>Semana</span>{onMoveWeek}</div>)}
           {onDelete&&(<div style={{paddingTop:6,borderTop:`1px solid ${tc.divider}`}}>
             {showDeleteConfirm?(
@@ -1355,6 +1366,25 @@ function DescriptionEditor({task,color,onUpdate,tc}){
   return(
     <button onClick={()=>setEditing(true)} style={{display:"flex",alignItems:"flex-start",gap:6,padding:"6px 10px",borderRadius:8,background:tc.inputBg,border:`1px solid ${tc.cardBorder}`,color:task.description?tc.textSub:tc.textMuted,fontSize:12,cursor:"pointer",fontFamily:F,width:"100%",textAlign:"left",whiteSpace:"pre-wrap",wordBreak:"break-word",fontStyle:task.description?"normal":"italic"}}>
       {task.description?task.description:"✏️ Adicionar descrição..."}
+    </button>
+  );
+}
+
+/* ─── Ícone e interruptor de recorrência ─── */
+function RepeatIcon({size=12,color}){
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>;
+}
+function RecurringToggle({value,onChange,color,tc,compact=false}){
+  return(
+    <button type="button" data-no-drag onClick={()=>onChange(!value)} style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:compact?"7px 10px":"9px 12px",borderRadius:10,border:`1px solid ${value?color+"55":tc.cardBorder}`,background:value?`${color}14`:tc.inputBg,cursor:"pointer",fontFamily:F,textAlign:"left",transition:"all 0.15s ease"}}>
+      <RepeatIcon size={compact?12:14} color={value?color:tc.textMuted}/>
+      <span style={{flex:1,minWidth:0}}>
+        <span style={{display:"block",fontSize:compact?11:12,fontWeight:600,color:value?color:tc.textSub}}>Repetir toda semana</span>
+        {!compact&&<span style={{display:"block",fontSize:10,color:tc.textMuted,marginTop:1}}>Ao completar a semana, a tarefa volta desmarcada</span>}
+      </span>
+      <span style={{width:30,height:17,borderRadius:9,background:value?color:tc.cardBorder,position:"relative",flexShrink:0,transition:"background 0.15s ease"}}>
+        <span style={{position:"absolute",top:2,left:value?15:2,width:13,height:13,borderRadius:"50%",background:"#fff",transition:"left 0.15s ease"}}/>
+      </span>
     </button>
   );
 }
@@ -1528,15 +1558,16 @@ function AddTaskInput({color,onAdd,c,projects,requireCategory,defaultDay}){
   const [priority,setPriority]=useState("low");
   const [projectId,setProjectId]=useState(()=>projects&&projects.length>0?projects[0].id:"");
   const [attachments,setAttachments]=useState([]);
+  const [recurring,setRecurring]=useState(false);
   const handleAdd=()=>{
     if(!text.trim())return;
     if(requireCategory&&!projectId)return;
-    onAdd(text.trim(),day,priority,requireCategory?projectId:undefined,attachments,description.trim());
-    setText("");setDescription("");setDay(initialDay);setPriority("low");setAttachments([]);
+    onAdd(text.trim(),day,priority,requireCategory?projectId:undefined,attachments,description.trim(),recurring);
+    setText("");setDescription("");setDay(initialDay);setPriority("low");setAttachments([]);setRecurring(false);
     setProjectId(projects&&projects.length>0?projects[0].id:"");
     setIsOpen(false);
   };
-  const reset=()=>{setIsOpen(false);setText("");setDescription("");setDay(defaultDay||todayKey);setPriority("low");setAttachments([]);setProjectId(projects&&projects.length>0?projects[0].id:"");};
+  const reset=()=>{setIsOpen(false);setText("");setDescription("");setDay(defaultDay||todayKey);setPriority("low");setAttachments([]);setRecurring(false);setProjectId(projects&&projects.length>0?projects[0].id:"");};
   const tc = c || themes.dark;
   const selectedProject = requireCategory&&projects ? projects.find(p=>p.id===projectId) : null;
   const activeColor = selectedProject ? selectedProject.color : (color||"#3B82F6");
@@ -1594,6 +1625,9 @@ function AddTaskInput({color,onAdd,c,projects,requireCategory,defaultDay}){
             <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>{Object.entries(priorityConfig).map(([k,v])=>(<button type="button" key={k} onClick={()=>setPriority(k)} style={{padding:"4px 10px",fontSize:10,fontWeight:600,borderRadius:6,border:"none",cursor:"pointer",fontFamily:F,background:priority===k?v.dot:v.bg,color:priority===k?"#fff":v.dot,transition:"all 0.15s"}}>{v.label}</button>))}</div>
           </div>
         </div>
+
+        {/* Recorrência */}
+        <RecurringToggle value={recurring} onChange={setRecurring} color={activeColor} tc={tc}/>
 
         {/* Anexos */}
         <div>
@@ -1721,7 +1755,7 @@ function ProjectCard({project,onToggleTask,onUpdateTask,onDeleteTask,onAddTask,o
           </div>
         </div>
       </div>)}
-      {isExpanded&&(<div style={{padding:"0 14px 14px",display:"flex",flexDirection:"column",gap:6}}>{[...project.tasks].sort((a,b)=>{const done=(a.done?1:0)-(b.done?1:0);if(done!==0)return done;const o={high:0,medium:1,low:2};const p=o[a.priority]-o[b.priority];if(p!==0)return p;const d=dayRank(a.day)-dayRank(b.day);if(d!==0)return d;return a.text.localeCompare(b.text,"pt-BR");}).map(task=>(<TaskItem key={task.id} task={task} color={project.color} projectName={project.name} projectEmoji={project.emoji} onToggle={()=>onToggleTask(project.id,task.id)} onUpdate={u=>onUpdateTask(project.id,task.id,u)} onDelete={()=>onDeleteTask(project.id,task.id)} onMoveWeek={taskMoveWeek?taskMoveWeek(project.id,task.id):null} openTaskId={openTaskId} onOpen={onOpen} c={tc}/>))}<AddTaskInput color={project.color} onAdd={(text,day,priority,_,att,desc)=>onAddTask(project.id,text,day,priority,att,desc)} c={tc}/></div>)}
+      {isExpanded&&(<div style={{padding:"0 14px 14px",display:"flex",flexDirection:"column",gap:6}}>{[...project.tasks].sort((a,b)=>{const done=(a.done?1:0)-(b.done?1:0);if(done!==0)return done;const o={high:0,medium:1,low:2};const p=o[a.priority]-o[b.priority];if(p!==0)return p;const d=dayRank(a.day)-dayRank(b.day);if(d!==0)return d;return a.text.localeCompare(b.text,"pt-BR");}).map(task=>(<TaskItem key={task.id} task={task} color={project.color} projectName={project.name} projectEmoji={project.emoji} onToggle={()=>onToggleTask(project.id,task.id)} onUpdate={u=>onUpdateTask(project.id,task.id,u)} onDelete={()=>onDeleteTask(project.id,task.id)} onMoveWeek={taskMoveWeek?taskMoveWeek(project.id,task.id):null} openTaskId={openTaskId} onOpen={onOpen} c={tc}/>))}<AddTaskInput color={project.color} onAdd={(text,day,priority,_,att,desc,rec)=>onAddTask(project.id,text,day,priority,att,desc,rec)} c={tc}/></div>)}
     </div>
     </>
   );
@@ -1845,7 +1879,7 @@ function ColumnProjectCard({project:p,done,total,pct,idx,projectsLen,reorderMode
       </div>
       <div style={{padding:"8px 8px 12px",display:"flex",flexDirection:"column",gap:5}}>
         {[...p.tasks].sort((a,b)=>{const done=(a.done?1:0)-(b.done?1:0);if(done!==0)return done;const o={high:0,medium:1,low:2};const pr=o[a.priority]-o[b.priority];if(pr!==0)return pr;const d=dayRank(a.day)-dayRank(b.day);if(d!==0)return d;return a.text.localeCompare(b.text,"pt-BR");}).map(task=>(<TaskItem key={task.id} task={task} color={p.color} projectName={p.name} projectEmoji={p.emoji} onToggle={()=>onToggleTask(p.id,task.id)} onUpdate={u=>onUpdateTask(p.id,task.id,u)} onDelete={()=>onDeleteTask(p.id,task.id)} onMoveWeek={taskMoveWeekFn(p.id,task.id)} openTaskId={openTaskId} onOpen={onOpen} c={tc}/>))}
-        <AddTaskInput color={p.color} onAdd={(text,day,priority,_,att,desc)=>onAddTask(p.id,text,day,priority,att,desc)} c={tc}/>
+        <AddTaskInput color={p.color} onAdd={(text,day,priority,_,att,desc,rec)=>onAddTask(p.id,text,day,priority,att,desc,rec)} c={tc}/>
       </div>
     </div>
     </>
@@ -2057,6 +2091,18 @@ function UserSettingsModal({userName,profile,onSave,onClose,c}){
 
 /* ─── Changelog (editar aqui para adicionar novidades) ─── */
 const CHANGELOG = [
+  {
+    version: "v2.36",
+    date: "02/11/2026",
+    badge: "novo",
+    title: "Tarefas recorrentes",
+    items: [
+      "Nova opção \"Repetir toda semana\" ao criar ou editar uma tarefa",
+      "Ao completar a semana, a tarefa recorrente vai para o histórico como concluída e volta desmarcada para a semana, no mesmo projeto, dia e prioridade",
+      "Tarefas recorrentes mostram um ícone de repetição no balão",
+      "Para parar de repetir, é só desligar a opção na tarefa",
+    ],
+  },
   {
     version: "v2.35",
     date: "02/11/2026",
@@ -2961,13 +3007,13 @@ export default function App(){
     }
   },[updateProjects]);
 
-  const addTask=useCallback((pid,text,day,priority,attachments,description)=>updateProjects(ps=>ps.map(p=>{if(p.id!==pid)return p;return{...p,tasks:[...p.tasks,{id:`${p.id}_${Date.now()}`,text,done:false,priority:priority||"medium",day:day||"seg",attachments:attachments||[],description:description||""}]};})),[updateProjects]);
+  const addTask=useCallback((pid,text,day,priority,attachments,description,recurring)=>updateProjects(ps=>ps.map(p=>{if(p.id!==pid)return p;return{...p,tasks:[...p.tasks,{id:`${p.id}_${Date.now()}`,text,done:false,priority:priority||"medium",day:day||"seg",attachments:attachments||[],description:description||"",...(recurring?{recurring:true}:{})}]};})),[updateProjects]);
   const deleteTask=useCallback((pid,tid)=>updateProjects(ps=>ps.map(p=>p.id===pid?{...p,tasks:p.tasks.filter(t=>t.id!==tid)}:p)),[updateProjects]);
 
   // addTaskToProject: usado na view dias da semana (pid vem do seletor de categoria)
-  const addTaskToProject=useCallback((text,day,priority,pid,attachments,description)=>{
+  const addTaskToProject=useCallback((text,day,priority,pid,attachments,description,recurring)=>{
     if(!pid)return;
-    addTask(pid,text,day,priority,attachments,description);
+    addTask(pid,text,day,priority,attachments,description,recurring);
   },[addTask]);
 
   const editProject=useCallback((pid,u)=>updateProjects(ps=>ps.map(p=>p.id===pid?{...p,...u}:p)),[updateProjects]);
@@ -3061,6 +3107,9 @@ export default function App(){
     window.storage.set(userHistoryKey(userName),JSON.stringify(newH)).catch(()=>{});
     setWeeks(prev=>{
       const arr=[...prev];
+      // Guarda as recorrentes concluídas antes de limpar (voltam desmarcadas no fim)
+      const recurringByProject={};
+      arr[activeWeekIdx].projects.forEach(p=>{const r=p.tasks.filter(t=>t.done&&t.recurring);if(r.length)recurringByProject[p.id]=r;});
       // Remove tarefas concluídas da semana atual
       arr[activeWeekIdx]={...arr[activeWeekIdx],projects:arr[activeWeekIdx].projects.map(p=>({...p,tasks:p.tasks.filter(t=>!t.done)}))};
       // Se existe próxima semana, mescla tarefas dela na atual e limpa
@@ -3076,6 +3125,16 @@ export default function App(){
         arr[0]={...cur,projects:mergedProjects};
         arr[1]={...nxt,projects:nxt.projects.map(p=>({...p,tasks:[]})),title:""};
       }
+      // Recorrentes: recria desmarcadas no mesmo projeto. Se já houver uma igual em aberto
+      // (ex.: veio da próxima semana), não duplica e só marca essa como recorrente.
+      arr[activeWeekIdx]={...arr[activeWeekIdx],projects:arr[activeWeekIdx].projects.map(p=>{
+        const r=recurringByProject[p.id];
+        if(!r)return p;
+        const texts=new Set(r.map(t=>t.text));
+        const tasks=p.tasks.map(x=>!x.done&&texts.has(x.text)&&!x.recurring?{...x,recurring:true}:x);
+        const add=r.filter(t=>!tasks.some(x=>!x.done&&x.text===t.text)).map((t,i)=>({...t,id:`${p.id}_rec_${Date.now()}_${i}`,done:false}));
+        return {...p,tasks:[...tasks,...add]};
+      })};
       return arr;
     });
     setShowConfirm(false);
@@ -3279,6 +3338,7 @@ export default function App(){
         {showConfirm&&(<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",backdropFilter:"blur(4px)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,animation:"fadeIn 0.2s ease",padding:16}} onClick={()=>setShowConfirm(false)}><div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:460,maxHeight:"85vh",overflowY:"auto",background:c.modalBg,border:`1px solid ${c.cardBorder}`,borderRadius:20,padding:24,boxShadow:theme.mode==="light"?"0 8px 40px rgba(0,0,0,0.15)":"0 8px 40px rgba(0,0,0,0.5)"}}>
           <h2 style={{fontSize:18,fontWeight:800,color:c.text,margin:"0 0 4px",fontFamily:FS}}>Completar semana</h2>
           <p style={{fontSize:12,color:c.textMuted,margin:"0 0 10px",fontFamily:F}}>{weeks[activeWeekIdx]?.title||(activeWeekIdx===0?"Semana Atual":"Próxima Semana")}</p>
+          {(()=>{const n=projects.reduce((s2,p)=>s2+p.tasks.filter(t=>t.done&&t.recurring).length,0);return n>0?<div style={{display:"flex",alignItems:"center",gap:6,padding:"8px 12px",borderRadius:8,background:"rgba(59,130,246,0.08)",border:"1px solid rgba(59,130,246,0.2)",marginBottom:14}}><RepeatIcon size={12} color="#3B82F6"/><span style={{fontSize:11,color:"#3B82F6",fontWeight:600,fontFamily:F}}>{n===1?"1 tarefa recorrente volta para a semana, desmarcada":`${n} tarefas recorrentes voltam para a semana, desmarcadas`}</span></div>:null;})()}
           {weeks[1]&&weeks[1].projects.some(p=>p.tasks.length>0)&&<div style={{display:"flex",alignItems:"center",gap:6,padding:"8px 12px",borderRadius:8,background:"rgba(16,185,129,0.08)",border:"1px solid rgba(16,185,129,0.2)",marginBottom:14}}><span style={{fontSize:12}}>⬆</span><span style={{fontSize:11,color:"#10B981",fontFamily:F,fontWeight:500}}>As tarefas da Próxima Semana serão puxadas para a Semana Atual</span></div>}
           <div style={{marginBottom:16}}><div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}><div style={{width:8,height:8,borderRadius:"50%",background:"#10B981"}}/><span style={{fontSize:12,fontWeight:700,color:"#10B981",fontFamily:F}}>Concluídas ({totalDone})</span></div>{doneProjects.map((p,i)=>(<div key={i} style={{marginBottom:6,paddingLeft:4}}><div style={{display:"flex",alignItems:"center",gap:6,marginBottom:3}}><span style={{fontSize:14}}>{p.emoji}</span><span style={{fontSize:11,fontWeight:700,color:p.color,fontFamily:F}}>{p.name}</span></div>{p.doneTasks.map((t,k)=>(<div key={k} style={{display:"flex",alignItems:"center",gap:6,padding:"2px 0 2px 22px"}}><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="3" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg><span style={{fontSize:11,color:c.textSub,fontFamily:F}}>{t.text}</span></div>))}</div>))}</div>
           {totalPending>0&&<div style={{marginBottom:18}}><div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}><div style={{width:8,height:8,borderRadius:"50%",background:"#F59E0B"}}/><span style={{fontSize:12,fontWeight:700,color:"#D97706",fontFamily:F}}>Pendentes — permanecem ({totalPending})</span></div>{pendingProjects.map((p,i)=>(<div key={i} style={{marginBottom:6,paddingLeft:4}}><div style={{display:"flex",alignItems:"center",gap:6,marginBottom:3}}><span style={{fontSize:14}}>{p.emoji}</span><span style={{fontSize:11,fontWeight:700,color:p.color,fontFamily:F}}>{p.name}</span></div>{p.pendingTasks.map((t,k)=>(<div key={k} style={{display:"flex",alignItems:"center",gap:6,padding:"2px 0 2px 22px"}}><div style={{width:8,height:8,borderRadius:4,border:`1.5px solid ${c.textMuted}`,flexShrink:0}}/><span style={{fontSize:11,color:c.textSub,fontFamily:F}}>{t.text}</span></div>))}</div>))}</div>}
