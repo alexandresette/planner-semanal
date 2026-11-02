@@ -2,11 +2,29 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Coleção principal do app
-    match /storage/{document=**} {
-      // Exige Firebase Auth (anônima ou Google) — bloqueia acesso direto via API/curl
-      // O app faz signInAnonymously() automaticamente ao carregar
-      allow read, write: if request.auth != null;
+    // Coleção principal do app. O login é conferido nas Cloud Functions, que emitem
+    // um custom token com uid = username e claim admin para o xande.
+    match /storage/{key} {
+      function signedIn() { return request.auth != null; }
+      function isAdmin() { return signedIn() && request.auth.token.admin == true; }
+
+      // Chaves que pertencem ao próprio usuário
+      function ownsKey() {
+        let u = request.auth.uid;
+        return signedIn() && (
+          key == 'gestor-' + u + '-data' ||
+          key == 'gestor-' + u + '-history' ||
+          key == 'planner-' + u + '-profile' ||
+          key == 'last-seen-' + u ||
+          key.matches('backup-(gestor-' + u + '-(data|history)|planner-' + u + '-profile|last-seen-' + u + ')-[0-9]+')
+        );
+      }
+
+      allow read, write: if isAdmin() || ownsKey();
+      // Novidade fixada pelo admin: todos os logados leem
+      allow read: if signedIn() && key == 'whats-new-pinned';
+      // Credenciais, convites, tokens de reset e tentativas de login:
+      // só o admin (pelo app) e as Cloud Functions (Admin SDK ignora as regras)
     }
 
     // Bloquear tudo mais por padrão

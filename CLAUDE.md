@@ -27,7 +27,7 @@ Planner semanal pessoal (PWA) usado pelo Xande e pela Déa para organizar tarefa
 - Firebase 12: Firestore + Auth (anônimo + Google) + Cloud Functions v2 (região `southamerica-east1`)
 - Projeto Firebase: `planner-semanal-7`
 - Hospedagem: GitHub Pages servindo a branch `gh-pages` (raiz), domínio customizado, HTTPS forçado. O build sai em `docs/`, que também é versionado na `main`.
-- E-mail: Resend (domínio plannersemanal.com) via Cloud Functions `sendInviteEmail` e `sendResetEmail` (ambas `onRequest`, chave via `defineSecret("RESEND_API_KEY")`, CORS com lista de origens). O front chama por `fetch` em `storage.js` (`callSendInviteEmail`, `callSendResetEmail`).
+- Identidade e e-mail: Cloud Functions callables (`onCall`, região southamerica-east1): `login`, `loginGoogle`, `register`, `inviteStatus`, `requestPasswordReset`, `resetPassword`, `sendInvite`. O front chama com `callFn(nome, dados)` de `storage.js`. E-mail pelo Resend (`defineSecret("RESEND_API_KEY")`).
 - Fontes: DM Sans (corpo, const `F`) e Inter (títulos, const `FS`). Syne foi abandonada.
 - Tema dark padrão (`#0B1120` de fundo), com toggle light/dark (`useTheme`, chave `planner-theme`)
 - Ambiente local verificado em 2026-11-02: Node 25 no Mac, build em ~1s, bundle único de ~810 kB (aviso do Vite de chunk > 500 kB)
@@ -63,7 +63,8 @@ Coleção `storage` no Firestore, um documento por chave (valor em JSON string):
 - `gestor-${user}-data`: array de semanas `{ id, sun, sat, title?, projects }`
 - `gestor-${user}-history`: semanas concluídas `{ week, date, projects, total }`, máximo 52
 - `planner-${user}-profile`: `{ displayName, photoURL, activeDays? }`
-- `user-creds-${username}`: `{ username, hash, email }` (hash vazio em conta só Google)
+- `user-creds-${username}`: `{ username, hash, email }` (hash = SHA-256 de `username:senha`; vazio em conta só Google). Inclui `user-creds-xande` desde a v2.35
+- `login-attempts-${id}`: contador da trava de login (5 erros, bloqueio de 15 min)
 - `admin-invites`: lista `{ email, createdAt }`
 - `last-seen-${user}`: timestamp do último acesso (mostrado no painel admin)
 - `reset-token-${token}`: `{ username, email, expiresAt }`, vale 1 hora
@@ -77,19 +78,22 @@ localStorage: cache de cada chave do Firestore com `${chave}__meta` (`{ updatedA
 
 ## Funcionalidades atuais
 
-**Autenticação e segurança**
-- Login por e-mail + senha (hash SHA-256 de `user:senha`) e login Google; usuário fixo resolvido por `GMAIL_MAP`/`CREDENTIALS`, demais em `user-creds-*`
+**Autenticação e segurança (v2.35)**
+- A senha é conferida na function `login` (por e-mail ou username), que devolve um custom token com uid = username e claim `admin` para o xande; o front entra com `signInWithCustomToken`
+- Login Google: o front entra com Google e chama `loginGoogle`, que mapeia o e-mail para o usuário (ou cria a conta se houver convite) e devolve o custom token
+- Sessão local `{ user, token, ts }` só é restaurada se `auth.currentUser.uid` for o mesmo usuário; caso contrário volta ao login sem apagar o cache do próprio usuário
+- Regras do Firestore: cada uid lê e grava só `gestor-<uid>-*`, `planner-<uid>-profile`, `last-seen-<uid>` e seus `backup-*`; admin acessa tudo; `whats-new-pinned` é leitura para logados. Credenciais, convites e tokens só via functions ou admin
+- Nada de hash de senha nem login anônimo no bundle
 - "Esqueci a senha": gera token de 1 hora, envia link `?reset=` por e-mail; após redefinir, força novo login
 - Convites via `?invite=`, reset via `?reset=`; ambos têm prioridade sobre sessão ativa e são tratados na raiz do App
 - Convidado com Gmail vê só o botão Google (`GoogleInviteScreen`, conta criada automaticamente); demais criam nome e senha (`FirstAccessScreen`), username gerado a partir do e-mail
-- Regras do Firestore exigem `request.auth != null` (auth anônimo garantido pelo `ensureAuth()`); fora da coleção `storage` tudo é negado
 - `activeUserRef` funciona como trava de escrita: na troca de usuário, `weeks` e `history` são limpos e só voltam a persistir depois do load do usuário certo
 - Painel admin (botão roxo, sempre primeiro no header): convidar por e-mail, convites pendentes, usuários ativos com último acesso, limpar dados de usuário, excluir usuário
 
 **Semanas e tarefas**
 - Semana atual + próxima, título editável inline (`WeekTitleEditor`)
 - Views: Projetos e Dias da Semana. Layouts: Lista e Colunas; abaixo de 768px o layout é forçado para lista (listener de resize)
-- Tarefa com prioridade, dia, descrição e anexos (foto, vídeo, documento/PDF, link com embed de YouTube, Vimeo, Google Drive e Loom)
+- Tarefa com prioridade, dia, descrição e anexos (foto, vídeo, documento/PDF, link com embed de YouTube, Vimeo, Google Drive e Loom). Foto é redimensionada (1600px) e comprimida para cerca de 250 KB no navegador; vídeo e documento têm teto de 400 KB; aviso no topo quando as semanas passam de 850 KB (limite do documento do Firestore é 1 MiB)
 - Clique na tarefa abre `TaskViewModal` (visualização + edição completa); o menu de três pontos abre o painel inline de edição
 - Ordenação: concluídas por último, depois prioridade, depois dia (dom a sáb, sem dia por último), depois texto
 - Adicionar tarefa direto no card do dia (exige escolher projeto); Enter cria a tarefa, exceto dentro da textarea de descrição
@@ -115,13 +119,13 @@ localStorage: cache de cada chave do Firestore com `${chave}__meta` (`{ updatedA
 - Foto com upload e recorte circular via canvas, nome de exibição, avatar no header, foto do Google no login, dias ativos
 
 **Sincronização (storage.js)**
-- `ensureAuth()` tenta o login anônimo de novo a cada 10s se ele falhou, então uma aba aberta se recupera sozinha quando o Firebase volta
+- `ensureAuth()` só espera o estado inicial do Firebase Auth; sem login as leituras caem no cache local
 - Gravação que falha fica no localStorage com `pendingSync` e a `baseUpdatedAt` (versão do Firestore sobre a qual foi feita)
 - No próximo `get`, a pendência sobe se o Firestore ainda está na mesma base; se mudou (ou não há base conhecida), a cópia local vira `backup-*` no Firestore e o remoto vence
 
 **E-mail (functions)**
-- `sendInviteEmail` só envia para e-mails presentes em `admin-invites`
-- `sendResetEmail` ignora o link vindo do cliente: extrai o token, confere `reset-token-*` (e-mail e validade) e monta o link com `APP_URL`
+- `sendInvite` (só admin) registra o convite em `admin-invites` e envia o e-mail
+- `requestPasswordReset` gera o token de 1 hora no servidor e monta o link com `APP_URL`; `resetPassword` valida o link e grava o novo hash
 
 **PWA**
 - `manifest.json`, ícones e `sw.js` (cache `planner-semanal-v1`)
@@ -178,7 +182,7 @@ A autenticação do push vem do `gh` (rodar `gh auth setup-git` uma vez se o git
 
 **Cloud Functions:** `firebase deploy --only functions --project planner-semanal-7 --account alexandresettesf@gmail.com` (a conta padrão do Firebase CLI no Mac é outra, por isso o `--account`). Runtime Node 22, firebase-functions 7, firebase-admin 13. O deploy leva mais de 1 minuto (Firebase CLI autenticado na máquina do Xande). Se aparecer "No changes detected", `npm install --save firebase-functions@latest` dentro de `functions/` força o redeploy.
 
-**Regras do Firestore:** editar `firestore.rules` e publicar com `firebase deploy --only firestore:rules` ou pelo Console. A API de regras exige OAuth2.
+**Regras do Firestore:** editar `firestore.rules` e publicar com `firebase deploy --only firestore:rules --project planner-semanal-7 --account alexandresettesf@gmail.com`. Ao mudar o modelo de acesso, publicar o front antes das regras.
 
 ## Aprendizados técnicos (não repetir esses erros)
 
@@ -203,6 +207,8 @@ A autenticação do push vem do `gh` (rodar `gh auth setup-git` uma vez se o git
 - **Cache local não pode vencer o Firestore às cegas, nem ser descartado às cegas.** Sem a `baseUpdatedAt`, um aparelho que carregou os projetos padrão durante a falha subiria esses padrões por cima dos dados reais. Por isso a pendência só sobe com base igual à remota; o resto vira backup.
 - **Function de e-mail que aceita link do cliente é um relay de phishing.** Montar o link no servidor a partir de um token validado.
 - **Runtime de function aposentado bloqueia qualquer deploy.** O Node 20 foi desativado em 2026-10-30 e o deploy falhava antes de subir código. Subimos para Node 22 (`engines` no `functions/package.json`).
+- **Custom token exige permissão de assinar.** `createCustomToken` nas functions falha com `iam.serviceAccounts.signBlob denied` até a conta de serviço `361728306610-compute@developer.gserviceaccount.com` ter o papel "Criador de token da conta de serviço" (IAM do Google Cloud). A permissão leva uns 2 minutos para propagar.
+- **Ordem do deploy ao trocar autenticação:** functions, depois front, depois regras. Regras antes do front quebram o front antigo na hora.
 - **`npm run build` reescreve o `docs/` versionado.** Para só validar o ambiente, buildar em pasta temporária com `--outDir`.
 
 ## Pendências conhecidas (confirmar se ainda estão abertas)
@@ -211,8 +217,9 @@ A autenticação do push vem do `gh` (rodar `gh auth setup-git` uma vez se o git
 - Outros aparelhos (iPhone, iPad, Déa) podem ter edições locais feitas durante a falha: ao abrirem a v2.34, elas viram `backup-*` no Firestore. Conferir e mesclar.
 - CHANGELOG parado em v2.33: v2.33.1, v2.33.2 e os fixes de drag e Enter de maio/2026 não têm entrada. As datas de v2.0 a v2.20 estão com ano 2025 e provavelmente deveriam ser 2026.
 - `type="button"` só em 3 dos 108 botões do App.jsx. Não há `<form>` no app, então o risco hoje é baixo, mas a regra 6 não é cumprida no código antigo.
-- Segurança: a sessão é só `{ user, token }` no localStorage e o token não é validado em lugar nenhum, então editar o localStorage dá acesso a qualquer usuário. O hash de credencial do admin está no bundle público. Avaliar migrar a identidade para o Firebase Auth e regras por `request.auth.uid`.
-- Anexos em base64 dentro do documento `gestor-${user}-data`: o Firestore limita cada documento a 1 MiB, então poucas fotos ou um vídeo podem quebrar o salvamento da semana inteira. Avaliar Firebase Storage ou limite de tamanho no upload.
+- O hash da senha do xande ficou no histórico do git (repo público) até a v2.34. Trocar a senha pelo "Esqueci a senha" para invalidar o hash antigo.
+- Depois da v2.35 todo mundo precisa entrar de novo uma vez (a sessão antiga não tem o token novo). Confirmar com a Déa.
+- Anexos continuam em base64 dentro do documento da semana, agora comprimidos e limitados. Se o aviso de 850 KB aparecer com frequência, migrar anexos para o Firebase Storage.
 - Lixo versionado: `src/App.jsx.bak` e `functions/index.js.bak`.
 - Script `deploy` do package.json obsoleto (aponta para `dist`).
 - Stash local `local functions antes do pull 2026-11-02` ficou obsoleto (as functions já estão em firebase-functions 7); pode ser descartado com `git stash drop`.
@@ -237,6 +244,7 @@ Regras: fatos curtos, sem narrar a sessão inteira; nada de segredo; se o arquiv
 
 | Data | Versão | O que mudou |
 |------|--------|-------------|
+| 2026-11-02 | v2.35 | Login conferido no servidor com custom token, regras do Firestore por usuário, functions abertas removidas, anexos comprimidos e limitados |
 | 2026-11-02 | v2.34 | Envio de convite testado pelo Xande em produção após as correções: e-mail chegou |
 | 2026-11-02 | v2.34 | Provedor Anonymous reativado no Console; tarefas, histórico e convite perdidos na falha restaurados a partir dos backups |
 | 2026-11-02 | v2.34 | Diagnóstico do login anônimo bloqueado; sincronização com base remota, retry de auth e backup de pendências; functions de e-mail travadas e publicadas em Node 22 |
