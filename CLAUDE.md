@@ -176,7 +176,7 @@ cd ..
 ```
 A autenticação do push vem do `gh` (rodar `gh auth setup-git` uma vez se o git pedir senha). Nada de token embutido na URL. O script `npm run deploy` do package.json está obsoleto (aponta para `dist`), não usar.
 
-**Cloud Functions:** `cd functions && firebase deploy --only functions` (Firebase CLI autenticado na máquina do Xande). Se aparecer "No changes detected", `npm install --save firebase-functions@latest` dentro de `functions/` força o redeploy.
+**Cloud Functions:** `firebase deploy --only functions --project planner-semanal-7 --account alexandresettesf@gmail.com` (a conta padrão do Firebase CLI no Mac é outra, por isso o `--account`). Runtime Node 22, firebase-functions 7, firebase-admin 13. O deploy leva mais de 1 minuto (Firebase CLI autenticado na máquina do Xande). Se aparecer "No changes detected", `npm install --save firebase-functions@latest` dentro de `functions/` força o redeploy.
 
 **Regras do Firestore:** editar `firestore.rules` e publicar com `firebase deploy --only firestore:rules` ou pelo Console. A API de regras exige OAuth2.
 
@@ -202,12 +202,12 @@ A autenticação do push vem do `gh` (rodar `gh auth setup-git` uma vez se o git
 - **Login anônimo bloqueado derruba o app inteiro em silêncio.** Em 2026-11 o Firebase passou a recusar `signInAnonymously` com `auth/admin-restricted-operation` (opção de criar contas desligada em Authentication > Settings > User actions). Sem auth, as regras devolvem `permission-denied` em tudo, o app roda só com o cache local e usuário novo não entra. Diagnóstico rápido: `accounts:signUp` na Identity Toolkit API devolve `ADMIN_ONLY_OPERATION`.
 - **Cache local não pode vencer o Firestore às cegas, nem ser descartado às cegas.** Sem a `baseUpdatedAt`, um aparelho que carregou os projetos padrão durante a falha subiria esses padrões por cima dos dados reais. Por isso a pendência só sobe com base igual à remota; o resto vira backup.
 - **Function de e-mail que aceita link do cliente é um relay de phishing.** Montar o link no servidor a partir de um token validado.
+- **Runtime de function aposentado bloqueia qualquer deploy.** O Node 20 foi desativado em 2026-10-30 e o deploy falhava antes de subir código. Subimos para Node 22 (`engines` no `functions/package.json`).
 - **`npm run build` reescreve o `docs/` versionado.** Para só validar o ambiente, buildar em pasta temporária com `--outDir`.
 
 ## Pendências conhecidas (confirmar se ainda estão abertas)
 
 - URGENTE (2026-11-02): ligar "Enable create (sign-up)" em Authentication > Settings > User actions e conferir Anonymous e Google em Sign-in method. Sem isso o app não sincroniza e usuário novo não entra.
-- Deploy das functions travado: o Firebase CLI do Mac está logado em outra conta. Rodar `firebase login:add` com a conta dona do `planner-semanal-7`, depois `cd functions && firebase deploy --only functions --project planner-semanal-7`.
 - Revisar documentos `backup-*` no Firestore depois que a sincronização voltar e restaurar à mão o que for necessário.
 - CHANGELOG parado em v2.33: v2.33.1, v2.33.2 e os fixes de drag e Enter de maio/2026 não têm entrada. As datas de v2.0 a v2.20 estão com ano 2025 e provavelmente deveriam ser 2026.
 - `type="button"` só em 3 dos 108 botões do App.jsx. Não há `<form>` no app, então o risco hoje é baixo, mas a regra 6 não é cumprida no código antigo.
@@ -215,7 +215,7 @@ A autenticação do push vem do `gh` (rodar `gh auth setup-git` uma vez se o git
 - Anexos em base64 dentro do documento `gestor-${user}-data`: o Firestore limita cada documento a 1 MiB, então poucas fotos ou um vídeo podem quebrar o salvamento da semana inteira. Avaliar Firebase Storage ou limite de tamanho no upload.
 - Lixo versionado: `src/App.jsx.bak` e `functions/index.js.bak`.
 - Script `deploy` do package.json obsoleto (aponta para `dist`).
-- Stash local `local functions antes do pull 2026-11-02` com `firebase-functions` ^7.1.1 e lockfile, contra ^5.0.0 no repo. Decidir se sobe a versão ou descarta.
+- Stash local `local functions antes do pull 2026-11-02` ficou obsoleto (as functions já estão em firebase-functions 7); pode ser descartado com `git stash drop`.
 - Bundle de ~810 kB em um chunk só (Firebase inteiro). Code splitting pode melhorar o primeiro carregamento no iPhone.
 - `sw.js` com nome de cache fixo (`planner-semanal-v1`); se o SW passar a servir assets do cache, versionar o nome a cada deploy.
 - Resend: registros DKIM, SPF e MX de `send.plannersemanal.com` estão publicados no DNS. Falta só confirmar o status "verified" no painel do Resend.
@@ -238,7 +238,7 @@ Regras: fatos curtos, sem narrar a sessão inteira; nada de segredo; se o arquiv
 
 | Data | Versão | O que mudou |
 |------|--------|-------------|
-| 2026-11-02 | v2.34 | Diagnóstico do login anônimo bloqueado; sincronização com base remota, retry de auth e backup de pendências; functions de e-mail travadas (deploy pendente) |
+| 2026-11-02 | v2.34 | Diagnóstico do login anônimo bloqueado; sincronização com base remota, retry de auth e backup de pendências; functions de e-mail travadas e publicadas em Node 22 |
 | 2026-11-02 | v2.33 (+ fixes) | Projeto migrado para local; CLAUDE.md criado e revisado contra o código (modelo de dados, functions, PWA, relatório, anexos, novidades, pendências) |
 | 2026-05 | v2.32 a v2.33.2 | Drag com Pointer Events, dias ativos configuráveis, fixes de Enter e drag no desktop/iPad |
 | 2026-03 | v2.14 a v2.31 | Perfil com foto, convites por e-mail, login Google, anexos, relatório, novidades fixadas, guia do usuário, domínio plannersemanal.com, regras do Firestore, puxar próxima semana, impressão do histórico |
