@@ -218,7 +218,6 @@ A autenticação do push vem do `gh` (rodar `gh auth setup-git` uma vez se o git
 - Stash local `local functions antes do pull 2026-11-02` ficou obsoleto (as functions já estão em firebase-functions 7); pode ser descartado com `git stash drop`.
 - Bundle de ~810 kB em um chunk só (Firebase inteiro). Code splitting pode melhorar o primeiro carregamento no iPhone.
 - `sw.js` com nome de cache fixo (`planner-semanal-v1`); se o SW passar a servir assets do cache, versionar o nome a cada deploy.
-- Resend: registros DKIM, SPF e MX de `send.plannersemanal.com` estão publicados no DNS. Falta só confirmar o status "verified" no painel do Resend.
 
 Resolvidas na revisão de 2026-11-02: card de login responsivo (`width: "100%", maxWidth: 400`), texto do anel de progresso visível (texto dentro do SVG com `overflow: visible`), troca automática para lista abaixo de 768px, "Categoria" trocado por "Projeto" na UI (só sobra no texto histórico do CHANGELOG v2.0).
 
@@ -238,6 +237,7 @@ Regras: fatos curtos, sem narrar a sessão inteira; nada de segredo; se o arquiv
 
 | Data | Versão | O que mudou |
 |------|--------|-------------|
+| 2026-11-02 | v2.34 | Envio de convite testado pelo Xande em produção após as correções: e-mail chegou |
 | 2026-11-02 | v2.34 | Provedor Anonymous reativado no Console; tarefas, histórico e convite perdidos na falha restaurados a partir dos backups |
 | 2026-11-02 | v2.34 | Diagnóstico do login anônimo bloqueado; sincronização com base remota, retry de auth e backup de pendências; functions de e-mail travadas e publicadas em Node 22 |
 | 2026-11-02 | v2.33 (+ fixes) | Projeto migrado para local; CLAUDE.md criado e revisado contra o código (modelo de dados, functions, PWA, relatório, anexos, novidades, pendências) |
