@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, getDocs } from 'firebase/firestore';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 
 const firebaseConfig = {
@@ -18,37 +18,29 @@ export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 const functions = getFunctions(app, 'southamerica-east1');
 
-// Auth anônima: garante que todas as requisições ao Firestore tenham um token válido.
-// As Firestore Security Rules exigem request.auth != null — isso bloqueia acesso
-// direto via curl/API mas não expõe identidade do usuário.
-// Se o login anônimo falhar (rede, ou sign-up desligado no Console), ensureAuth()
-// tenta de novo a cada 10s nas próximas chamadas, para a aba se recuperar sozinha.
+// Identidade: o login é conferido no servidor (Cloud Functions), que devolve um
+// custom token com uid = username. As regras do Firestore usam esse uid para
+// liberar só as chaves do próprio usuário (admin tem claim "admin").
+// Sem login não há acesso ao Firestore; as leituras caem no cache local.
 const _authReadyPromise = new Promise(resolve => {
-  onAuthStateChanged(auth, user => {
-    if (user) {
-      resolve();
-    } else {
-      signInAnonymously(auth).catch(e => {
-        console.warn('[storage] signInAnonymously falhou:', e.code);
-        resolve(); // continuar mesmo sem auth (fallback local)
-      });
-    }
-  });
+  const unsub = onAuthStateChanged(auth, () => { unsub(); resolve(); });
 });
 
-let _lastAuthRetry = 0;
+export function authReady() {
+  return _authReadyPromise;
+}
+
 async function ensureAuth() {
   await _authReadyPromise;
-  if (auth.currentUser) return;
-  const now = Date.now();
-  if (now - _lastAuthRetry < 10000) return;
-  _lastAuthRetry = now;
-  try {
-    await signInAnonymously(auth);
-    console.log('[storage] login anônimo recuperado');
-  } catch (e) {
-    console.warn('[storage] nova tentativa de login anônimo falhou:', e.code);
-  }
+}
+
+// uid do Firebase Auth atual (username depois do login), ou null
+export function currentUid() {
+  return auth.currentUser ? auth.currentUser.uid : null;
+}
+
+export async function signInWithServerToken(token) {
+  await signInWithCustomToken(auth, token);
 }
 
 export async function signInWithGoogle() {
@@ -60,32 +52,16 @@ export async function firebaseSignOut() {
   await signOut(auth);
 }
 
-
-export async function callSendResetEmail(email, resetUrl) {
-  const url = "https://southamerica-east1-planner-semanal-7.cloudfunctions.net/sendResetEmail";
-  const response = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, resetUrl }),
-  });
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}));
-    throw new Error(err.error || "Falha ao enviar e-mail.");
+// Chama uma Cloud Function callable e devolve o resultado; erros viram Error com .code
+export async function callFn(name, data = {}) {
+  try {
+    const res = await httpsCallable(functions, name)(data);
+    return res.data;
+  } catch (e) {
+    const err = new Error(e.message || 'Falha na operação.');
+    err.code = (e.code || '').replace('functions/', '');
+    throw err;
   }
-  return response.json();
-}
-export async function callSendInviteEmail(email) {
-  const url = "https://sendinviteemail-32r6mebf5q-rj.a.run.app";
-  const response = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email }),
-  });
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}));
-    throw new Error(err.error || "Falha ao enviar e-mail.");
-  }
-  return response.json();
 }
 
 // Metadados do cache local: { updatedAt, baseUpdatedAt?, pendingSync? }

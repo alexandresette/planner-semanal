@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, createContext, useContext } from "react";
-import { signInWithGoogle, firebaseSignOut, auth, callSendInviteEmail, callSendResetEmail } from "./storage.js";
+import { signInWithGoogle, firebaseSignOut, callFn, signInWithServerToken, authReady, currentUid } from "./storage.js";
 
 const LOGO_DARK = `${import.meta.env.BASE_URL}logo.svg`;
 const LOGO_LIGHT = `${import.meta.env.BASE_URL}logo-light.svg`;
@@ -8,109 +8,23 @@ const AUTH_KEY = "gestor-auth";
 const USER_KEY = "gestor-user";
 const SESSION_TOKEN_KEY = "gestor-session-token";
 
-const CREDENTIALS = {
-  "xande": "df0a720d14ebe80f38b75efe20f84c740e176e3eca65183ddaf75999510c08e3",
-};
-
-// Mapeamento fixo de Gmail → usuário (hardcoded, não exposto na UI)
-const GMAIL_MAP = {
-  "alexandresettesf@gmail.com": "xande",
-};
-
 const ADMIN_USER = "xande";
 const ADMIN_INVITES_KEY = "admin-invites";
 const USER_CREDS_PREFIX = "user-creds-";
 
-// Normaliza email para chave de storage (sem caracteres especiais)
-function emailToKey(email) { return email.toLowerCase().replace(/[^a-z0-9]/g, "_"); }
-function googleUserKey(email) { return `google_${emailToKey(email)}`; }
-
+// Lista de convites: leitura e escrita liberadas só para o admin nas regras do Firestore
 async function loadInvites() {
   try { const r = await window.storage.get(ADMIN_INVITES_KEY); return r && r.value ? JSON.parse(r.value) : []; } catch { return []; }
 }
 async function saveInvites(list) {
   await window.storage.set(ADMIN_INVITES_KEY, JSON.stringify(list));
 }
-async function loadDynamicCreds() {
-  try {
-    const keys = await window.storage.list(USER_CREDS_PREFIX);
-    const creds = {};
-    for (const k of (keys.keys || [])) {
-      const r = await window.storage.get(k); if (r && r.value) { const d = JSON.parse(r.value); creds[d.username] = { hash: d.hash, email: d.email }; }
-    }
-    return creds;
-  } catch { return {}; }
-}
-async function saveDynamicCred(username, hash, email) {
-  await window.storage.set(`${USER_CREDS_PREFIX}${username}`, JSON.stringify({ username, hash, email }));
-}
-async function isEmailInvited(email) {
-  const list = await loadInvites(); return list.some(i => i.email.toLowerCase() === email.toLowerCase());
-}
-async function isEmailRegistered(email) {
-  try {
-    const keys = await window.storage.list(USER_CREDS_PREFIX);
-    for (const k of (keys.keys || [])) {
-      const r = await window.storage.get(k); if (r && r.value) { const d = JSON.parse(r.value); if (d.email && d.email.toLowerCase() === email.toLowerCase()) return true; }
-    }
-    return false;
-  } catch { return false; }
-}
-async function getUsernameByEmail(email) {
-  const em = email.toLowerCase().trim();
-  // Primeiro: checar GMAIL_MAP (usuários hardcoded)
-  if (GMAIL_MAP[em]) return GMAIL_MAP[em];
-  // Depois: buscar no Firestore (usuários dinâmicos)
-  try {
-    const keys = await window.storage.list(USER_CREDS_PREFIX);
-    for (const k of (keys.keys || [])) {
-      const r = await window.storage.get(k); if (r && r.value) { const d = JSON.parse(r.value); if (d.email && d.email.toLowerCase() === em) return d.username; }
-    }
-    return null;
-  } catch { return null; }
-}
 
-async function hashStr(input) {
-  const encoded = new TextEncoder().encode(input);
-  const buf = await crypto.subtle.digest("SHA-256", encoded);
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
-}
-async function verifyCredentials(user, pin) {
-  const u = user.toLowerCase().trim();
-  // Checar credenciais dinâmicas no Firestore — busca exata primeiro
-  try {
-    const r = await window.storage.get(`${USER_CREDS_PREFIX}${u}`);
-    if (r && r.value) {
-      const d = JSON.parse(r.value);
-      if (d.hash) {
-        const computed = await hashStr(`${u}:${pin}`);
-        return computed === d.hash;
-      }
-    } else {
- }
-  } catch (e) {
- }
-  // Busca ampla
-  try {
-    const keys = await window.storage.list(USER_CREDS_PREFIX);
-    for (const k of (keys.keys || [])) {
-      const r = await window.storage.get(k).catch(() => null);
-      if (r && r.value) {
-        const d = JSON.parse(r.value);
-        if (d.username && d.username.toLowerCase().trim() === u && d.hash) {
-          const computed = await hashStr(`${u}:${pin}`);
-          return computed === d.hash;
-        }
-      }
-    }
-  } catch (e) {
- }
-  // Fallback hardcoded
-  if (CREDENTIALS[u]) {
-    const computed = await hashStr(`${u}:${pin}`);
-    return computed === CREDENTIALS[u];
-  }
-  return false;
+// Login, cadastro, convite e reset são conferidos no servidor (Cloud Functions).
+// O servidor devolve um token; entrar com ele faz o uid do Firebase ser o username.
+async function enterWithToken(result) {
+  await signInWithServerToken(result.token);
+  return result.username;
 }
 
 function userDataKey(user) { return `gestor-${user}-data`; }
@@ -520,21 +434,13 @@ function GoogleInviteScreen({invitedEmail,onSuccess,onBack,theme}){
         setError(`Use a conta ${invitedEmail} para aceitar este convite.`);
         setLoading(false);return;
       }
-      // Verificar se já tem conta criada
-      const existing=await getUsernameByEmail(em);
-      if(existing){onSuccess(existing,firebaseUser.photoURL||"");return;}
-      // Criar conta automaticamente — username gerado a partir do e-mail
-      const base=em.split("@")[0].toLowerCase().replace(/[^a-z0-9]/g,"");
-      let u=base;let suffix=1;
-      while(CREDENTIALS[u]||(await window.storage.get(`${USER_CREDS_PREFIX}${u}`).catch(()=>null))?.value){u=`${base}${suffix++}`;}
-      // Sem senha — conta só-Google (hash vazio, autenticação é pelo Google)
-      await saveDynamicCred(u,"",em);
-      const displayName=firebaseUser.displayName||em.split("@")[0];
-      const photoURL=firebaseUser.photoURL||"";
-      await window.storage.set(`planner-${u}-profile`,JSON.stringify({displayName,photoURL})).catch(()=>{});
-      onSuccess(u,photoURL);
+      // O servidor confere o convite, cria a conta se for o primeiro acesso e devolve o token
+      const r=await callFn("loginGoogle");
+      const u=await enterWithToken(r);
+      onSuccess(u,firebaseUser.photoURL||"");
     }catch(e){
-      if(e.code!=="auth/popup-closed-by-user")setError("Erro ao entrar com Google. Tente novamente.");
+      if(e.code==="permission-denied"){await firebaseSignOut().catch(()=>{});setError(e.message);}
+      else if(e.code!=="auth/popup-closed-by-user")setError("Erro ao entrar com Google. Tente novamente.");
       setLoading(false);
     }
   };
@@ -572,10 +478,8 @@ function InviteGate({invitedEmail,onSuccess,onBack,theme}){
   useEffect(()=>{
     (async()=>{
       try{
-        const already=await isEmailRegistered(invitedEmail);
-        if(already){setStatus("registered");return;}
-        const invited=await isEmailInvited(invitedEmail);
-        setStatus(invited?"valid":"invalid");
+        const r=await callFn("inviteStatus",{email:invitedEmail});
+        setStatus(r.status==="registered"||r.status==="valid"?r.status:"invalid");
       }catch{setStatus("invalid");}
     })();
   },[]);
@@ -603,15 +507,12 @@ function FirstAccessScreen({ invitedEmail, onSuccess, onBack, theme }) {
     if (password !== confirm) { setError("As senhas não coincidem."); return; }
     setLoading(true); setError("");
     try {
-      const base = invitedEmail.split("@")[0].toLowerCase().replace(/[^a-z0-9]/g,"");
-      let u = base; let suffix = 1;
-      while (CREDENTIALS[u] || (await window.storage.get(`${USER_CREDS_PREFIX}${u}`).catch(()=>null))?.value) { u = `${base}${suffix++}`; }
-      const hash = await hashStr(`${u}:${password}`);
-      await saveDynamicCred(u, hash, invitedEmail);
-      await window.storage.set(`planner-${u}-profile`, JSON.stringify({ displayName: dname, photoURL: "" })).catch(() => {});
+      // O servidor confere o convite, gera o username e grava a senha (hash) e o perfil
+      const r = await callFn("register", { email: invitedEmail, displayName: dname, password });
+      const u = await enterWithToken(r);
       onSuccess(u);
     } catch (e) {
-      setError("Erro ao criar conta. Tente novamente.");
+      setError(["invalid-argument","permission-denied","already-exists"].includes(e.code) ? e.message : "Erro ao criar conta. Tente novamente.");
     }
     setLoading(false);
   };
@@ -694,14 +595,15 @@ function AdminPanel({ onClose, theme }) {
     if (!email || !email.includes("@")) { setMsg("E-mail inválido."); return; }
     if (invites.some(i => i.email === email)) { setMsg("Este e-mail já foi convidado."); return; }
     setSaving(true); setMsg("");
-    const updated = [...invites, { email, createdAt: new Date().toISOString() }];
-    await saveInvites(updated);
-    setInvites(updated); setNewEmail("");
     try {
-      await callSendInviteEmail(email);
+      // O servidor registra o convite e envia o e-mail (só aceita o admin)
+      const r = await callFn("sendInvite", { email });
+      setInvites(r.invites || [...invites, { email, createdAt: new Date().toISOString() }]);
+      setNewEmail("");
       setMsg(`✅ Convite enviado para ${email}!`);
     } catch (e) {
-      setMsg(`⚠️ Salvo, mas falha ao enviar e-mail: ${e.message}`);
+      setInvites(await loadInvites());
+      setMsg(`⚠️ Falha ao convidar: ${e.message}`);
     }
     setSaving(false);
     setTimeout(() => setMsg(""), 5000);
@@ -909,12 +811,12 @@ function ResetPasswordScreen({ token, onSuccess, theme }) {
   useEffect(() => {
     async function verifyToken() {
       try {
-        const r = await window.storage.get(`${RESET_TOKEN_PREFIX}${token}`).catch(() => null);
-        if (!r || !r.value) { setTokenError("Link inválido ou expirado."); return; }
-        const data = JSON.parse(r.value);
-        if (Date.now() > data.expiresAt) { setTokenError("Este link expirou. Solicite um novo reset de senha."); return; }
+        // Sem senha, o servidor só valida o link e devolve o username
+        const data = await callFn("resetPassword", { token });
         setTokenData(data);
-      } catch { setTokenError("Erro ao validar link. Tente novamente."); }
+      } catch (e) {
+        setTokenError(["invalid-argument","not-found"].includes(e.code) ? e.message : "Erro ao validar link. Tente novamente.");
+      }
     }
     verifyToken();
   }, [token]);
@@ -924,33 +826,12 @@ function ResetPasswordScreen({ token, onSuccess, theme }) {
     if (password !== confirm) { setError("As senhas não coincidem."); return; }
     setLoading(true); setError("");
     try {
-      const u = tokenData.username.toLowerCase().trim();
-      const hash = await hashStr(`${u}:${password}`);
-      const keys = await window.storage.list(USER_CREDS_PREFIX).catch(() => ({ keys: [] }));
-      let savedAny = false;
-      for (const k of (keys.keys || [])) {
-        try {
-          const r = await window.storage.get(k);
-          if (r && r.value) {
-            const d = JSON.parse(r.value);
-            if (d.username && d.username.toLowerCase() === u) {
-              await window.storage.set(k, JSON.stringify({ ...d, hash }));
-              savedAny = true;
-            }
-          }
-        } catch (e) {
- }
-      }
-      if (!savedAny) {
-        const newKey = `${USER_CREDS_PREFIX}${u}`;
-        await window.storage.set(newKey, JSON.stringify({ username: u, email: tokenData.email || "", hash }));
-      }
-      await window.storage.delete(`${RESET_TOKEN_PREFIX}${token}`).catch(() => {});
-      // Limpar sessão para forçar login com a nova senha
-      // Não escrever mais AUTH_KEY/USER_KEY no Firestore — sessão é 100% localStorage
+      // O servidor grava o novo hash e apaga o token; o usuário entra de novo com a nova senha
+      await callFn("resetPassword", { token, password });
       setDone(true);
     } catch (e) {
- setError("Erro ao redefinir senha. Tente novamente."); }
+      setError(["invalid-argument","not-found"].includes(e.code) ? e.message : "Erro ao redefinir senha. Tente novamente.");
+    }
     setLoading(false);
   };
 
@@ -1027,16 +908,8 @@ function ForgotPasswordScreen({ onBack, theme }) {
     if (!em || !em.includes("@")) { setError("Digite um e-mail válido."); return; }
     setLoading(true); setError("");
     try {
-      // Verificar se email tem conta criada
-      const username = await getUsernameByEmail(em);
-      if (!username) { setError("Nenhuma conta encontrada com este e-mail."); setLoading(false); return; }
-      // Gerar token único
-      const token = Array.from(crypto.getRandomValues(new Uint8Array(24))).map(b=>b.toString(16).padStart(2,"0")).join("");
-      const expiresAt = Date.now() + 60 * 60 * 1000; // 1 hora
-      await window.storage.set(`${RESET_TOKEN_PREFIX}${token}`, JSON.stringify({ username, email: em, expiresAt }));
-      const appBase = "https://plannersemanal.com/";
-      const resetUrl = `${appBase}?reset=${token}`;
-      await callSendResetEmail(em, resetUrl);
+      // O servidor confere se a conta existe, gera o token de 1 hora e envia o e-mail
+      await callFn("requestPasswordReset", { email: em });
       setSent(true);
     } catch (e) { setError(e.message || "Erro ao enviar. Tente novamente."); }
     setLoading(false);
@@ -1087,6 +960,7 @@ function ForgotPasswordScreen({ onBack, theme }) {
 function LoginScreen({ onLogin, theme }) {
   const [email,setEmail]=useState(""); const [pin,setPin]=useState("");
   const [error,setError]=useState(false); const [shake,setShake]=useState(false);
+  const [errorMsg,setErrorMsg]=useState("");
   const [googleLoading, setGoogleLoading] = useState(false);
   const [googleError, setGoogleError] = useState("");
   const [showForgot, setShowForgot] = useState(false);
@@ -1098,27 +972,32 @@ function LoginScreen({ onLogin, theme }) {
   const handleSubmit = async () => {
     if(!email.trim()||!pin){setError(true);setShake(true);setTimeout(()=>setShake(false),500);setTimeout(()=>setError(false),2000);return;}
     const em = email.trim().toLowerCase();
-    // Resolver username a partir do e-mail
-    let resolvedUser = em.includes("@") ? (await getUsernameByEmail(em) || em) : em;
-    if(await verifyCredentials(resolvedUser,pin)){onLogin(resolvedUser,"");}
-    else{setError(true);setShake(true);setTimeout(()=>setShake(false),500);setTimeout(()=>setError(false),2000);}
+    try {
+      // A senha é conferida no servidor, que devolve o token da sessão
+      const r = await callFn("login", { login: em, password: pin });
+      const u = await enterWithToken(r);
+      onLogin(u, "");
+    } catch (e) {
+      setErrorMsg(e.code === "resource-exhausted" ? e.message : (e.code === "permission-denied" || e.code === "invalid-argument") ? "" : "Não foi possível entrar agora. Verifique a conexão e tente de novo.");
+      setError(true);setShake(true);setTimeout(()=>setShake(false),500);setTimeout(()=>setError(false),e.code==="resource-exhausted"?6000:2500);
+    }
   };
 
   const handleGoogle = async () => {
     setGoogleLoading(true); setGoogleError("");
     try {
       const firebaseUser = await signInWithGoogle();
-      const em = firebaseUser.email.toLowerCase();
       const googlePhoto = firebaseUser.photoURL || "";
-      if (GMAIL_MAP[em]) { onLogin(GMAIL_MAP[em], googlePhoto); return; }
-      const username = await getUsernameByEmail(em);
-      if (username) { onLogin(username, googlePhoto); return; }
-      const invited = await isEmailInvited(em);
-      if (invited) { setFirstAccessEmail(em); return; }
-      await firebaseSignOut();
-      setGoogleError("Este e-mail não está autorizado. Solicite um convite ao administrador.");
+      // O servidor mapeia o e-mail para o usuário (e cria a conta se houver convite)
+      const r = await callFn("loginGoogle");
+      const u = await enterWithToken(r);
+      onLogin(u, googlePhoto);
+      return;
     } catch (e) {
-      if (e.code !== "auth/popup-closed-by-user") {
+      if (e.code === "permission-denied") {
+        await firebaseSignOut().catch(() => {});
+        setGoogleError(e.message);
+      } else if (e.code !== "auth/popup-closed-by-user") {
         setGoogleError("Erro ao entrar com Google. Tente novamente.");
       }
     }
@@ -1152,7 +1031,7 @@ function LoginScreen({ onLogin, theme }) {
           <input id="pin-input" type="password" value={pin} onChange={e=>setPin(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleSubmit()} placeholder="sua senha"
             style={{width:"100%",boxSizing:"border-box",marginTop:6,padding:"12px 16px",fontSize:15,background:c.inputBg,border:`2px solid ${error?"#EF4444":c.inputBorder}`,borderRadius:12,color:c.inputText,outline:"none",fontFamily:F,transition:"border-color 0.2s ease"}}/>
         </div>
-        {error&&<p style={{color:"#EF4444",fontSize:13,margin:"10px 0 0"}}>E-mail ou senha incorretos</p>}
+        {error&&<p style={{color:"#EF4444",fontSize:13,margin:"10px 0 0"}}>{errorMsg||"E-mail ou senha incorretos"}</p>}
         <button onClick={handleSubmit} style={{width:"100%",marginTop:18,padding:"14px",background:"linear-gradient(135deg,#3B82F6,#8B5CF6)",border:"none",borderRadius:14,color:"#fff",fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:F}}>Entrar</button>
 
         <div style={{display:"flex",alignItems:"center",gap:12,margin:"18px 0"}}>
@@ -1487,8 +1366,42 @@ function getDriveEmbed(url){try{const m=url.match(/\/d\/([a-zA-Z0-9_-]+)/);retur
 function getLoomEmbed(url){try{const m=url.match(/loom\.com\/share\/([a-zA-Z0-9]+)/);return m?`https://www.loom.com/embed/${m[1]}`:null;}catch{return null;}}
 function getVideoEmbed(url){return getYoutubeEmbed(url)||getVimeoEmbed(url)||getDriveEmbed(url)||getLoomEmbed(url)||null;}
 
+/* ─── Limites de anexo ───
+   Todas as semanas ficam num único documento do Firestore (máx. 1 MiB), então
+   anexos precisam ser pequenos: imagem é redimensionada e comprimida no navegador,
+   vídeo e documento têm teto de tamanho (para arquivo grande, use um link). */
+const IMG_MAX_DIM = 1600;
+const IMG_TARGET_BYTES = 250 * 1024;
+const FILE_MAX_BYTES = 400 * 1024;
+const WEEK_DOC_WARN_BYTES = 850 * 1024;
+const dataUrlBytes = (s) => Math.round((s.length - s.indexOf(",") - 1) * 0.75);
+const fmtKB = (b) => b >= 1024 * 1024 ? `${(b / 1024 / 1024).toFixed(1)} MB` : `${Math.round(b / 1024)} KB`;
+
+async function compressImage(file){
+  const url=URL.createObjectURL(file);
+  try{
+    const img=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=url;});
+    let scale=Math.min(1,IMG_MAX_DIM/Math.max(img.naturalWidth,img.naturalHeight));
+    let quality=0.82,out="";
+    for(let attempt=0;attempt<8;attempt++){
+      const canvas=document.createElement("canvas");
+      canvas.width=Math.max(1,Math.round(img.naturalWidth*scale));
+      canvas.height=Math.max(1,Math.round(img.naturalHeight*scale));
+      const ctx=canvas.getContext("2d");
+      ctx.fillStyle="#FFFFFF";ctx.fillRect(0,0,canvas.width,canvas.height); // PNG transparente vira fundo branco no JPEG
+      ctx.drawImage(img,0,0,canvas.width,canvas.height);
+      out=canvas.toDataURL("image/jpeg",quality);
+      if(dataUrlBytes(out)<=IMG_TARGET_BYTES)break;
+      if(quality>0.55)quality-=0.1;else scale*=0.8;
+    }
+    return out;
+  }finally{URL.revokeObjectURL(url);}
+}
+
 /* ─── AttachmentSection (reutilizável no modal e no AddTaskInput) ─── */
 function AttachmentSection({attachments,setAttachments,color,tc,compact=false}){
+  const [attachError,setAttachError]=useState("");
+  const [processing,setProcessing]=useState(false);
   const [showMenu,setShowMenu]=useState(false);
   const [menuPos,setMenuPos]=useState(null);
   const [showLinkInput,setShowLinkInput]=useState(false);
@@ -1516,18 +1429,32 @@ function AttachmentSection({attachments,setAttachments,color,tc,compact=false}){
     setShowMenu(v=>!v);setShowLinkInput(false);
   };
 
-  const handleMedia=(e)=>{
-    const f=e.target.files[0];if(!f)return;
-    const type=f.type.startsWith("video/")?"video_file":"image";
+  const readSmallFile=(f,type)=>{
+    if(f.size>FILE_MAX_BYTES){
+      setAttachError(`"${f.name}" tem ${fmtKB(f.size)}. O limite para ${type==="video_file"?"vídeo":"documento"} é ${fmtKB(FILE_MAX_BYTES)}: envie o arquivo para o Drive ou YouTube e anexe o link.`);
+      return;
+    }
     const reader=new FileReader();
     reader.onload=(ev)=>setAttachments(prev=>[...prev,{type,name:f.name,data:ev.target.result}]);
-    reader.readAsDataURL(f);e.target.value="";setShowMenu(false);
+    reader.readAsDataURL(f);
+  };
+  const handleMedia=async(e)=>{
+    const f=e.target.files[0];e.target.value="";setShowMenu(false);setAttachError("");
+    if(!f)return;
+    if(f.type.startsWith("video/")){readSmallFile(f,"video_file");return;}
+    setProcessing(true);
+    try{
+      const data=await compressImage(f);
+      setAttachments(prev=>[...prev,{type:"image",name:f.name.replace(/\.[^.]+$/,"")+".jpg",data}]);
+    }catch{
+      setAttachError(`Não foi possível processar a imagem "${f.name}". Tente outro formato (JPG ou PNG).`);
+    }
+    setProcessing(false);
   };
   const handleDoc=(e)=>{
-    const f=e.target.files[0];if(!f)return;
-    const reader=new FileReader();
-    reader.onload=(ev)=>setAttachments(prev=>[...prev,{type:"document",name:f.name,data:ev.target.result}]);
-    reader.readAsDataURL(f);e.target.value="";setShowMenu(false);
+    const f=e.target.files[0];e.target.value="";setShowMenu(false);setAttachError("");
+    if(!f)return;
+    readSmallFile(f,"document");
   };
   const addLink=()=>{
     const url=linkVal.trim();if(!url)return;
@@ -1558,8 +1485,9 @@ function AttachmentSection({attachments,setAttachments,color,tc,compact=false}){
       {/* Botão + menu */}
       <button ref={btnRef} onClick={openMenu} style={{display:"flex",alignItems:"center",gap:5,padding:compact?"5px 10px":"7px 13px",borderRadius:8,border:`1px dashed ${color}45`,background:"transparent",color:color,fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:F,transition:"all 0.2s"}} onMouseEnter={e=>e.currentTarget.style.background=`${color}10`} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        Anexar
+        {processing?"Processando imagem...":"Anexar"}
       </button>
+      {attachError&&<p style={{margin:"6px 0 0",fontSize:11,color:"#EF4444",fontFamily:F,lineHeight:1.4}}>{attachError}</p>}
 
       {showMenu&&menuPos&&(
         <div ref={menuRef} style={{position:"fixed",top:menuPos.top,left:menuPos.left,zIndex:9999,background:tc.modalBg,border:`1px solid ${tc.cardBorder}`,borderRadius:12,padding:6,boxShadow:"0 4px 24px rgba(0,0,0,0.45)",minWidth:190,animation:"fadeIn 0.15s ease"}}>
@@ -2129,6 +2057,20 @@ function UserSettingsModal({userName,profile,onSave,onClose,c}){
 
 /* ─── Changelog (editar aqui para adicionar novidades) ─── */
 const CHANGELOG = [
+  {
+    version: "v2.35",
+    date: "02/11/2026",
+    badge: "melhoria",
+    title: "Login mais seguro e anexos mais leves",
+    items: [
+      "A senha agora é conferida no servidor e cada pessoa só acessa os próprios dados",
+      "Depois de 5 senhas erradas, o login fica bloqueado por 15 minutos",
+      "Na primeira vez depois da atualização, será preciso entrar de novo com e-mail e senha (ou Google)",
+      "Fotos anexadas são reduzidas automaticamente, sem perder qualidade visível",
+      "Vídeos e documentos têm limite de 400 KB; para arquivos maiores, anexe o link do Drive ou YouTube",
+      "Um aviso aparece se as suas semanas chegarem perto do limite de sincronização",
+    ],
+  },
   {
     version: "v2.34",
     date: "02/11/2026",
@@ -2778,6 +2720,7 @@ export default function App(){
   const theme=useTheme();
   const c=theme.t;
   const [authed,setAuthed]=useState(false);
+  const [checkingSession,setCheckingSession]=useState(true);
   const [userName,setUserName]=useState("");
   const [weeks,setWeeks]=useState([]);
   const [activeWeekIdx,setActiveWeekIdx]=useState(0);
@@ -2837,38 +2780,49 @@ export default function App(){
     handleResize();
     return()=>window.removeEventListener("resize",handleResize);
   },[]);
-  // ─── Sessão: lida 100% do localStorage para evitar logout involuntário no mobile ───
-  // O iOS/Safari pode limpar o Firestore cache mas o localStorage persiste por sessão de app.
-  // Formato: { user, token, ts } salvo como JSON em SESSION_TOKEN_KEY
+  // ─── Sessão: o localStorage guarda { user, token, ts }, mas ela só vale se o
+  // Firebase Auth (persistido pelo SDK) confirmar o mesmo usuário. Editar o
+  // localStorage não dá acesso a nada: sem o uid certo o app volta para o login.
   useEffect(()=>{
-    try{
-      const raw=localStorage.getItem(SESSION_TOKEN_KEY);
-      if(!raw)return; // sem sessão salva → permanece na tela de login
-      const sess=JSON.parse(raw);
-      if(!sess||!sess.user||!sess.token)return;
-      // Sessão válida — restaurar imediatamente sem await de rede
-      const uname=sess.user;
-      setAuthed(true);
-      setUserName(uname);
-      loadUserPrefs(uname);
-      // Carregar perfil (Firestore, non-blocking)
-      window.storage.get(`planner-${uname}-profile`).then(pr=>{
-        if(pr&&pr.value)setUserProfile(JSON.parse(pr.value));
-      }).catch(()=>{});
-      // Atualizar last-seen no Firestore em background
-      window.storage.set(`last-seen-${uname}`,String(Date.now())).catch(()=>{});
-    }catch{/* localStorage corrompido → fica no login */}
+    let raw=null;
+    try{raw=localStorage.getItem(SESSION_TOKEN_KEY);}catch{}
+    if(!raw){setCheckingSession(false);return;} // sem sessão salva → tela de login
+    (async()=>{
+      try{
+        const sess=JSON.parse(raw);
+        await authReady();
+        if(!sess||!sess.user||currentUid()!==sess.user){
+          // Sessão antiga ou forjada: pede login de novo, mas mantém o cache local
+          // (pendências da v2.34) para o mesmo usuário recuperar depois de entrar
+          try{localStorage.removeItem(SESSION_TOKEN_KEY);}catch{}
+          setCheckingSession(false);
+          return;
+        }
+        const uname=sess.user;
+        setAuthed(true);
+        setUserName(uname);
+        loadUserPrefs(uname);
+        setCheckingSession(false);
+        // Carregar perfil (Firestore, non-blocking)
+        window.storage.get(`planner-${uname}-profile`).then(pr=>{
+          if(pr&&pr.value)setUserProfile(JSON.parse(pr.value));
+        }).catch(()=>{});
+        // Atualizar last-seen no Firestore em background
+        window.storage.set(`last-seen-${uname}`,String(Date.now())).catch(()=>{});
+      }catch{setCheckingSession(false);/* localStorage corrompido → fica no login */}
+    })();
   },[]);
 
   const userProfileKey=(u)=>`planner-${u}-profile`;
   const handleLogin=useCallback(async(user,googlePhoto="")=>{
-    // Limpar TODO o cache do localStorage antes de carregar novo usuário
-    // Isso garante que dados cacheados de sessões anteriores não vazem
+    // Limpa o cache de outros usuários antes de carregar este (evita vazamento entre contas),
+    // mas preserva as chaves do próprio usuário, que podem ter pendências de sincronização
+    const ownKey=(k)=>k==='planner-theme'||k.startsWith(`gestor-${user}-`)||k.startsWith(`planner-${user}-`)||k.startsWith(`last-seen-${user}`);
     try{
       const keysToRemove=[];
       for(let i=0;i<localStorage.length;i++){
         const k=localStorage.key(i);
-        if(k&&k!=='planner-theme')keysToRemove.push(k);
+        if(k&&!ownKey(k))keysToRemove.push(k);
       }
       keysToRemove.forEach(k=>localStorage.removeItem(k));
     }catch{}
@@ -2924,6 +2878,7 @@ export default function App(){
       }
       keysToRemove.forEach(k=>localStorage.removeItem(k));
     }catch{}
+    firebaseSignOut().catch(()=>{});
     setAuthed(false);setUserName("");setWeeks([]);setHistory([]);setLoading(true);
   },[]);
 
@@ -2973,7 +2928,15 @@ export default function App(){
 
   const activeUserRef=useRef("");
 
-  useEffect(()=>{if(weeks.length>0&&!loading&&userName&&userName===activeUserRef.current)window.storage.set(userDataKey(userName),JSON.stringify(weeks)).catch(()=>{});},[weeks,loading,userName]);
+  // Tamanho do documento das semanas: o Firestore recusa acima de 1 MiB (anexos pesam)
+  const [weeksBytes,setWeeksBytes]=useState(0);
+  useEffect(()=>{
+    if(weeks.length>0&&!loading&&userName&&userName===activeUserRef.current){
+      const json=JSON.stringify(weeks);
+      setWeeksBytes(new TextEncoder().encode(json).length);
+      window.storage.set(userDataKey(userName),json).catch(()=>{});
+    }
+  },[weeks,loading,userName]);
   useEffect(()=>{if(weeks.length>0){const p=weeks[activeWeekIdx]?.projects;if(p){const a={};p.forEach(pr=>{a[pr.id]=true;});setExpanded(a);}}},[activeWeekIdx]);
 
   const projects=weeks[activeWeekIdx]?.projects||[];
@@ -3127,6 +3090,7 @@ export default function App(){
   const inviteParam = (() => { try { const p = new URLSearchParams(window.location.search); const inv = p.get("invite"); return inv ? decodeURIComponent(inv) : null; } catch { return null; } })();
   if (inviteParam) return <InviteGate invitedEmail={inviteParam} onSuccess={(username, photo="") => { try { window.history.replaceState({},"",(window.location.pathname)); } catch {} handleLogin(username, photo); }} onBack={() => { try { window.history.replaceState({},"",(window.location.pathname)); } catch {} window.location.replace(window.location.pathname); }} theme={theme} />;
 
+  if(checkingSession) return(<div style={{minHeight:"100vh",background:c.bg,display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{color:c.textMuted,fontSize:16,fontFamily:F}}>Carregando...</div></div>);
   if(!authed) return <LoginScreen onLogin={handleLogin} theme={theme}/>;
   if(loading||weeks.length===0) return(<div style={{minHeight:"100vh",background:c.bg,display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{color:c.textMuted,fontSize:16,fontFamily:F}}>Carregando...</div></div>);
 
@@ -3198,6 +3162,12 @@ export default function App(){
             <button className="logout-btn header-btn" onClick={handleLogout} title="Sair" style={{background:c.btnBg,border:`1px solid ${c.btnBorder}`,borderRadius:10,padding:"8px 10px",cursor:"pointer",lineHeight:1,display:"flex",alignItems:"center",justifyContent:"center"}}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={c.textSub} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
           </div>
         </div>
+
+        {weeksBytes>WEEK_DOC_WARN_BYTES&&(
+          <div style={{marginBottom:12,padding:"10px 14px",borderRadius:12,background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.3)",color:"#EF4444",fontSize:12,lineHeight:1.5,fontFamily:F}}>
+            Suas semanas estão ocupando {fmtKB(weeksBytes)} e o limite de sincronização é 1 MB. {weeksBytes>=1024*1024?"As alterações não estão sendo salvas no servidor.":"Perto do limite, as alterações param de ser salvas no servidor."} Remova anexos grandes (fotos e vídeos antigos) ou troque por links.
+          </div>
+        )}
 
         {/* Week Selector */}
         <div style={{background:isCurrentWeek?c.weekBg:c.weekNextBg,border:`1px solid ${c.cardBorder}`,borderRadius:16,padding:"16px 20px",marginBottom:16,transition:"all 0.3s ease"}}>
