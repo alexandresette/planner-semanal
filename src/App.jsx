@@ -2130,6 +2130,18 @@ function UserSettingsModal({userName,profile,onSave,onClose,c}){
 /* ─── Changelog (editar aqui para adicionar novidades) ─── */
 const CHANGELOG = [
   {
+    version: "v2.34",
+    date: "02/11/2026",
+    badge: "melhoria",
+    title: "Sincronização mais segura",
+    items: [
+      "Se a conexão com o servidor falhar, o app tenta se reconectar sozinho a cada 10 segundos",
+      "Alterações feitas sem conexão sobem quando a conexão volta, desde que ninguém tenha mudado a mesma semana em outro aparelho",
+      "Se houver conflito, a sua cópia local é guardada como backup antes de ser substituída, nada se perde",
+      "E-mails de convite e de redefinição de senha agora só saem para convites e pedidos válidos",
+    ],
+  },
+  {
     version: "v2.33",
     date: "18/05/2026",
     badge: "novo",

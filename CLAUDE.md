@@ -68,11 +68,12 @@ Coleção `storage` no Firestore, um documento por chave (valor em JSON string):
 - `last-seen-${user}`: timestamp do último acesso (mostrado no painel admin)
 - `reset-token-${token}`: `{ username, email, expiresAt }`, vale 1 hora
 - `whats-new-pinned`: versão de novidade fixada pelo admin
+- `backup-${chave}-${timestamp}`: cópia local pendente que perdeu para o Firestore numa sincronização (ver Sincronização)
 
 Projeto: `{ id, name, emoji, color, tasks }`.
 Tarefa: `{ id, text, description, done, priority: "high"|"medium"|"low", day: "dom"|"seg"|"ter"|"qua"|"qui"|"sex"|"sab", attachments: [{ type: "image"|"video_file"|"link"|"document", name, data }] }`. Em imagem, vídeo e documento, `data` é data URL base64 gravada dentro do documento do Firestore.
 
-localStorage: `planner-theme`, `gestor-session-token` (`{ user, token, ts }`), `planner-${user}-viewMode`, `planner-${user}-layoutMode`, `planner-${user}-focosOpen`, `whats-new-last-seen`. Login e logout apagam todo o localStorage exceto `planner-theme`.
+localStorage: cache de cada chave do Firestore com `${chave}__meta` (`{ updatedAt, baseUpdatedAt, pendingSync? }`) e `${chave}__backup_${ts}`; `planner-theme`, `gestor-session-token` (`{ user, token, ts }`), `planner-${user}-viewMode`, `planner-${user}-layoutMode`, `planner-${user}-focosOpen`, `whats-new-last-seen`. Login e logout apagam todo o localStorage exceto `planner-theme`.
 
 ## Funcionalidades atuais
 
@@ -112,6 +113,15 @@ localStorage: `planner-theme`, `gestor-session-token` (`{ user, token, ts }`), `
 
 **Perfil**
 - Foto com upload e recorte circular via canvas, nome de exibição, avatar no header, foto do Google no login, dias ativos
+
+**Sincronização (storage.js)**
+- `ensureAuth()` tenta o login anônimo de novo a cada 10s se ele falhou, então uma aba aberta se recupera sozinha quando o Firebase volta
+- Gravação que falha fica no localStorage com `pendingSync` e a `baseUpdatedAt` (versão do Firestore sobre a qual foi feita)
+- No próximo `get`, a pendência sobe se o Firestore ainda está na mesma base; se mudou (ou não há base conhecida), a cópia local vira `backup-*` no Firestore e o remoto vence
+
+**E-mail (functions)**
+- `sendInviteEmail` só envia para e-mails presentes em `admin-invites`
+- `sendResetEmail` ignora o link vindo do cliente: extrai o token, confere `reset-token-*` (e-mail e validade) e monta o link com `APP_URL`
 
 **PWA**
 - `manifest.json`, ícones e `sw.js` (cache `planner-semanal-v1`)
@@ -189,10 +199,16 @@ A autenticação do push vem do `gh` (rodar `gh auth setup-git` uma vez se o git
 - **Firestore via REST** exige bearer token do Firebase Auth (anônimo serve).
 - **Chave de API com um caractere errado** derrubou o login Google uma vez. Na dúvida, comparar com o Console do Firebase.
 - **Pull travado por arquivo local não versionado.** Um `functions/package-lock.json` solto bloqueou o `git pull` na migração para local. Guardar com `git stash push -u -- <pasta>` em vez de apagar, e decidir depois.
+- **Login anônimo bloqueado derruba o app inteiro em silêncio.** Em 2026-11 o Firebase passou a recusar `signInAnonymously` com `auth/admin-restricted-operation` (opção de criar contas desligada em Authentication > Settings > User actions). Sem auth, as regras devolvem `permission-denied` em tudo, o app roda só com o cache local e usuário novo não entra. Diagnóstico rápido: `accounts:signUp` na Identity Toolkit API devolve `ADMIN_ONLY_OPERATION`.
+- **Cache local não pode vencer o Firestore às cegas, nem ser descartado às cegas.** Sem a `baseUpdatedAt`, um aparelho que carregou os projetos padrão durante a falha subiria esses padrões por cima dos dados reais. Por isso a pendência só sobe com base igual à remota; o resto vira backup.
+- **Function de e-mail que aceita link do cliente é um relay de phishing.** Montar o link no servidor a partir de um token validado.
 - **`npm run build` reescreve o `docs/` versionado.** Para só validar o ambiente, buildar em pasta temporária com `--outDir`.
 
 ## Pendências conhecidas (confirmar se ainda estão abertas)
 
+- URGENTE (2026-11-02): ligar "Enable create (sign-up)" em Authentication > Settings > User actions e conferir Anonymous e Google em Sign-in method. Sem isso o app não sincroniza e usuário novo não entra.
+- Deploy das functions travado: o Firebase CLI do Mac está logado em outra conta. Rodar `firebase login:add` com a conta dona do `planner-semanal-7`, depois `cd functions && firebase deploy --only functions --project planner-semanal-7`.
+- Revisar documentos `backup-*` no Firestore depois que a sincronização voltar e restaurar à mão o que for necessário.
 - CHANGELOG parado em v2.33: v2.33.1, v2.33.2 e os fixes de drag e Enter de maio/2026 não têm entrada. As datas de v2.0 a v2.20 estão com ano 2025 e provavelmente deveriam ser 2026.
 - `type="button"` só em 3 dos 108 botões do App.jsx. Não há `<form>` no app, então o risco hoje é baixo, mas a regra 6 não é cumprida no código antigo.
 - Segurança: a sessão é só `{ user, token }` no localStorage e o token não é validado em lugar nenhum, então editar o localStorage dá acesso a qualquer usuário. O hash de credencial do admin está no bundle público. Avaliar migrar a identidade para o Firebase Auth e regras por `request.auth.uid`.
@@ -222,6 +238,7 @@ Regras: fatos curtos, sem narrar a sessão inteira; nada de segredo; se o arquiv
 
 | Data | Versão | O que mudou |
 |------|--------|-------------|
+| 2026-11-02 | v2.34 | Diagnóstico do login anônimo bloqueado; sincronização com base remota, retry de auth e backup de pendências; functions de e-mail travadas (deploy pendente) |
 | 2026-11-02 | v2.33 (+ fixes) | Projeto migrado para local; CLAUDE.md criado e revisado contra o código (modelo de dados, functions, PWA, relatório, anexos, novidades, pendências) |
 | 2026-05 | v2.32 a v2.33.2 | Drag com Pointer Events, dias ativos configuráveis, fixes de Enter e drag no desktop/iPad |
 | 2026-03 | v2.14 a v2.31 | Perfil com foto, convites por e-mail, login Google, anexos, relatório, novidades fixadas, guia do usuário, domínio plannersemanal.com, regras do Firestore, puxar próxima semana, impressão do histórico |

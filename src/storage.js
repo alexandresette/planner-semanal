@@ -21,24 +21,34 @@ const functions = getFunctions(app, 'southamerica-east1');
 // Auth anônima: garante que todas as requisições ao Firestore tenham um token válido.
 // As Firestore Security Rules exigem request.auth != null — isso bloqueia acesso
 // direto via curl/API mas não expõe identidade do usuário.
-let _authReady = false;
+// Se o login anônimo falhar (rede, ou sign-up desligado no Console), ensureAuth()
+// tenta de novo a cada 10s nas próximas chamadas, para a aba se recuperar sozinha.
 const _authReadyPromise = new Promise(resolve => {
   onAuthStateChanged(auth, user => {
     if (user) {
-      _authReady = true;
       resolve();
     } else {
       signInAnonymously(auth).catch(e => {
         console.warn('[storage] signInAnonymously falhou:', e.code);
-        resolve(); // continuar mesmo sem auth (fallback)
+        resolve(); // continuar mesmo sem auth (fallback local)
       });
     }
   });
 });
 
+let _lastAuthRetry = 0;
 async function ensureAuth() {
-  if (_authReady) return;
   await _authReadyPromise;
+  if (auth.currentUser) return;
+  const now = Date.now();
+  if (now - _lastAuthRetry < 10000) return;
+  _lastAuthRetry = now;
+  try {
+    await signInAnonymously(auth);
+    console.log('[storage] login anônimo recuperado');
+  } catch (e) {
+    console.warn('[storage] nova tentativa de login anônimo falhou:', e.code);
+  }
 }
 
 export async function signInWithGoogle() {
@@ -78,20 +88,58 @@ export async function callSendInviteEmail(email) {
   return response.json();
 }
 
+// Metadados do cache local: { updatedAt, baseUpdatedAt?, pendingSync? }
+// baseUpdatedAt = updatedAt do Firestore sobre o qual a cópia local foi construída.
+// Uma pendência só sobe sozinha se o Firestore não mudou desde essa base;
+// caso contrário vira backup no Firestore (backup-<chave>-<timestamp>) e o remoto vence.
+function readMeta(key) {
+  try { return JSON.parse(localStorage.getItem(key + '__meta') || '{}') || {}; } catch { return {}; }
+}
+function writeMeta(key, meta) {
+  try { localStorage.setItem(key + '__meta', JSON.stringify(meta)); } catch {}
+}
+
+async function backupPending(key, value, meta) {
+  const ts = Date.now();
+  try { localStorage.setItem(`${key}__backup_${ts}`, value); } catch {}
+  try {
+    await setDoc(doc(db, 'storage', `backup-${key}-${ts}`), {
+      value, updatedAt: new Date(ts).toISOString(), localUpdatedAt: meta.updatedAt || null,
+    });
+    console.warn('[storage] pendência local guardada como backup:', `backup-${key}-${ts}`);
+  } catch (e) {
+    console.error('[storage] falha ao guardar backup da pendência:', key, e.code);
+  }
+}
+
 const storage = {
   async get(key) {
     await ensureAuth();
     try {
       const docRef = doc(db, 'storage', key);
       const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        const { value, updatedAt } = docSnap.data();
+      const remote = docSnap.exists() ? docSnap.data() : null;
+
+      // Pendência local (gravação que falhou antes): decide se sobe ou vira backup
+      const meta = readMeta(key);
+      let local = null;
+      try { local = localStorage.getItem(key); } catch {}
+      if (meta.pendingSync && local !== null && (!remote || local !== remote.value)) {
+        const remoteUnchanged = remote && meta.baseUpdatedAt && meta.baseUpdatedAt === remote.updatedAt;
+        if (remoteUnchanged) {
+          console.log('[storage] enviando pendência local:', key);
+          await storage.set(key, local);
+          return { key, value: local };
+        }
+        await backupPending(key, local, meta);
+      }
+
+      if (remote) {
+        const { value, updatedAt } = remote;
         console.log('[storage] ✅ Firestore get OK:', key);
         // Sincroniza cache local com o valor mais recente do Firestore
-        try {
-          localStorage.setItem(key, value);
-          localStorage.setItem(key + '__meta', JSON.stringify({ updatedAt }));
-        } catch {}
+        try { localStorage.setItem(key, value); } catch {}
+        writeMeta(key, { updatedAt, baseUpdatedAt: updatedAt });
         return { key, value };
       }
       // Documento não existe no Firestore — remove cache local desatualizado
@@ -111,23 +159,21 @@ const storage = {
   async set(key, value) {
     await ensureAuth();
     const updatedAt = new Date().toISOString();
+    const prev = readMeta(key);
     try {
       const docRef = doc(db, 'storage', key);
       await setDoc(docRef, { value, updatedAt });
       console.log('[storage] ✅ Firestore set OK:', key);
       // Só atualiza localStorage após confirmação do Firestore
-      try {
-        localStorage.setItem(key, value);
-        localStorage.setItem(key + '__meta', JSON.stringify({ updatedAt }));
-      } catch {}
+      try { localStorage.setItem(key, value); } catch {}
+      writeMeta(key, { updatedAt, baseUpdatedAt: updatedAt });
       return { key, value };
     } catch (e) {
       console.error('[storage] ❌ Firestore set FAILED:', key, e.code, e.message);
-      // Offline: salva localmente com flag de sync pendente
-      try {
-        localStorage.setItem(key, value);
-        localStorage.setItem(key + '__meta', JSON.stringify({ updatedAt, pendingSync: true }));
-      } catch {}
+      // Offline: salva localmente com flag de sync pendente, preservando a base remota conhecida
+      const baseUpdatedAt = prev.pendingSync ? prev.baseUpdatedAt : (prev.baseUpdatedAt || prev.updatedAt);
+      try { localStorage.setItem(key, value); } catch {}
+      writeMeta(key, { updatedAt, pendingSync: true, baseUpdatedAt });
       return { key, value };
     }
   },
